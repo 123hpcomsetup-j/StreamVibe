@@ -1,0 +1,417 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(222, 84%, 4.9%);
+  --foreground: hsl(210, 40%, 98%);
+  --muted: hsl(217, 32.6%, 17.5%);
+  --muted-foreground: hsl(215, 20.2%, 65.1%);
+  --popover: hsl(222, 84%, 4.9%);
+  --popover-foreground: hsl(210, 40%, 98%);
+  --card: hsl(222, 84%, 4.9%);
+  --card-foreground: hsl(210, 40%, 98%);
+  --border: hsl(217, 32.6%, 17.5%);
+  --input: hsl(217, 32.6%, 17.5%);
+  --primary: hsl(245, 83%, 68%);
+  --primary-foreground: hsl(210, 40%, 98%);
+  --secondary: hsl(327, 73%, 67%);
+  --secondary-foreground: hsl(210, 40%, 98%);
+  --accent: hsl(151, 78%, 56%);
+  --accent-foreground: hsl(210, 40%, 98%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --ring: hsl(245, 83%, 68%);
+  --radius: 0.75rem;
+  
+  /* Custom StreamVibe colors */
+  --surface: hsl(215, 28%, 17%);
+  --surface-light: hsl(215, 20%, 25%);
+  --dark: hsl(222, 84%, 4.9%);
+}
+
+.dark {
+  --background: hsl(222, 84%, 4.9%);
+  --foreground: hsl(210, 40%, 98%);
+  --muted: hsl(217, 32.6%, 17.5%);
+  --muted-foreground: hsl(215, 20.2%, 65.1%);
+  --popover: hsl(222, 84%, 4.9%);
+  --popover-foreground: hsl(210, 40%, 98%);
+  --card: hsl(222, 84%, 4.9%);
+  --card-foreground: hsl(210, 40%, 98%);
+  --border: hsl(217, 32.6%, 17.5%);
+  --input: hsl(217, 32.6%, 17.5%);
+  --primary: hsl(245, 83%, 68%);
+  --primary-foreground: hsl(210, 40%, 98%);
+  --secondary: hsl(327, 73%, 67%);
+  --secondary-foreground: hsl(210, 40%, 98%);
+  --accent: hsl(151, 78%, 56%);
+  --accent-foreground: hsl(210, 40%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --ring: hsl(245, 83%, 68%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-dark text-foreground;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+}
+
+@layer components {
+  /* StreamVibe specific component styles */
+  .stream-card {
+    @apply bg-surface border border-slate-700 rounded-xl overflow-hidden hover:bg-surface-light transition-all duration-300 cursor-pointer;
+  }
+
+  .stream-card:hover {
+    @apply transform scale-105 shadow-xl border-primary border-opacity-50;
+  }
+
+  .nav-link {
+    @apply text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200;
+  }
+
+  .nav-link.active {
+    @apply text-white bg-primary bg-opacity-20 border border-primary border-opacity-30;
+  }
+
+  .sidebar-link {
+    @apply flex items-center space-x-3 text-slate-300 hover:text-white hover:bg-surface-light px-4 py-3 rounded-lg transition-all duration-200;
+  }
+
+  .sidebar-link.active {
+    @apply text-primary bg-primary bg-opacity-10 border-r-2 border-primary shadow-lg;
+  }
+
+  .token-package {
+    @apply transition-all duration-300 hover:scale-105 hover:shadow-xl;
+  }
+
+  .live-indicator {
+    @apply bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center animate-pulse;
+  }
+
+  .viewer-count {
+    @apply bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm flex items-center;
+  }
+
+  .creator-badge {
+    @apply bg-primary bg-opacity-20 border border-primary border-opacity-30 rounded-lg p-3 flex items-center space-x-2;
+  }
+
+  .earnings-card {
+    @apply bg-gradient-to-br from-accent to-accent rounded-xl p-6 text-white shadow-lg;
+  }
+
+  .stat-card {
+    @apply bg-surface border border-slate-700 rounded-xl p-6 hover:bg-surface-light transition-colors duration-200;
+  }
+
+  .admin-tab {
+    @apply py-4 px-6 border-b-2 border-transparent text-slate-400 hover:text-white font-medium transition-all duration-200 cursor-pointer;
+  }
+
+  .admin-tab.active {
+    @apply text-primary border-primary bg-primary bg-opacity-5;
+  }
+
+  .category-card {
+    @apply bg-surface border border-slate-700 rounded-lg p-4 text-center cursor-pointer transition-all duration-300 hover:bg-surface-light hover:border-primary hover:scale-105;
+  }
+
+  .chat-message {
+    @apply flex space-x-2 p-2 rounded-lg hover:bg-slate-700 hover:bg-opacity-30 transition-colors duration-200;
+  }
+
+  .payout-card {
+    @apply bg-surface-light border border-slate-600 rounded-lg p-4 hover:bg-slate-600 hover:bg-opacity-50 transition-colors duration-200;
+  }
+
+  .report-card {
+    @apply bg-surface-light border border-slate-600 rounded-lg p-4 hover:bg-slate-600 hover:bg-opacity-30 transition-colors duration-200;
+  }
+
+  .stream-overlay {
+    @apply absolute inset-0 bg-gradient-to-t from-black from-opacity-80 via-transparent to-transparent;
+  }
+
+  .stream-controls {
+    @apply absolute bottom-4 left-4 right-4 flex items-center justify-between;
+  }
+
+  .profile-online {
+    @apply absolute bottom-0 right-0 w-3 h-3 bg-accent rounded-full border-2 border-slate-800 animate-pulse;
+  }
+
+  .tip-animation {
+    @apply animate-bounce text-secondary font-bold;
+  }
+
+  .loading-shimmer {
+    @apply animate-pulse bg-slate-700 rounded;
+  }
+
+  .gradient-text {
+    @apply text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary;
+  }
+
+  .glass-effect {
+    @apply bg-black/20 backdrop-blur-sm border border-white/10;
+  }
+
+  .neon-glow {
+    @apply shadow-lg shadow-primary/25;
+  }
+
+  .success-flash {
+    @apply animate-pulse bg-green-500/20 border border-green-500/50;
+  }
+
+  .error-flash {
+    @apply animate-pulse bg-red-500/20 border border-red-500/50;
+  }
+
+  .creator-status {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium;
+  }
+
+  .creator-status.live {
+    @apply bg-red-500/20 text-red-400 border border-red-500/30;
+  }
+
+  .creator-status.offline {
+    @apply bg-slate-500/20 text-slate-400 border border-slate-500/30;
+  }
+
+  .wallet-balance {
+    @apply bg-surface-light border border-slate-600 rounded-lg px-3 py-2 flex items-center space-x-2;
+  }
+
+  .stream-thumbnail {
+    @apply aspect-video relative overflow-hidden rounded-t-lg;
+  }
+
+  .stream-info {
+    @apply absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/50 to-transparent;
+  }
+
+  .modal-backdrop {
+    @apply fixed inset-0 bg-black/90 z-50;
+  }
+
+  .feature-card {
+    @apply bg-surface/50 border border-slate-700 rounded-lg p-6 hover:bg-surface/70 transition-all duration-300;
+  }
+
+  .hero-section {
+    @apply relative overflow-hidden py-24;
+  }
+
+  .decorative-orb {
+    @apply absolute w-72 h-72 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse;
+  }
+
+  .stats-grid {
+    @apply grid grid-cols-1 md:grid-cols-4 gap-8 text-center;
+  }
+
+  .footer-section {
+    @apply bg-slate-900 border-t border-slate-700;
+  }
+
+  .age-warning {
+    @apply bg-red-900/20 border border-red-500/30 rounded-lg p-3;
+  }
+
+  .compliance-badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary/20 text-primary border border-primary/30;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .bg-surface {
+    background-color: var(--surface);
+  }
+
+  .bg-surface-light {
+    background-color: var(--surface-light);
+  }
+
+  .bg-dark {
+    background-color: var(--dark);
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(245, 83%, 68%) 0%, hsl(327, 73%, 67%) 100%);
+  }
+
+  .gradient-surface {
+    background: linear-gradient(135deg, var(--surface) 0%, var(--surface-light) 100%);
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 20px hsl(245, 83%, 68%, 0.3);
+  }
+  to {
+    box-shadow: 0 0 30px hsl(245, 83%, 68%, 0.6), 0 0 40px hsl(327, 73%, 67%, 0.3);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-light);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(215, 20%, 35%);
+}
+
+/* Focus styles for accessibility */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Selection colors */
+::selection {
+  background-color: hsl(245, 83%, 68%, 0.3);
+  color: var(--foreground);
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .hero-section {
+    @apply py-16;
+  }
+  
+  .decorative-orb {
+    @apply w-48 h-48;
+  }
+  
+  .stream-card:hover {
+    @apply transform-none scale-100;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border: hsl(210, 40%, 98%);
+    --primary: hsl(245, 100%, 75%);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}

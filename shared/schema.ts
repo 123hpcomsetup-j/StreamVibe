@@ -1,0 +1,199 @@
+import { sql, relations } from 'drizzle-orm';
+import {
+  index,
+  jsonb,
+  pgTable,
+  timestamp,
+  varchar,
+  text,
+  integer,
+  decimal,
+  boolean,
+  pgEnum,
+} from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+
+// Session storage table for Replit Auth
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User roles enum
+export const userRoleEnum = pgEnum('user_role', ['viewer', 'creator', 'admin']);
+
+// User storage table for Replit Auth
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  role: userRoleEnum("role").default('viewer'),
+  isOnline: boolean("is_online").default(false),
+  walletBalance: integer("wallet_balance").default(0),
+  isApproved: boolean("is_approved").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Streams table
+export const streams = pgTable("streams", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  creatorId: varchar("creator_id").references(() => users.id).notNull(),
+  title: text("title").notNull(),
+  category: varchar("category").notNull(),
+  isLive: boolean("is_live").default(false),
+  streamUrl: text("stream_url"),
+  viewerCount: integer("viewer_count").default(0),
+  minTip: integer("min_tip").default(5),
+  privateRate: integer("private_rate").default(20),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Transactions table for tips and payments
+export const transactions = pgTable("transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  fromUserId: varchar("from_user_id").references(() => users.id).notNull(),
+  toUserId: varchar("to_user_id").references(() => users.id),
+  tokenAmount: integer("token_amount").notNull(),
+  purpose: varchar("purpose").notNull(), // 'tip', 'private_session', 'token_purchase'
+  streamId: varchar("stream_id").references(() => streams.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Token purchases table
+export const tokenPurchases = pgTable("token_purchases", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  tokens: integer("tokens").notNull(),
+  utrNumber: varchar("utr_number"),
+  status: varchar("status").default('pending'), // 'pending', 'approved', 'rejected'
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Reports table
+export const reports = pgTable("reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  reportedBy: varchar("reported_by").references(() => users.id).notNull(),
+  reportedUser: varchar("reported_user").references(() => users.id).notNull(),
+  reason: text("reason").notNull(),
+  status: varchar("status").default('pending'), // 'pending', 'resolved', 'dismissed'
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Payouts table
+export const payouts = pgTable("payouts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  creatorId: varchar("creator_id").references(() => users.id).notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  utrNumber: varchar("utr_number"),
+  status: varchar("status").default('pending'), // 'pending', 'approved', 'rejected'
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Chat messages table
+export const chatMessages = pgTable("chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  streamId: varchar("stream_id").references(() => streams.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  message: text("message").notNull(),
+  tipAmount: integer("tip_amount").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Relations
+export const usersRelations = relations(users, ({ many }) => ({
+  streams: many(streams),
+  sentTransactions: many(transactions, { relationName: "sentTransactions" }),
+  receivedTransactions: many(transactions, { relationName: "receivedTransactions" }),
+  tokenPurchases: many(tokenPurchases),
+  payouts: many(payouts),
+  chatMessages: many(chatMessages),
+}));
+
+export const streamsRelations = relations(streams, ({ one, many }) => ({
+  creator: one(users, {
+    fields: [streams.creatorId],
+    references: [users.id],
+  }),
+  transactions: many(transactions),
+  chatMessages: many(chatMessages),
+}));
+
+export const transactionsRelations = relations(transactions, ({ one }) => ({
+  fromUser: one(users, {
+    fields: [transactions.fromUserId],
+    references: [users.id],
+    relationName: "sentTransactions",
+  }),
+  toUser: one(users, {
+    fields: [transactions.toUserId],
+    references: [users.id],
+    relationName: "receivedTransactions",
+  }),
+  stream: one(streams, {
+    fields: [transactions.streamId],
+    references: [streams.id],
+  }),
+}));
+
+// Insert schemas
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStreamSchema = createInsertSchema(streams).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertTransactionSchema = createInsertSchema(transactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertTokenPurchaseSchema = createInsertSchema(tokenPurchases).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertReportSchema = createInsertSchema(reports).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPayoutSchema = createInsertSchema(payouts).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Types
+export type UpsertUser = typeof users.$inferInsert;
+export type User = typeof users.$inferSelect;
+export type InsertStream = z.infer<typeof insertStreamSchema>;
+export type Stream = typeof streams.$inferSelect;
+export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
+export type Transaction = typeof transactions.$inferSelect;
+export type InsertTokenPurchase = z.infer<typeof insertTokenPurchaseSchema>;
+export type TokenPurchase = typeof tokenPurchases.$inferSelect;
+export type InsertReport = z.infer<typeof insertReportSchema>;
+export type Report = typeof reports.$inferSelect;
+export type InsertPayout = z.infer<typeof insertPayoutSchema>;
+export type Payout = typeof payouts.$inferSelect;
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type ChatMessage = typeof chatMessages.$inferSelect;
