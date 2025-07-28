@@ -32,6 +32,16 @@ export default function Navbar({ user }: NavbarProps) {
                 <a href="#" className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">
                   Categories
                 </a>
+                {user?.role === 'admin' && (
+                  <a href="/admin-panel" className="text-red-400 hover:text-red-300 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                    Admin Panel
+                  </a>
+                )}
+                {user?.role === 'creator' && (
+                  <a href="/creator-dashboard" className="text-green-400 hover:text-green-300 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                    Creator Dashboard
+                  </a>
+                )}
               </div>
             </div>
           </div>
