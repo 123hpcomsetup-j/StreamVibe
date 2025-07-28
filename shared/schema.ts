@@ -119,6 +119,7 @@ export const guestSessions = pgTable("guest_sessions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   streamId: varchar("stream_id").references(() => streams.id).notNull(),
   sessionId: varchar("session_id").notNull(),
+  guestName: varchar("guest_name").notNull(), // Auto-generated guest name
   tokensRemaining: integer("tokens_remaining").default(100),
   viewTimeRemaining: integer("view_time_remaining").default(300), // 5 minutes in seconds
   createdAt: timestamp("created_at").defaultNow(),

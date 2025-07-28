@@ -298,14 +298,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(403).json({ message: "Guest session expired or no tokens remaining" });
         }
         
-        // Create chat message for guest with sender name
+        // Create chat message for guest with auto-generated name
         const chatMessage = await storage.createChatMessage({
           streamId,
           userId: null, // Guests don't have user IDs
           guestSessionId: guestSession.id, // Use guest session ID instead
           message,
           tipAmount: 0, // Guests can't tip
-          senderName: senderName || 'Guest', // Use provided name or default
+          senderName: guestSession.guestName, // Use auto-generated guest name
         });
         
         // Decrement guest tokens
@@ -400,9 +400,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(mockMessage);
       }
       
+      // Get user's real name for authenticated users
+      const user = await storage.getUser(userId);
+      const senderName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username : 'User';
+
       const validatedData = insertChatMessageSchema.parse({
         ...req.body,
         userId,
+        senderName, // Use real user name
       });
 
       const message = await storage.createChatMessage(validatedData);
@@ -537,11 +542,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Stream not found" });
       }
 
+      // Generate random guest name
+      const randomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const guestName = `Guest_${randomId}`;
+
       const guestSession = await storage.createGuestSession({
         streamId,
         sessionId,
         tokensRemaining: 100,
         viewTimeRemaining: 300, // 5 minutes
+        guestName, // Store the generated name
       });
 
       res.json(guestSession);

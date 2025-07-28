@@ -68,6 +68,12 @@ Preferred communication style: Simple, everyday language.
   - WebSocket events notify all users when streams go live or offline immediately
   - Database stream status persists and syncs with real-time WebSocket updates
   - Guest viewers see real-time status changes without page refresh
+✓ **NEW**: Enhanced chat system with proper user identification (January 28, 2025):
+  - Auto-generated guest names (Guest_ABC123 format) for multiple guest users in same stream
+  - Authenticated users display their real profile names from user accounts
+  - Fixed database constraints - guest messages use guestSessionId instead of fake userId
+  - Removed manual name input UI since guest names are automatically generated
+  - Backend automatically provides correct sender names for both guest and authenticated users
 
 ## System Architecture
 
