@@ -24,6 +24,17 @@ Preferred communication style: Simple, everyday language.
 ✓ Added online user status tracking and display on home page
 ✓ Fixed admin logout to redirect back to admin login page instead of main login
 ✓ Fixed admin panel routing - was pointing to wrong component causing 404 errors
+✓ **NEW**: Created separate login portals for improved user experience:
+  - `/creator-login` - Purple-themed portal for content creators
+  - `/user-login` - Blue-themed portal for viewers
+  - `/admin` - Red-themed portal for administrators
+✓ Fixed video preview issues in live streaming - now shows immediately when camera access granted
+✓ Added live chat functionality for viewer-creator interaction during streams
+✓ **NEW**: Enhanced main page with comprehensive "Online Users" section showing all active users with:
+  - User profile pictures and names
+  - Role-based color coding (purple=creator, blue=viewer, red=admin)
+  - Real-time online status indicators
+  - Responsive grid layout for different screen sizes
 
 ## System Architecture
 

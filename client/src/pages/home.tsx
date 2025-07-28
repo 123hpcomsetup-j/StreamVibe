@@ -10,7 +10,7 @@ import StreamModalWebRTC from "@/components/stream-modal-webrtc";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Users, Play, Coins, Heart, Gamepad2, Music, Palette, UtensilsCrossed, Dumbbell, GraduationCap } from "lucide-react";
+import { Users, Play, Coins, Heart, Gamepad2, Music, Palette, UtensilsCrossed, Dumbbell, GraduationCap, Filter } from "lucide-react";
 
 export default function Home() {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -161,6 +161,82 @@ export default function Home() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Online Users */}
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold mb-6 flex items-center">
+              <Users className="mr-2 h-6 w-6 text-green-500" />
+              Online Users ({Array.isArray(onlineUsers) ? onlineUsers.length : 0})
+            </h3>
+            {usersLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                {[...Array(12)].map((_, i) => (
+                  <Card key={i} className="bg-slate-800 animate-pulse">
+                    <CardContent className="p-4 text-center">
+                      <div className="w-16 h-16 bg-slate-700 rounded-full mx-auto mb-3"></div>
+                      <div className="h-4 bg-slate-700 rounded mb-2"></div>
+                      <div className="h-3 bg-slate-700 rounded w-2/3 mx-auto"></div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                {Array.isArray(onlineUsers) && onlineUsers.length === 0 ? (
+                  <div className="col-span-full text-center py-8">
+                    <div className="text-slate-400 text-lg">No users online at the moment</div>
+                    <p className="text-slate-500 mt-2">Be the first to connect!</p>
+                  </div>
+                ) : (
+                  Array.isArray(onlineUsers) && onlineUsers.map((user: any) => (
+                    <Card key={user.id} className="bg-slate-800 border-slate-700 hover:bg-slate-800/80 transition-colors">
+                      <CardContent className="p-4 text-center">
+                        {/* Profile Picture */}
+                        <div className="relative w-16 h-16 mx-auto mb-3">
+                          <img 
+                            src={user.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName || user.username || 'User')}&background=6366f1&color=fff&size=64`}
+                            alt={`${user.firstName || user.username || 'User'}'s profile`}
+                            className="w-full h-full rounded-full object-cover border-2 border-slate-600"
+                          />
+                          {/* Online indicator */}
+                          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 border-slate-800 rounded-full animate-pulse"></div>
+                        </div>
+                        
+                        {/* User Info */}
+                        <div className="space-y-1">
+                          <h4 className="font-medium text-white text-sm truncate">
+                            {user.firstName && user.lastName 
+                              ? `${user.firstName} ${user.lastName}` 
+                              : user.username || 'Anonymous'}
+                          </h4>
+                          <div className="flex items-center justify-center space-x-1">
+                            <Badge 
+                              variant="outline" 
+                              className={`text-xs ${
+                                user.role === 'creator' 
+                                  ? 'border-purple-500 text-purple-400' 
+                                  : user.role === 'admin'
+                                  ? 'border-red-500 text-red-400'
+                                  : 'border-blue-500 text-blue-400'
+                              }`}
+                            >
+                              {user.role || 'viewer'}
+                            </Badge>
+                          </div>
+                          
+                          {/* Status indicator */}
+                          <div className="flex items-center justify-center text-xs text-green-400">
+                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1"></div>
+                            Online
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            )}
           </div>
 
           {/* Live Creators Grid */}
