@@ -8,7 +8,7 @@ import type { User } from "@shared/schema";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import CreatorDashboard from "@/pages/creator-dashboard";
-import AdminPanel from "@/pages/admin-panel";
+import AdminProviderAuth from "@/pages/admin-provider-auth";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -26,7 +26,7 @@ function Router() {
             <Route path="/creator-dashboard" component={CreatorDashboard} />
           )}
           {typedUser?.role === 'admin' && (
-            <Route path="/admin-panel" component={AdminPanel} />
+            <Route path="/admin-panel" component={AdminProviderAuth} />
           )}
         </>
       )}
