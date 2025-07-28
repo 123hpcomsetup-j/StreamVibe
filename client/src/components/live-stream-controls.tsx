@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
-import { Play, Square, Video, VideoOff, Mic, MicOff, Users, Settings, Wifi } from "lucide-react";
+import { Play, Square, Video, VideoOff, Mic, MicOff, Users, Settings, Wifi, MessageCircle, Send } from "lucide-react";
 import { io, Socket } from 'socket.io-client';
 
 interface LiveStreamControlsProps {
@@ -232,7 +232,10 @@ export default function LiveStreamControls({ onStreamStart, onStreamStop }: Live
       setCurrentStreamId(streamId);
       
       try {
-        // Get media stream first
+        // Set streaming state first to show controls
+        setIsStreaming(true);
+        
+        // Get media stream for video preview
         await getMediaStream();
         
         // Start WebRTC streaming if socket is available
@@ -243,8 +246,6 @@ export default function LiveStreamControls({ onStreamStart, onStreamStop }: Live
             username: `${typedUser.firstName || ''} ${typedUser.lastName || ''}`.trim() || 'Creator'
           });
         }
-        
-        setIsStreaming(true);
         
         toast({
           title: "Live Stream Started!",
@@ -473,33 +474,86 @@ export default function LiveStreamControls({ onStreamStart, onStreamStop }: Live
       </Card>
 
       {/* Live Preview */}
-      {localStream && (
+      {isStreaming && (
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
             <CardTitle className="text-white">Live Preview</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="relative bg-black rounded-lg overflow-hidden">
-              <video
-                ref={localVideoRef}
-                autoPlay
-                muted
-                playsInline
-                className="w-full h-64 object-cover"
-              />
-              {isStreaming && (
-                <div className="absolute top-4 left-4">
-                  <Badge className="bg-red-500 animate-pulse">
-                    <div className="w-2 h-2 bg-white rounded-full mr-2"></div>
-                    LIVE
-                  </Badge>
+              {localStream ? (
+                <>
+                  <video
+                    ref={localVideoRef}
+                    autoPlay
+                    muted
+                    playsInline
+                    className="w-full h-64 object-cover"
+                  />
+                  <div className="absolute top-4 left-4">
+                    <Badge className="bg-red-500 animate-pulse">
+                      <div className="w-2 h-2 bg-white rounded-full mr-2"></div>
+                      LIVE
+                    </Badge>
+                  </div>
+                  {!isVideoEnabled && (
+                    <div className="absolute inset-0 bg-slate-900/80 flex items-center justify-center">
+                      <VideoOff className="h-12 w-12 text-slate-400" />
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="w-full h-64 flex items-center justify-center">
+                  <div className="text-center">
+                    <Video className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                    <p className="text-slate-400">Setting up camera...</p>
+                  </div>
                 </div>
               )}
-              {!isVideoEnabled && (
-                <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
-                  <VideoOff className="h-12 w-12 text-slate-400" />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Live Chat for Viewers */}
+      {isStreaming && currentStreamId && (
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center">
+              <MessageCircle className="mr-2 h-5 w-5" />
+              Live Chat
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Chat Messages */}
+              <div className="h-48 bg-slate-900 rounded-lg p-3 overflow-y-auto">
+                <div className="space-y-2">
+                  <div className="text-slate-400 text-sm text-center">
+                    Chat is live! Viewers can send messages here.
+                  </div>
+                  {/* Sample messages for demo */}
+                  <div className="bg-slate-700 rounded-lg p-2">
+                    <div className="text-blue-400 text-sm font-medium">Viewer123</div>
+                    <div className="text-white text-sm">Great stream! Keep it up! 🎉</div>
+                  </div>
+                  <div className="bg-slate-700 rounded-lg p-2">
+                    <div className="text-green-400 text-sm font-medium">StreamFan</div>
+                    <div className="text-white text-sm">Amazing content as always!</div>
+                  </div>
                 </div>
-              )}
+              </div>
+              
+              {/* Creator Chat Input */}
+              <div className="flex space-x-2">
+                <Input
+                  placeholder="Send a message to viewers..."
+                  className="flex-1 bg-slate-700 border-slate-600"
+                />
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
