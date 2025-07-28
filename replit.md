@@ -59,6 +59,15 @@ Preferred communication style: Simple, everyday language.
   - WebSocket signaling server handles peer connections and ICE candidates
   - STUN servers configured for NAT traversal in real network conditions
   - Home page now shows only authentic data without demo content
+✓ **NEW**: Implemented real-time stream status updates using WebSockets (January 28, 2025):
+  - Added updateStreamStatus method to storage interface for database stream status management
+  - Enhanced WebSocket server with real-time stream status synchronization across all clients
+  - Updated public home page to use WebSocket connections for instant stream status updates
+  - Added proper offline stream handling in guest view with "Stream Ended" messages
+  - Live streams API now filters only truly live streams for accurate real-time display
+  - WebSocket events notify all users when streams go live or offline immediately
+  - Database stream status persists and syncs with real-time WebSocket updates
+  - Guest viewers see real-time status changes without page refresh
 
 ## System Architecture
 

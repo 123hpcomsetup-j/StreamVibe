@@ -37,6 +37,8 @@ export default function GuestStream() {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [peerConnection, setPeerConnection] = useState<RTCPeerConnection | null>(null);
   const [isStreamConnected, setIsStreamConnected] = useState(false);
+  const [streamEnded, setStreamEnded] = useState(false);
+  const [endMessage, setEndMessage] = useState("");
   
   const [guestName, setGuestName] = useState("");
   const [message, setMessage] = useState("");
@@ -222,6 +224,20 @@ export default function GuestStream() {
       }
     });
 
+    // Handle stream ended
+    newSocket.on('stream-ended', (data: { streamId: string, message: string }) => {
+      if (data.streamId === streamId) {
+        setStreamEnded(true);
+        setEndMessage(data.message || 'Live stream has ended');
+        setIsStreamConnected(false);
+        
+        if (peerConnection) {
+          peerConnection.close();
+          setPeerConnection(null);
+        }
+      }
+    });
+
     setSocket(newSocket);
 
     return () => {
@@ -375,7 +391,36 @@ export default function GuestStream() {
           <div className="lg:col-span-2">
             <div className="bg-slate-800 rounded-lg overflow-hidden">
               <div className="aspect-video bg-slate-700 relative">
-                {stream.isLive ? (
+                {streamEnded ? (
+                  // Stream ended during viewing
+                  <div className="w-full h-full flex items-center justify-center bg-slate-900">
+                    <div className="text-center">
+                      <div className="w-20 h-20 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Video className="w-10 h-10 text-slate-400" />
+                      </div>
+                      <h3 className="text-2xl font-semibold text-white mb-3">Live Stream Ended</h3>
+                      <p className="text-slate-400 mb-4">{endMessage}</p>
+                      
+                      <div className="space-y-3">
+                        <Button 
+                          onClick={() => setLocation("/")}
+                          className="bg-primary hover:bg-primary/80"
+                        >
+                          Browse Other Streams
+                        </Button>
+                        <div className="text-center">
+                          <Button 
+                            variant="outline"
+                            onClick={() => setShowSignupDialog(true)}
+                            className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                          >
+                            Sign Up for Notifications
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : stream.isLive ? (
                   <>
                     <video
                       ref={videoRef}
@@ -410,13 +455,14 @@ export default function GuestStream() {
                     )}
                   </>
                 ) : (
+                  // Stream is offline or not started
                   <div className="w-full h-full flex items-center justify-center bg-slate-800">
                     <div className="text-center">
                       <div className="w-20 h-20 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-6">
                         <Video className="w-10 h-10 text-slate-400" />
                       </div>
-                      <h3 className="text-2xl font-semibold text-white mb-3">Stream Ended</h3>
-                      <p className="text-slate-400 mb-4">This stream has finished, but you can still chat and tip the creator!</p>
+                      <h3 className="text-2xl font-semibold text-white mb-3">Stream Offline</h3>
+                      <p className="text-slate-400 mb-4">This creator is not currently live, but you can still chat and tip!</p>
                       
                       {/* Guest overlay for ended streams */}
                       <div className="flex justify-center space-x-2 mb-4">

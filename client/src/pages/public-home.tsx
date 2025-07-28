@@ -1,25 +1,79 @@
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Play, Users, Video, Heart, Coins, ChevronRight } from "lucide-react";
+import { io, Socket } from 'socket.io-client';
 
 export default function PublicHome() {
   const [, setLocation] = useLocation();
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [realTimeStreams, setRealTimeStreams] = useState<any[]>([]);
 
-  const { data: liveStreams = [], isLoading: streamsLoading } = useQuery({
+  const { data: liveStreams = [], isLoading: streamsLoading, refetch: refetchStreams } = useQuery({
     queryKey: ["/api/streams/live"],
     retry: false,
   });
 
-  const { data: onlineUsers = [], isLoading: usersLoading } = useQuery({
+  const { data: onlineUsers = [], isLoading: usersLoading, refetch: refetchUsers } = useQuery({
     queryKey: ["/api/users/online"],
     retry: false,
   });
 
   // Filter only creators who are online
   const onlineCreators = Array.isArray(onlineUsers) ? onlineUsers.filter((user: any) => user.role === 'creator') : [];
+
+  // Initialize real-time updates with WebSocket
+  useEffect(() => {
+    setRealTimeStreams(Array.isArray(liveStreams) ? liveStreams : []);
+  }, [liveStreams]);
+
+  // WebSocket connection for real-time stream status updates
+  useEffect(() => {
+    const newSocket = io(window.location.origin, {
+      transports: ['websocket', 'polling']
+    });
+
+    newSocket.on('connect', () => {
+      console.log('Connected to streaming server for real-time updates');
+      setSocket(newSocket);
+    });
+
+    // Listen for real-time stream status changes
+    newSocket.on('stream-status-changed', (data: { streamId: string, isLive: boolean, viewerCount: number }) => {
+      setRealTimeStreams(prevStreams => {
+        if (data.isLive) {
+          // Stream went live - refresh data to get latest info
+          refetchStreams();
+          refetchUsers();
+          return prevStreams;
+        } else {
+          // Stream went offline - remove from live streams
+          return prevStreams.filter(stream => stream.id !== data.streamId);
+        }
+      });
+    });
+
+    // Listen for viewer count updates
+    newSocket.on('viewer-count-update', (data: { streamId: string, count: number }) => {
+      setRealTimeStreams(prevStreams => 
+        prevStreams.map(stream => 
+          stream.id === data.streamId 
+            ? { ...stream, viewerCount: data.count }
+            : stream
+        )
+      );
+    });
+
+    return () => {
+      newSocket.close();
+    };
+  }, []);
+
+  // Use real-time streams data instead of static query data
+  const displayStreams = realTimeStreams.filter((stream: any) => stream.isLive);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -72,7 +126,7 @@ export default function PublicHome() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 max-w-2xl mx-auto">
               <div className="bg-slate-800/50 rounded-lg p-4">
                 <div className="text-2xl font-bold text-primary mb-1">
-                  {Array.isArray(liveStreams) ? liveStreams.length : 0}
+                  {displayStreams.length}
                 </div>
                 <div className="text-slate-400 text-sm">Live Streams</div>
               </div>
@@ -139,7 +193,7 @@ export default function PublicHome() {
                 </Card>
               ))}
             </div>
-          ) : Array.isArray(liveStreams) && liveStreams.length === 0 ? (
+          ) : displayStreams.length === 0 ? (
             <div className="text-center py-12">
               <Video className="h-16 w-16 text-slate-400 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-slate-300 mb-2">No Live Streams</h3>
@@ -150,7 +204,7 @@ export default function PublicHome() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array.isArray(liveStreams) && liveStreams.slice(0, 6).map((stream: any) => (
+              {displayStreams.slice(0, 6).map((stream: any) => (
                 <Card key={stream.id} className="bg-slate-800 border-slate-700 hover:bg-slate-800/80 transition-colors cursor-pointer group">
                   <div className="aspect-video relative bg-slate-700 rounded-t-lg flex items-center justify-center">
                     {/* Live stream preview placeholder - real WebRTC will connect when clicked */}

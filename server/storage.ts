@@ -40,6 +40,7 @@ export interface IStorage {
   getLiveStreams(): Promise<Stream[]>;
   getStreamById(id: string): Promise<Stream | undefined>;
   updateStream(id: string, updates: Partial<InsertStream>): Promise<Stream>;
+  updateStreamStatus(streamId: string, isLive: boolean): Promise<void>;
   deleteStream(id: string): Promise<void>;
   
   // Transaction operations
@@ -151,6 +152,16 @@ export class DatabaseStorage implements IStorage {
       .where(eq(streams.id, id))
       .returning();
     return updatedStream;
+  }
+
+  async updateStreamStatus(streamId: string, isLive: boolean): Promise<void> {
+    await db
+      .update(streams)
+      .set({ 
+        isLive,
+        updatedAt: new Date()
+      })
+      .where(eq(streams.id, streamId));
   }
 
   async deleteStream(id: string): Promise<void> {

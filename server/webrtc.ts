@@ -1,5 +1,6 @@
 import { Server as SocketIOServer } from 'socket.io';
 import type { Server } from 'http';
+import { storage } from './storage';
 
 interface StreamRoom {
   streamId: string;
@@ -22,22 +23,35 @@ export function setupWebRTC(server: Server) {
     console.log(`User connected: ${socket.id}`);
 
     // Creator starts streaming
-    socket.on('start-stream', (data: { streamId: string, userId: string }) => {
+    socket.on('start-stream', async (data: { streamId: string, userId: string }) => {
       const { streamId, userId } = data;
       
-      // Create stream room
-      activeStreams.set(streamId, {
-        streamId,
-        creatorSocketId: socket.id,
-        viewers: new Set()
-      });
+      try {
+        // Update stream status in database
+        await storage.updateStreamStatus(streamId, true);
+        
+        // Create stream room
+        activeStreams.set(streamId, {
+          streamId,
+          creatorSocketId: socket.id,
+          viewers: new Set()
+        });
 
-      socket.join(`stream-${streamId}`);
-      
-      console.log(`Creator ${userId} started stream ${streamId}`);
-      
-      // Notify all users about new live stream
-      socket.broadcast.emit('new-stream-available', { streamId, creatorId: userId });
+        socket.join(`stream-${streamId}`);
+        
+        console.log(`Creator ${userId} started stream ${streamId}`);
+        
+        // Notify all users about new live stream with real-time update
+        io.emit('stream-status-changed', { 
+          streamId, 
+          creatorId: userId, 
+          isLive: true,
+          viewerCount: 0
+        });
+      } catch (error) {
+        console.error('Error starting stream:', error);
+        socket.emit('stream-error', { message: 'Failed to start stream' });
+      }
     });
 
     // Viewer joins stream
@@ -132,24 +146,74 @@ export function setupWebRTC(server: Server) {
       }
     });
 
+    // Creator stops streaming
+    socket.on('stop-stream', async (data: { streamId: string, userId: string }) => {
+      const { streamId, userId } = data;
+      
+      try {
+        await storage.updateStreamStatus(streamId, false);
+        
+        const stream = activeStreams.get(streamId);
+        if (stream && stream.creatorSocketId === socket.id) {
+          io.to(`stream-${streamId}`).emit('stream-ended', { 
+            streamId,
+            message: 'Live stream has ended'
+          });
+          
+          io.emit('stream-status-changed', { 
+            streamId, 
+            creatorId: userId, 
+            isLive: false,
+            viewerCount: 0  
+          });
+          
+          activeStreams.delete(streamId);
+          console.log(`Creator ${userId} stopped stream ${streamId}`);
+        }
+      } catch (error) {
+        console.error('Error stopping stream:', error);
+      }
+    });
+
     // Handle disconnect
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
       console.log(`User disconnected: ${socket.id}`);
       
       // Clean up streams if creator disconnected
-      for (const [streamId, stream] of activeStreams.entries()) {
+      const streamEntries = Array.from(activeStreams.entries());
+      for (const [streamId, stream] of streamEntries) {
         if (stream.creatorSocketId === socket.id) {
-          // Notify viewers that stream ended
-          io.to(`stream-${streamId}`).emit('stream-ended', { streamId });
-          activeStreams.delete(streamId);
-          console.log(`Stream ${streamId} ended due to creator disconnect`);
+          try {
+            await storage.updateStreamStatus(streamId, false);
+            
+            io.to(`stream-${streamId}`).emit('stream-ended', { 
+              streamId,
+              message: 'Creator disconnected. Live stream has ended.'
+            });
+            
+            io.emit('stream-status-changed', { 
+              streamId, 
+              isLive: false,
+              viewerCount: 0
+            });
+            
+            activeStreams.delete(streamId);
+            console.log(`Stream ${streamId} ended due to creator disconnect`);
+          } catch (error) {
+            console.error('Error cleaning up stream on disconnect:', error);
+          }
         } else if (stream.viewers.has(socket.id)) {
-          // Remove viewer from stream
           stream.viewers.delete(socket.id);
-          // Update viewer count
+          
           io.to(`stream-${streamId}`).emit('viewer-count-update', { 
             streamId,
             count: stream.viewers.size 
+          });
+          
+          io.emit('stream-status-changed', { 
+            streamId, 
+            isLive: true,
+            viewerCount: stream.viewers.size
           });
         }
       }
