@@ -17,6 +17,8 @@ Preferred communication style: Simple, everyday language.
 ✓ **MAJOR**: Replaced Replit Auth with simple username/password authentication system
 ✓ Added username and password fields to users table with bcrypt password hashing
 ✓ Created new login/register page with role selection (viewer, creator, admin)
+✓ Created separate admin login portal at `/admin` for enhanced security
+✓ Generated three test accounts: creator, viewer, and admin with proper credentials
 
 ## System Architecture
 

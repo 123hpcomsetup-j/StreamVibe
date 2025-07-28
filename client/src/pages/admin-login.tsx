@@ -1,0 +1,135 @@
+import { useState } from "react";
+import { useLocation } from "wouter";
+import { useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Shield } from "lucide-react";
+
+export default function AdminLogin() {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  
+  const [loginData, setLoginData] = useState({
+    username: "",
+    password: ""
+  });
+
+  // Login mutation
+  const loginMutation = useMutation({
+    mutationFn: async (data: { username: string; password: string }) => {
+      return await apiRequest("POST", "/api/auth/login", data);
+    },
+    onSuccess: (user) => {
+      if (user.role !== 'admin') {
+        toast({
+          title: "Access Denied",
+          description: "Admin privileges required",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      toast({
+        title: "Admin Login Successful",
+        description: "Welcome to the admin panel",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      setLocation("/admin-panel");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Login Failed",
+        description: error.message || "Invalid admin credentials",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginData.username || !loginData.password) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter both username and password",
+        variant: "destructive",
+      });
+      return;
+    }
+    loginMutation.mutate(loginData);
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <div className="mx-auto w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mb-4">
+            <Shield className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-4xl font-bold text-white mb-2">Admin Portal</h1>
+          <p className="text-slate-400">StreamVibe Administration</p>
+        </div>
+
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-center text-white">Admin Login</CardTitle>
+          </CardHeader>
+
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="username" className="text-slate-300">Admin Username</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="Enter admin username"
+                  value={loginData.username}
+                  onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-slate-300">Admin Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Enter admin password"
+                  value={loginData.password}
+                  onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="w-full bg-red-600 hover:bg-red-700"
+                disabled={loginMutation.isPending}
+              >
+                {loginMutation.isPending ? "Verifying..." : "Admin Sign In"}
+              </Button>
+            </form>
+            
+            <div className="mt-6 text-center">
+              <Button 
+                variant="link" 
+                onClick={() => setLocation("/")}
+                className="text-slate-400 hover:text-white"
+              >
+                ← Back to Main Login
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <div className="mt-6 text-center text-sm text-slate-500">
+          <p>Restricted access for authorized personnel only</p>
+        </div>
+      </div>
+    </div>
+  );
+}

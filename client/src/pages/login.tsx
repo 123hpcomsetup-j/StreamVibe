@@ -222,7 +222,6 @@ export default function Login() {
                       <SelectContent>
                         <SelectItem value="viewer">Viewer</SelectItem>
                         <SelectItem value="creator">Creator</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -239,6 +238,16 @@ export default function Login() {
             </CardContent>
           </Tabs>
         </Card>
+        
+        <div className="mt-6 text-center">
+          <Button 
+            variant="link" 
+            onClick={() => setLocation("/admin")}
+            className="text-slate-400 hover:text-white text-sm"
+          >
+            Admin Access →
+          </Button>
+        </div>
       </div>
     </div>
   );
