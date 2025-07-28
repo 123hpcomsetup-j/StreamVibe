@@ -8,6 +8,13 @@ StreamVibe is a modern live streaming platform built with React, Express, and Po
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (January 28, 2025)
+
+✓ Enhanced WebRTC live streaming implementation for providers
+✓ Updated admin panel to focus on provider authorization and payment oversight
+✓ Fixed user role assignment - updated test user to admin role for accessing admin panel
+✓ Implemented comprehensive live stream controls with camera/microphone access
+
 ## System Architecture
 
 ### Frontend Architecture
