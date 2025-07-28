@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
 import Login from "@/pages/login";
+import CreatorLogin from "@/pages/creator-login";
+import UserLogin from "@/pages/user-login";
 import AdminLogin from "@/pages/admin-login";
 import Home from "@/pages/home";
 import CreatorDashboard from "@/pages/creator-dashboard";
@@ -22,6 +24,8 @@ function Router() {
         <>
           <Route path="/" component={Login} />
           <Route path="/login" component={Login} />
+          <Route path="/creator-login" component={CreatorLogin} />
+          <Route path="/user-login" component={UserLogin} />
           <Route path="/admin" component={AdminLogin} />
         </>
       ) : (

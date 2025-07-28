@@ -1,8 +1,10 @@
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Play, Users, DollarSign, Shield, Video, Heart } from "lucide-react";
 
 export default function Landing() {
+  const [, setLocation] = useLocation();
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Navigation */}
@@ -13,7 +15,7 @@ export default function Landing() {
               <h1 className="text-2xl font-bold text-primary">StreamVibe</h1>
             </div>
             <Button 
-              onClick={() => (window.location.href = "/api/login")}
+              onClick={() => setLocation("/login")}
               className="bg-primary hover:bg-primary/80"
             >
               Sign In
@@ -36,7 +38,7 @@ export default function Landing() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
                 size="lg" 
-                onClick={() => (window.location.href = "/api/login")}
+                onClick={() => setLocation("/user-login")}
                 className="bg-primary hover:bg-primary/80 text-lg px-8 py-3"
               >
                 <Play className="mr-2 h-5 w-5" />
@@ -45,7 +47,7 @@ export default function Landing() {
               <Button 
                 size="lg" 
                 variant="outline" 
-                onClick={() => (window.location.href = "/api/login")}
+                onClick={() => setLocation("/creator-login")}
                 className="border-primary text-primary hover:bg-primary hover:text-white text-lg px-8 py-3"
               >
                 <Video className="mr-2 h-5 w-5" />

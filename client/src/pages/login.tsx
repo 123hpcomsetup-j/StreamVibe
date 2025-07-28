@@ -150,6 +150,29 @@ export default function Login() {
                   >
                     {loginMutation.isPending ? "Signing in..." : "Sign In"}
                   </Button>
+                  
+                  <div className="text-center text-slate-400 text-sm my-4">
+                    Or choose your portal
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white"
+                      onClick={() => setLocation("/creator-login")}
+                    >
+                      Creator Portal
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+                      onClick={() => setLocation("/user-login")}
+                    >
+                      Viewer Portal
+                    </Button>
+                  </div>
                 </form>
               </TabsContent>
 
