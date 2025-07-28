@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { X, Users, Volume2, Maximize, Gift, Video, Send } from "lucide-react";
 import ChatWidget from "./chat-widget";
+import WebRTCStreamPlayer from "./webrtc-stream-player";
+import { useWebRTC } from "@/hooks/useWebRTC";
 
 interface StreamModalProps {
   streamId: string;
@@ -20,25 +22,33 @@ export default function StreamModal({ streamId, onClose }: StreamModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [chatMessage, setChatMessage] = useState("");
+  const [realViewerCount, setRealViewerCount] = useState(0);
 
-  // Mock stream data - in a real app this would come from the API
-  const streamData = {
-    id: streamId,
-    title: "Sarah's Art Studio",
-    creator: {
-      name: "Sarah Miller",
-      profileImage: "https://images.unsplash.com/photo-1494790108755-2616b332c3b0?ixlib=rb-4.0.3&auto=format&fit=crop&w=64&h=64",
-      followers: "12.5K"
-    },
-    viewerCount: 2431,
-    minTip: 10,
-    isLive: true
-  };
+  // Get stream data from API
+  const { data: streamData, isLoading: streamLoading } = useQuery({
+    queryKey: ["/api/streams", streamId],
+    retry: false,
+  });
 
-  const { data: chatMessages = [] } = useQuery({
+  // WebRTC integration
+  const {
+    chatMessages: webrtcChatMessages,
+    sendChatMessage: sendWebrtcMessage,
+    sendTip: sendWebrtcTip
+  } = useWebRTC({
+    streamId,
+    userId: user?.id || '',
+    username: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Anonymous',
+    isCreator: false
+  });
+
+  const { data: fallbackChatMessages = [] } = useQuery({
     queryKey: ["/api/chat", streamId],
     retry: false,
   });
+
+  // Use WebRTC chat messages if available, otherwise fallback to API
+  const chatMessages = webrtcChatMessages.length > 0 ? webrtcChatMessages : fallbackChatMessages;
 
   const sendTipMutation = useMutation({
     mutationFn: async (tipData: { toUserId: string; tokenAmount: number; streamId: string; purpose: string }) => {

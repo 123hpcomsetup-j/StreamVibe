@@ -180,6 +180,39 @@ export default function CreatorDashboard() {
             <p className="text-slate-400">Manage your streams and earnings</p>
           </div>
 
+          {/* WebRTC Stream Controls */}
+          <div className="mb-8">
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white">🔴 Live WebRTC Streaming</CardTitle>
+                <p className="text-slate-400">Stream live video to your audience using WebRTC technology</p>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-slate-700 rounded-lg p-4 text-center">
+                  <Video className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                  <h3 className="text-white font-semibold mb-2">Real-Time Streaming Ready!</h3>
+                  <p className="text-slate-400 text-sm mb-4">
+                    WebRTC is integrated and ready for live streaming. Start a stream below to broadcast live video and audio to viewers.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
+                    <div className="bg-slate-600 rounded p-3">
+                      <div className="text-green-400 font-semibold text-sm">✓ Camera Access</div>
+                      <div className="text-slate-300 text-xs">Live video streaming</div>
+                    </div>
+                    <div className="bg-slate-600 rounded p-3">
+                      <div className="text-green-400 font-semibold text-sm">✓ Real-time Chat</div>
+                      <div className="text-slate-300 text-xs">Instant viewer interaction</div>
+                    </div>
+                    <div className="bg-slate-600 rounded p-3">
+                      <div className="text-green-400 font-semibold text-sm">✓ Live Tipping</div>
+                      <div className="text-slate-300 text-xs">Real-time token rewards</div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Stream Controls */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <Card className="bg-slate-800 border-slate-700">

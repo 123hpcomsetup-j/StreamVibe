@@ -6,7 +6,7 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 import type { User, Stream } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import Sidebar from "@/components/sidebar";
-import StreamModal from "@/components/stream-modal";
+import StreamModalWebRTC from "@/components/stream-modal-webrtc";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -254,8 +254,9 @@ export default function Home() {
       </div>
 
       {selectedStreamId && (
-        <StreamModal
+        <StreamModalWebRTC
           streamId={selectedStreamId}
+          streamData={liveStreams?.find((s: any) => s.id === selectedStreamId)}
           onClose={() => setSelectedStreamId(null)}
         />
       )}
