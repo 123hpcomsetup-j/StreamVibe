@@ -62,6 +62,9 @@ export default function GuestStream() {
     enabled: !!streamId,
   });
 
+  // Type assertion for stream to fix LSP errors
+  const typedStream = stream as any;
+
   // Fetch guest session
   const { data: guestSession } = useQuery({
     queryKey: ["/api/guest-session", streamId],
@@ -79,17 +82,20 @@ export default function GuestStream() {
   // Create guest session mutation
   const createSessionMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("POST", `/api/guest-session`, {
+      const response = await apiRequest("POST", `/api/guest-session`, {
         streamId,
         sessionId: crypto.randomUUID(),
       });
+      return response as any; // Type assertion to fix LSP errors
     },
-    onSuccess: (session) => {
+    onSuccess: (session: any) => {
+      console.log("Guest session created:", session); // Debug log
       setGuestSessionId(session.id);
-      setTimeLeft(session.viewTimeRemaining);
-      setTokensLeft(session.tokensRemaining);
+      setTimeLeft(session.viewTimeRemaining || 300);
+      setTokensLeft(session.tokensRemaining || 100);
     },
     onError: (error) => {
+      console.error("Guest session error:", error); // Debug log
       toast({
         title: "Session Error",
         description: error.message,
@@ -350,7 +356,15 @@ export default function GuestStream() {
     );
   }
 
-  if (!stream) {
+  if (streamLoading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="animate-pulse text-white">Loading stream...</div>
+      </div>
+    );
+  }
+
+  if (!typedStream) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
@@ -379,11 +393,11 @@ export default function GuestStream() {
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
               </Button>
-              <h1 className="text-xl font-bold text-white">{stream.title}</h1>
+              <h1 className="text-xl font-bold text-white">{typedStream.title}</h1>
             </div>
             
             <div className="flex items-center space-x-4">
-              {stream.isLive ? (
+              {typedStream.isLive ? (
                 <Badge variant="destructive" className="animate-pulse">
                   <div className="w-2 h-2 bg-white rounded-full mr-2"></div>
                   LIVE
@@ -394,9 +408,22 @@ export default function GuestStream() {
                   ENDED
                 </Badge>
               )}
+              
+              {/* Timer and tokens in header - always visible */}
+              <div className="flex items-center space-x-2">
+                <Badge variant="secondary" className={`${timeLeft <= 60 ? 'animate-pulse text-red-400' : ''}`}>
+                  <Clock className="mr-1 h-3 w-3" />
+                  {formatTime(timeLeft)}
+                </Badge>
+                <Badge variant="secondary" className={`${tokensLeft <= 10 ? 'text-red-400' : ''}`}>
+                  <Coins className="mr-1 h-3 w-3" />
+                  {tokensLeft}
+                </Badge>
+              </div>
+              
               <div className="flex items-center space-x-2 text-slate-300">
                 <Users className="h-4 w-4" />
-                <span>{stream.viewerCount || 0}</span>
+                <span>{typedStream.viewerCount || 0}</span>
               </div>
             </div>
           </div>
@@ -438,7 +465,7 @@ export default function GuestStream() {
                       </div>
                     </div>
                   </div>
-                ) : stream.isLive ? (
+                ) : typedStream.isLive ? (
                   <>
                     <video
                       ref={videoRef}
@@ -496,7 +523,7 @@ export default function GuestStream() {
                       
                       <Badge variant="outline" className="text-slate-300">
                         <Users className="mr-1 h-3 w-3" />
-                        {stream.viewerCount || 0} viewers still here
+                        {typedStream.viewerCount || 0} viewers still here
                       </Badge>
                     </div>
                   </div>
@@ -513,15 +540,15 @@ export default function GuestStream() {
                   />
                   <div>
                     <h3 className="text-white font-medium">
-                      {stream.creator?.firstName} {stream.creator?.lastName}
+                      {typedStream.creator?.firstName} {typedStream.creator?.lastName}
                     </h3>
-                    <p className="text-slate-400 text-sm">{stream.category}</p>
+                    <p className="text-slate-400 text-sm">{typedStream.category}</p>
                   </div>
                 </div>
                 
                 <div className="flex items-center justify-between text-sm text-slate-400">
-                  <span>Token Price: ${stream.tokenPrice || 1}</span>
-                  <span>Min Tip: {stream.minTip} tokens</span>
+                  <span>Token Price: ${typedStream.tokenPrice || 1}</span>
+                  <span>Min Tip: {typedStream.minTip} tokens</span>
                 </div>
               </div>
             </div>
