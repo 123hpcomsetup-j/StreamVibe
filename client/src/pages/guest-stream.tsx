@@ -17,8 +17,12 @@ import {
   ArrowLeft,
   AlertTriangle,
   Play,
-  Heart 
+  Heart,
+  UserPlus 
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { ChatMessage, GuestSession } from "@shared/schema";
 
 export default function GuestStream() {
@@ -34,6 +38,13 @@ export default function GuestStream() {
   const [tokensLeft, setTokensLeft] = useState(100);
   const [guestSessionId, setGuestSessionId] = useState<string | null>(null);
   const [isNameSet, setIsNameSet] = useState(false);
+  const [showSignupDialog, setShowSignupDialog] = useState(false);
+  const [signupData, setSignupData] = useState({
+    username: "",
+    password: "",
+    confirmPassword: "",
+    role: "viewer" as const
+  });
 
   const streamId = params?.streamId;
 
@@ -104,6 +115,40 @@ export default function GuestStream() {
     },
   });
 
+  // Signup mutation
+  const signupMutation = useMutation({
+    mutationFn: async () => {
+      if (signupData.password !== signupData.confirmPassword) {
+        throw new Error("Passwords do not match");
+      }
+      if (signupData.password.length < 6) {
+        throw new Error("Password must be at least 6 characters");
+      }
+      return await apiRequest("POST", "/api/auth/register", {
+        username: signupData.username,
+        password: signupData.password,
+        role: signupData.role,
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Account Created",
+        description: "Successfully created your account! Redirecting to dashboard...",
+      });
+      // Redirect to user dashboard with current stream after successful registration
+      setTimeout(() => {
+        setLocation(`/dashboard/stream/${streamId}`);
+      }, 1500);
+    },
+    onError: (error) => {
+      toast({
+        title: "Signup Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Timer effect
   useEffect(() => {
     if (!guestSessionId || timeLeft <= 0) return;
@@ -111,11 +156,7 @@ export default function GuestStream() {
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
-          toast({
-            title: "Time's Up!",
-            description: "Your 5-minute preview has ended. Sign up to continue watching!",
-          });
-          setLocation("/login");
+          setShowSignupDialog(true);
           return 0;
         }
         return prev - 1;
@@ -123,7 +164,7 @@ export default function GuestStream() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [guestSessionId, timeLeft, setLocation, toast]);
+  }, [guestSessionId, timeLeft]);
 
   // Auto-scroll chat
   useEffect(() => {
@@ -142,6 +183,11 @@ export default function GuestStream() {
     if (!message.trim() || !isNameSet || tokensLeft <= 0) return;
 
     sendMessageMutation.mutate({ message });
+  };
+
+  const handleSignup = (e: React.FormEvent) => {
+    e.preventDefault();
+    signupMutation.mutate();
   };
 
   const formatTime = (seconds: number) => {
@@ -374,6 +420,98 @@ export default function GuestStream() {
           </div>
         </div>
       </div>
+
+      {/* Signup Dialog */}
+      <Dialog open={showSignupDialog} onOpenChange={setShowSignupDialog}>
+        <DialogContent className="sm:max-w-md bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <UserPlus className="h-5 w-5" />
+              Continue Watching - Create Account
+            </DialogTitle>
+            <DialogDescription className="text-slate-300">
+              Your 5-minute preview has ended. Create a free account to keep watching and chatting!
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleSignup} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username" className="text-white">Username</Label>
+              <Input
+                id="username"
+                type="text"
+                value={signupData.username}
+                onChange={(e) => setSignupData({ ...signupData, username: e.target.value })}
+                placeholder="Choose a username"
+                className="bg-slate-700 border-slate-600 text-white"
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-white">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={signupData.password}
+                onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                placeholder="Choose a password"
+                className="bg-slate-700 border-slate-600 text-white"
+                minLength={6}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword" className="text-white">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={signupData.confirmPassword}
+                onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
+                placeholder="Confirm your password"
+                className="bg-slate-700 border-slate-600 text-white"
+                minLength={6}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="role" className="text-white">Account Type</Label>
+              <Select 
+                value={signupData.role} 
+                onValueChange={(value: 'viewer' | 'creator') => setSignupData({ ...signupData, role: value })}
+              >
+                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="viewer">Viewer - Watch and chat</SelectItem>
+                  <SelectItem value="creator">Creator - Stream and earn</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setLocation("/login")}
+                className="flex-1"
+              >
+                Already have account?
+              </Button>
+              <Button
+                type="submit"
+                disabled={signupMutation.isPending}
+                className="flex-1 bg-primary hover:bg-primary/80"
+              >
+                {signupMutation.isPending ? "Creating..." : "Create Account"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

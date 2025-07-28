@@ -14,6 +14,7 @@ import Home from "@/pages/home";
 import CreatorDashboard from "@/pages/creator-dashboard";
 import AdminPanel from "@/pages/admin-panel";
 import GuestStream from "@/pages/guest-stream";
+import UserDashboard from "@/pages/user-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -34,6 +35,7 @@ function Router() {
       {isAuthenticated && typedUser && (
         <>
           <Route path="/home" component={Home} />
+          <Route path="/dashboard/stream/:streamId" component={UserDashboard} />
           {typedUser?.role === 'creator' && (
             <Route path="/creator-dashboard" component={CreatorDashboard} />
           )}
