@@ -74,6 +74,12 @@ Preferred communication style: Simple, everyday language.
   - Fixed database constraints - guest messages use guestSessionId instead of fake userId
   - Removed manual name input UI since guest names are automatically generated
   - Backend automatically provides correct sender names for both guest and authenticated users
+✓ **NEW**: Enhanced creator login system with signup and password reset (January 28, 2025):
+  - Added "Create Creator Account" signup button with comprehensive registration form
+  - Implemented "Forgot Password?" functionality for password reset
+  - Fixed test creator account authentication with proper bcrypt password hashing
+  - Added backend endpoints for user registration and password reset functionality
+  - Working test accounts: bob_gamer, charlie_art, diana_music (all with password123)
 
 ## System Architecture
 
