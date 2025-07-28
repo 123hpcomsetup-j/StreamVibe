@@ -244,8 +244,8 @@ export default function CreatorDashboard() {
           {/* WebRTC Live Streaming */}
           <div className="mb-8">
             <LiveStreamControls 
-              onStreamStart={() => {}}
-              onStreamStop={() => {}}
+              onStreamStart={handleStartStream}
+              onStreamStop={handleStopStream}
             />
           </div>
 

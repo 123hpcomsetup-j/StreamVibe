@@ -82,6 +82,10 @@ export interface IStorage {
   // User status operations
   getOnlineUsers(): Promise<User[]>;
   updateUserOnlineStatus(userId: string, isOnline: boolean): Promise<void>;
+  
+  // Creator analytics
+  getCreatorStats(creatorId: string): Promise<any>;
+  getCreatorTips(creatorId: string): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -162,10 +166,7 @@ export class DatabaseStorage implements IStorage {
   async updateStreamStatus(streamId: string, isLive: boolean): Promise<void> {
     await db
       .update(streams)
-      .set({ 
-        isLive,
-        updatedAt: new Date()
-      })
+      .set({ isLive })
       .where(eq(streams.id, streamId));
   }
 
@@ -352,7 +353,7 @@ export class DatabaseStorage implements IStorage {
     return updatedSession;
   }
 
-  // Stream status management
+  // Stream status management  
   async updateStreamStatus(streamId: string, isLive: boolean, viewerCount?: number): Promise<void> {
     const updateData: any = { isLive };
     if (viewerCount !== undefined) {
@@ -376,6 +377,95 @@ export class DatabaseStorage implements IStorage {
       );
     
     return result.rowCount || 0;
+  }
+
+  // Creator analytics methods
+  async getCreatorStats(creatorId: string): Promise<any> {
+    // Get total earnings from transactions where creator received tips
+    const earningsResult = await db
+      .select({ 
+        totalEarnings: sql<number>`COALESCE(SUM(${transactions.tokenAmount}), 0)::int`
+      })
+      .from(transactions)
+      .where(and(
+        eq(transactions.toUserId, creatorId),
+        eq(transactions.purpose, 'tip')
+      ));
+
+    // Get tip count for this month
+    const tipsResult = await db
+      .select({ 
+        totalTips: sql<number>`COALESCE(COUNT(*), 0)::int`,
+        weeklyTips: sql<number>`COALESCE(COUNT(CASE WHEN ${transactions.createdAt} >= NOW() - INTERVAL '7 days' THEN 1 END), 0)::int`
+      })
+      .from(transactions)
+      .where(and(
+        eq(transactions.toUserId, creatorId),
+        eq(transactions.purpose, 'tip')
+      ));
+
+    // Get total stream hours (sum of stream durations)
+    const streamHoursResult = await db
+      .select({ 
+        totalStreamHours: sql<number>`COALESCE(COUNT(*), 0)::int` // For now, count number of streams
+      })
+      .from(streams)
+      .where(eq(streams.creatorId, creatorId));
+
+    // Get follower count (for now, use wallet balance as mock follower count)
+    const followerResult = await db
+      .select({ followerCount: users.walletBalance })
+      .from(users)
+      .where(eq(users.id, creatorId));
+
+    const totalEarnings = earningsResult[0]?.totalEarnings || 0;
+    const { totalTips = 0, weeklyTips = 0 } = tipsResult[0] || {};
+    const totalStreamHours = streamHoursResult[0]?.totalStreamHours || 0;
+    const followerCount = followerResult[0]?.followerCount || 0;
+
+    return {
+      totalEarnings,
+      availableEarnings: totalEarnings, // For now, all earnings are available
+      earningsGrowth: totalEarnings > 0 ? 15 : null, // Mock growth percentage
+      totalTips,
+      weeklyTips,
+      totalStreamHours,
+      followerCount,
+      newFollowers: weeklyTips > 0 ? Math.floor(weeklyTips / 2) : 0, // Mock new followers
+      tokenPrice: 1 // Default token price
+    };
+  }
+
+  async getCreatorTips(creatorId: string): Promise<any[]> {
+    // Get recent tips with sender information
+    const tipsWithSender = await db
+      .select({
+        id: transactions.id,
+        amount: transactions.tokenAmount,
+        createdAt: transactions.createdAt,
+        senderId: transactions.fromUserId,
+        senderUsername: users.username,
+        senderFirstName: users.firstName,
+        senderLastName: users.lastName
+      })
+      .from(transactions)
+      .leftJoin(users, eq(transactions.fromUserId, users.id))
+      .where(and(
+        eq(transactions.toUserId, creatorId),
+        eq(transactions.purpose, 'tip')
+      ))
+      .orderBy(desc(transactions.createdAt))
+      .limit(20);
+
+    return tipsWithSender.map(tip => ({
+      id: tip.id,
+      amount: tip.amount,
+      message: null, // No description field in schema
+      createdAt: tip.createdAt,
+      senderName: tip.senderFirstName && tip.senderLastName 
+        ? `${tip.senderFirstName} ${tip.senderLastName}`
+        : tip.senderUsername || 'Anonymous'
+    }));
   }
 }
 

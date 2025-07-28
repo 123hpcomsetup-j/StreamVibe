@@ -250,6 +250,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Creator statistics
+  app.get('/api/creator/stats', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role !== 'creator') {
+        return res.status(403).json({ message: "Creator access required" });
+      }
+
+      const stats = await storage.getCreatorStats(userId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching creator stats:", error);
+      res.status(500).json({ message: "Failed to fetch stats" });
+    }
+  });
+
+  // Creator tips
+  app.get('/api/creator/tips', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role !== 'creator') {
+        return res.status(403).json({ message: "Creator access required" });
+      }
+
+      const tips = await storage.getCreatorTips(userId);
+      res.json(tips);
+    } catch (error) {
+      console.error("Error fetching creator tips:", error);
+      res.status(500).json({ message: "Failed to fetch tips" });
+    }
+  });
+
   // Payout routes
   app.post('/api/payouts', requireAuth, async (req: any, res) => {
     try {
@@ -338,8 +374,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             fromUserId: userId,
             toUserId: stream.creatorId,
             tokenAmount: tipAmount,
-            type: 'tip',
-            description: `Tip for stream: ${stream.title}`,
+            purpose: 'tip',
+            streamId: streamId,
           });
           
           // Update wallets
