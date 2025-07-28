@@ -62,9 +62,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/streams/current', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const streams = await storage.getStreams();
+      const currentStream = streams.find(stream => stream.creatorId === userId && stream.isLive);
+      res.json(currentStream || null);
+    } catch (error) {
+      console.error("Error fetching current stream:", error);
+      res.status(500).json({ message: "Failed to fetch current stream" });
+    }
+  });
+
   app.post('/api/streams', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
       if (user?.role !== 'creator' || !user.isApproved) {
@@ -77,6 +89,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const stream = await storage.createStream(validatedData);
+      
+      // Set user as online when starting stream
+      await storage.updateUserOnlineStatus(userId, true);
+      
       res.json(stream);
     } catch (error) {
       console.error("Error creating stream:", error);
@@ -86,7 +102,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/streams/:id', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const streamId = req.params.id;
       
       const stream = await storage.getStreamById(streamId);
@@ -95,6 +111,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const updatedStream = await storage.updateStream(streamId, req.body);
+      
+      // If stopping stream, set user offline
+      if (req.body.isLive === false) {
+        await storage.updateUserOnlineStatus(userId, false);
+      }
+      
       res.json(updatedStream);
     } catch (error) {
       console.error("Error updating stream:", error);

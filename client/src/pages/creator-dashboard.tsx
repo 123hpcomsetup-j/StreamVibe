@@ -58,6 +58,29 @@ export default function CreatorDashboard() {
     retry: false,
   });
 
+  const { data: currentStream } = useQuery({
+    queryKey: ["/api/streams/current"],
+    retry: false,
+    enabled: !!typedUser,
+  });
+
+  // Update streaming state based on current stream
+  useEffect(() => {
+    if (currentStream && currentStream.isLive) {
+      setIsStreaming(true);
+      setStreamData({
+        title: currentStream.title || "",
+        category: currentStream.category || "Art & Design",
+        minTip: currentStream.minTip || 5,
+        privateRate: currentStream.privateRate || 20,
+        publicChat: true,
+        privateSessions: true,
+      });
+    } else {
+      setIsStreaming(false);
+    }
+  }, [currentStream]);
+
   const createStreamMutation = useMutation({
     mutationFn: async (streamData: any) => {
       await apiRequest("POST", "/api/streams", streamData);
@@ -135,12 +158,47 @@ export default function CreatorDashboard() {
     });
   };
 
+  const stopStreamMutation = useMutation({
+    mutationFn: async () => {
+      // Find current active stream and stop it
+      const response = await fetch('/api/streams/live');
+      const liveStreams = await response.json();
+      const userStream = liveStreams.find((stream: any) => stream.creatorId === typedUser?.id);
+      
+      if (userStream) {
+        await apiRequest("PATCH", `/api/streams/${userStream.id}`, { isLive: false });
+      }
+    },
+    onSuccess: () => {
+      setIsStreaming(false);
+      toast({
+        title: "Stream Ended",
+        description: "Your stream has been stopped.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/streams"] });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to stop stream. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleStopStream = () => {
-    setIsStreaming(false);
-    toast({
-      title: "Stream Ended",
-      description: "Your stream has been stopped.",
-    });
+    stopStreamMutation.mutate();
   };
 
   const handleRequestPayout = () => {
@@ -234,10 +292,11 @@ export default function CreatorDashboard() {
                 {isStreaming ? (
                   <Button 
                     onClick={handleStopStream}
+                    disabled={stopStreamMutation.isPending}
                     className="w-full bg-red-600 hover:bg-red-700"
                   >
                     <Square className="mr-2 h-4 w-4" />
-                    Stop Streaming
+                    {stopStreamMutation.isPending ? "Stopping..." : "Stop Streaming"}
                   </Button>
                 ) : (
                   <Button 
