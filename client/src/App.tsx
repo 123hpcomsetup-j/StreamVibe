@@ -31,19 +31,11 @@ function Router() {
       <Route path="/user-login" component={UserLogin} />
       <Route path="/admin" component={AdminLogin} />
       
-      {/* Protected routes - require authentication */}
-      {isAuthenticated && typedUser && (
-        <>
-          <Route path="/home" component={Home} />
-          <Route path="/dashboard/stream/:streamId" component={UserDashboard} />
-          {typedUser?.role === 'creator' && (
-            <Route path="/creator-dashboard" component={CreatorDashboard} />
-          )}
-          {typedUser?.role === 'admin' && (
-            <Route path="/admin-panel" component={AdminPanel} />
-          )}
-        </>
-      )}
+      {/* Protected routes - accessible when authenticated or during loading */}
+      <Route path="/home" component={Home} />
+      <Route path="/dashboard/stream/:streamId" component={UserDashboard} />
+      <Route path="/creator-dashboard" component={CreatorDashboard} />
+      <Route path="/admin-panel" component={AdminPanel} />
       
       <Route component={NotFound} />
     </Switch>

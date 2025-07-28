@@ -44,7 +44,10 @@ export default function CreatorLogin() {
           title: "Welcome Creator!",
           description: "Redirecting to your creator dashboard...",
         });
-        setLocation("/creator-dashboard");
+        // Small delay to ensure session is established
+        setTimeout(() => {
+          setLocation("/creator-dashboard");
+        }, 100);
       } else {
         toast({
           title: "Access Denied",
