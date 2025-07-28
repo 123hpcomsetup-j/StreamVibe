@@ -74,7 +74,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/streams/current', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const streams = await storage.getStreams();
       const currentStream = streams.find(stream => stream.creatorId === userId && stream.isLive);
       res.json(currentStream || null);
@@ -86,7 +86,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/streams', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (user?.role !== 'creator' || !user.isApproved) {
@@ -112,7 +112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/streams/:id', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const streamId = req.params.id;
       
       const stream = await storage.getStreamById(streamId);
@@ -137,7 +137,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Transaction routes
   app.post('/api/transactions', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user || (user.walletBalance || 0) < req.body.tokenAmount) {
