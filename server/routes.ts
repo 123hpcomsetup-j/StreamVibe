@@ -30,6 +30,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.use('/api/auth', authRoutes);
 
+  // Legacy logout route (redirects to home)
+  app.get('/api/logout', (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Logout error:', err);
+      }
+      res.redirect('/');
+    });
+  });
+
   // User routes
   app.get('/api/users/online', async (req, res) => {
     try {

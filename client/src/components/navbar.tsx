@@ -10,7 +10,19 @@ interface NavbarProps {
 
 export default function Navbar({ user }: NavbarProps) {
   const handleLogout = () => {
-    window.location.href = "/api/logout";
+    if (user?.role === 'admin') {
+      // For admin users, logout and redirect to admin login
+      fetch('/api/auth/logout', { method: 'POST' })
+        .then(() => {
+          window.location.href = "/admin";
+        })
+        .catch(() => {
+          window.location.href = "/admin";
+        });
+    } else {
+      // For regular users, logout and redirect to main login
+      window.location.href = "/api/logout";
+    }
   };
 
   return (
