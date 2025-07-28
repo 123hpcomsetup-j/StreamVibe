@@ -66,6 +66,7 @@ export default function GuestStream() {
   const { data: guestSession } = useQuery({
     queryKey: ["/api/guest-session", streamId],
     enabled: !!streamId && !!guestSessionId,
+    refetchInterval: false, // Don't auto-refetch, we manage state locally
   });
 
   // Fetch chat messages
@@ -185,6 +186,23 @@ export default function GuestStream() {
       createSessionMutation.mutate();
     }
   }, [streamId]);
+
+  // Timer countdown effect
+  useEffect(() => {
+    if (timeLeft <= 0 || !guestSessionId) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          setShowSignupDialog(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeLeft, guestSessionId]);
 
   // Initialize WebRTC connection for live streaming
   useEffect(() => {
@@ -432,11 +450,11 @@ export default function GuestStream() {
                     
                     {/* Guest overlay for live streams */}
                     <div className="absolute top-4 left-4 flex flex-col space-y-2">
-                      <Badge className="bg-amber-500/90 text-amber-900 backdrop-blur-sm">
+                      <Badge className={`backdrop-blur-sm ${timeLeft <= 60 ? 'bg-red-500/90 text-red-100 animate-pulse' : 'bg-amber-500/90 text-amber-900'}`}>
                         <Clock className="mr-1 h-3 w-3" />
                         Guest Preview: {formatTime(timeLeft)}
                       </Badge>
-                      <Badge className="bg-green-500/90 text-green-900 backdrop-blur-sm">
+                      <Badge className={`backdrop-blur-sm ${tokensLeft <= 10 ? 'bg-red-500/90 text-red-100' : 'bg-green-500/90 text-green-900'}`}>
                         <Coins className="mr-1 h-3 w-3" />
                         {tokensLeft} tokens left
                       </Badge>
@@ -466,11 +484,11 @@ export default function GuestStream() {
                       
                       {/* Guest overlay for ended streams */}
                       <div className="flex justify-center space-x-2 mb-4">
-                        <Badge className="bg-amber-500/90 text-amber-900 backdrop-blur-sm">
+                        <Badge className={`backdrop-blur-sm ${timeLeft <= 60 ? 'bg-red-500/90 text-red-100 animate-pulse' : 'bg-amber-500/90 text-amber-900'}`}>
                           <Clock className="mr-1 h-3 w-3" />
                           Guest Time: {formatTime(timeLeft)}
                         </Badge>
-                        <Badge className="bg-green-500/90 text-green-900 backdrop-blur-sm">
+                        <Badge className={`backdrop-blur-sm ${tokensLeft <= 10 ? 'bg-red-500/90 text-red-100' : 'bg-green-500/90 text-green-900'}`}>
                           <Coins className="mr-1 h-3 w-3" />
                           {tokensLeft} tokens left
                         </Badge>
