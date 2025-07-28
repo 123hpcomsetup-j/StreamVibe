@@ -35,7 +35,7 @@ router.post('/register', async (req, res) => {
     });
 
     // Set session
-    req.session.userId = user.id;
+    (req.session as any).userId = user.id;
 
     // Return user without password
     const { password: _, ...userWithoutPassword } = user;
@@ -68,7 +68,7 @@ router.post('/login', async (req, res) => {
     }
 
     // Set session
-    req.session.userId = user.id;
+    (req.session as any).userId = user.id;
 
     // Return user without password
     const { password: _, ...userWithoutPassword } = user;
@@ -91,7 +91,7 @@ router.post('/logout', (req, res) => {
 
 // Get current user
 router.get('/user', requireAuth, (req, res) => {
-  const { password, ...userWithoutPassword } = req.user;
+  const { password, ...userWithoutPassword } = (req as any).user;
   res.json(userWithoutPassword);
 });
 

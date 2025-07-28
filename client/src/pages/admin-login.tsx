@@ -24,8 +24,8 @@ export default function AdminLogin() {
     mutationFn: async (data: { username: string; password: string }) => {
       return await apiRequest("POST", "/api/auth/login", data);
     },
-    onSuccess: (user) => {
-      if (user.role !== 'admin') {
+    onSuccess: (response: any) => {
+      if (response?.role !== 'admin') {
         toast({
           title: "Access Denied",
           description: "Admin privileges required",
