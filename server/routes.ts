@@ -193,6 +193,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/chat/:streamId', async (req, res) => {
     try {
       const { streamId } = req.params;
+      
+      // For featured stream, return mock data instead of database lookup
+      if (streamId === 'featured') {
+        const mockMessages = [
+          { id: '1', message: 'Welcome to the featured stream!', userId: 'system', streamId: 'featured', createdAt: new Date() },
+          { id: '2', message: 'Great content!', userId: 'user1', streamId: 'featured', createdAt: new Date() },
+        ];
+        return res.json(mockMessages);
+      }
+      
       const messages = await storage.getChatMessages(streamId);
       res.json(messages);
     } catch (error) {
@@ -204,6 +214,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/chat', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      
+      // For featured stream, just return a mock response instead of database insert
+      if (req.body.streamId === 'featured') {
+        const mockMessage = {
+          id: Date.now().toString(),
+          message: req.body.message,
+          userId: userId,
+          streamId: 'featured',
+          createdAt: new Date()
+        };
+        return res.json(mockMessage);
+      }
+      
       const validatedData = insertChatMessageSchema.parse({
         ...req.body,
         userId,

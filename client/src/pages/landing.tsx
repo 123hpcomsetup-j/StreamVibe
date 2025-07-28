@@ -151,14 +151,20 @@ export default function Landing() {
           <p className="text-xl text-slate-300 mb-8">
             Start your streaming journey today and connect with thousands of viewers worldwide.
           </p>
-          <Button 
-            size="lg" 
-            onClick={() => (window.location.href = "/api/login")}
-            className="bg-primary hover:bg-primary/80 text-lg px-12 py-4"
-          >
-            <Heart className="mr-2 h-5 w-5" />
-            Get Started Now
-          </Button>
+          <div className="space-y-4">
+            <Button 
+              size="lg" 
+              onClick={() => (window.location.href = "/api/login")}
+              className="bg-primary hover:bg-primary/80 text-lg px-12 py-4"
+            >
+              <Heart className="mr-2 h-5 w-5" />
+              Get Started - Sign In with Replit
+            </Button>
+            <div className="text-sm text-slate-400 bg-slate-800/50 p-3 rounded-lg max-w-md mx-auto">
+              <p className="font-medium text-slate-300 mb-1">Quick Note:</p>
+              <p>You'll see "StreamConnect" in the authorization dialog - this is our registered OAuth app name in Replit's system. You're still signing into StreamVibe!</p>
+            </div>
+          </div>
         </div>
       </div>
 
