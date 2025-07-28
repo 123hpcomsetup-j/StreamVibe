@@ -237,10 +237,17 @@ export default function GuestStream() {
             </div>
             
             <div className="flex items-center space-x-4">
-              <Badge variant="destructive" className="animate-pulse">
-                <div className="w-2 h-2 bg-white rounded-full mr-2"></div>
-                LIVE
-              </Badge>
+              {stream.isLive ? (
+                <Badge variant="destructive" className="animate-pulse">
+                  <div className="w-2 h-2 bg-white rounded-full mr-2"></div>
+                  LIVE
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-slate-400 border-slate-600">
+                  <Video className="w-3 h-3 mr-2" />
+                  ENDED
+                </Badge>
+              )}
               <div className="flex items-center space-x-2 text-slate-300">
                 <Users className="h-4 w-4" />
                 <span>{stream.viewerCount || 0}</span>
@@ -256,38 +263,69 @@ export default function GuestStream() {
           <div className="lg:col-span-2">
             <div className="bg-slate-800 rounded-lg overflow-hidden">
               <div className="aspect-video bg-slate-700 relative">
-                <video
-                  ref={videoRef}
-                  className="w-full h-full object-cover"
-                  controls
-                  autoPlay
-                  muted
-                  poster="https://images.unsplash.com/photo-1542751371-adc38448a05e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=450"
-                >
-                  <source src={stream.streamUrl || ""} type="video/mp4" />
-                </video>
-                
-                {/* Guest overlay */}
-                <div className="absolute top-4 left-4 flex flex-col space-y-2">
-                  <Badge className="bg-amber-500/90 text-amber-900 backdrop-blur-sm">
-                    <Clock className="mr-1 h-3 w-3" />
-                    Guest Preview: {formatTime(timeLeft)}
-                  </Badge>
-                  <Badge className="bg-green-500/90 text-green-900 backdrop-blur-sm">
-                    <Coins className="mr-1 h-3 w-3" />
-                    {tokensLeft} tokens left
-                  </Badge>
-                </div>
+                {stream.isLive ? (
+                  <>
+                    <video
+                      ref={videoRef}
+                      className="w-full h-full object-cover"
+                      controls
+                      autoPlay
+                      muted
+                      poster="https://images.unsplash.com/photo-1542751371-adc38448a05e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=450"
+                    >
+                      <source src={stream.streamUrl || ""} type="video/mp4" />
+                    </video>
+                    
+                    {/* Guest overlay for live streams */}
+                    <div className="absolute top-4 left-4 flex flex-col space-y-2">
+                      <Badge className="bg-amber-500/90 text-amber-900 backdrop-blur-sm">
+                        <Clock className="mr-1 h-3 w-3" />
+                        Guest Preview: {formatTime(timeLeft)}
+                      </Badge>
+                      <Badge className="bg-green-500/90 text-green-900 backdrop-blur-sm">
+                        <Coins className="mr-1 h-3 w-3" />
+                        {tokensLeft} tokens left
+                      </Badge>
+                    </div>
 
-                {/* Center play button if needed */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Button 
-                    size="lg" 
-                    className="bg-white/20 backdrop-blur-sm hover:bg-white/30"
-                  >
-                    <Play className="h-8 w-8" />
-                  </Button>
-                </div>
+                    {/* Center play button if needed */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Button 
+                        size="lg" 
+                        className="bg-white/20 backdrop-blur-sm hover:bg-white/30"
+                      >
+                        <Play className="h-8 w-8" />
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-slate-800">
+                    <div className="text-center">
+                      <div className="w-20 h-20 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Video className="w-10 h-10 text-slate-400" />
+                      </div>
+                      <h3 className="text-2xl font-semibold text-white mb-3">Stream Ended</h3>
+                      <p className="text-slate-400 mb-4">This stream has finished, but you can still chat and tip the creator!</p>
+                      
+                      {/* Guest overlay for ended streams */}
+                      <div className="flex justify-center space-x-2 mb-4">
+                        <Badge className="bg-amber-500/90 text-amber-900 backdrop-blur-sm">
+                          <Clock className="mr-1 h-3 w-3" />
+                          Guest Time: {formatTime(timeLeft)}
+                        </Badge>
+                        <Badge className="bg-green-500/90 text-green-900 backdrop-blur-sm">
+                          <Coins className="mr-1 h-3 w-3" />
+                          {tokensLeft} tokens left
+                        </Badge>
+                      </div>
+                      
+                      <Badge variant="outline" className="text-slate-300">
+                        <Users className="mr-1 h-3 w-3" />
+                        {stream.viewerCount || 0} viewers still here
+                      </Badge>
+                    </div>
+                  </div>
+                )}
               </div>
               
               {/* Stream info */}
@@ -396,7 +434,9 @@ export default function GuestStream() {
                   <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-700">
                     <div className="flex space-x-2">
                       <Input
-                        placeholder={tokensLeft > 0 ? "Type a message..." : "No tokens left"}
+                        placeholder={tokensLeft > 0 ? 
+                          (stream.isLive ? "Type a message..." : "Chat about the stream...") 
+                          : "No tokens left"}
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
                         disabled={tokensLeft <= 0 || sendMessageMutation.isPending}
@@ -411,7 +451,7 @@ export default function GuestStream() {
                       </Button>
                     </div>
                     <p className="text-xs text-slate-400 mt-2">
-                      {tokensLeft} messages remaining
+                      {tokensLeft} messages remaining {!stream.isLive && "• Stream ended but chat is still active!"}
                     </p>
                   </form>
                 )}

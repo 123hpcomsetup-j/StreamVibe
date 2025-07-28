@@ -68,12 +68,17 @@ export default function UserDashboard() {
         tipAmount: messageData.tipAmount || 0,
       });
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       setMessage("");
       refetchMessages();
+      const tipMessage = variables.tipAmount && variables.tipAmount > 0 
+        ? ` with ${variables.tipAmount} token tip!`
+        : "!";
       toast({
-        title: "Message sent!",
-        description: "Your message was posted to the chat.",
+        title: "Message sent" + tipMessage,
+        description: variables.tipAmount 
+          ? `You tipped ${variables.tipAmount} tokens to the creator.`
+          : "Your message was posted to the chat.",
       });
     },
     onError: (error) => {
@@ -90,10 +95,15 @@ export default function UserDashboard() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
 
+  const [tipAmount, setTipAmount] = useState(0);
+  const [showTipInput, setShowTipInput] = useState(false);
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
-    sendMessageMutation.mutate({ message });
+    sendMessageMutation.mutate({ message, tipAmount });
+    setTipAmount(0);
+    setShowTipInput(false);
   };
 
   const handleWatchStream = (newStreamId: string) => {
@@ -167,25 +177,43 @@ export default function UserDashboard() {
             <Card className="bg-slate-800 border-slate-700">
               <CardContent className="p-0">
                 <div className="relative aspect-video bg-black rounded-t-lg overflow-hidden">
-                  <video
-                    ref={videoRef}
-                    className="w-full h-full object-cover"
-                    autoPlay
-                    muted
-                    poster="/api/placeholder/800/450"
-                  />
-                  <div className="absolute top-4 left-4">
-                    <Badge className="bg-red-500 text-white">
-                      <div className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse" />
-                      LIVE
-                    </Badge>
-                  </div>
-                  <div className="absolute top-4 right-4">
-                    <Badge variant="secondary">
-                      <Users className="mr-1 h-3 w-3" />
-                      {currentStream.viewerCount || 0}
-                    </Badge>
-                  </div>
+                  {currentStream.isLive ? (
+                    <>
+                      <video
+                        ref={videoRef}
+                        className="w-full h-full object-cover"
+                        autoPlay
+                        muted
+                        poster="/api/placeholder/800/450"
+                      />
+                      <div className="absolute top-4 left-4">
+                        <Badge className="bg-red-500 text-white">
+                          <div className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse" />
+                          LIVE
+                        </Badge>
+                      </div>
+                      <div className="absolute top-4 right-4">
+                        <Badge variant="secondary">
+                          <Users className="mr-1 h-3 w-3" />
+                          {currentStream.viewerCount || 0}
+                        </Badge>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-slate-800">
+                      <div className="text-center">
+                        <div className="w-20 h-20 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-6">
+                          <Video className="w-10 h-10 text-slate-400" />
+                        </div>
+                        <h3 className="text-2xl font-semibold text-white mb-3">Stream Ended</h3>
+                        <p className="text-slate-400 mb-4">This stream has finished, but you can still chat and tip the creator!</p>
+                        <Badge variant="outline" className="text-slate-300">
+                          <Users className="mr-1 h-3 w-3" />
+                          {currentStream.viewerCount || 0} viewers still here
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="p-6">
                   <h2 className="text-xl font-bold text-white mb-2">{currentStream.title}</h2>
@@ -229,6 +257,36 @@ export default function UserDashboard() {
               </ScrollArea>
 
               <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-700">
+                {showTipInput && (
+                  <div className="mb-3 p-3 bg-slate-700/50 rounded-lg">
+                    <Label className="text-white text-sm mb-2 block">
+                      <Coins className="inline mr-1 h-3 w-3" />
+                      Add Tip (tokens)
+                    </Label>
+                    <div className="flex space-x-2">
+                      <Input
+                        type="number"
+                        min="0"
+                        value={tipAmount}
+                        onChange={(e) => setTipAmount(parseInt(e.target.value) || 0)}
+                        placeholder="0"
+                        className="bg-slate-700 border-slate-600 text-white"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowTipInput(false)}
+                        className="px-3"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">
+                      ${(currentStream.tokenPrice || 1) * tipAmount} total
+                    </p>
+                  </div>
+                )}
+                
                 <div className="flex space-x-2">
                   <Input
                     placeholder="Type a message..."
@@ -237,6 +295,16 @@ export default function UserDashboard() {
                     disabled={sendMessageMutation.isPending}
                     className="bg-slate-700 border-slate-600 text-white flex-1"
                   />
+                  {!showTipInput && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowTipInput(true)}
+                      className="px-3"
+                    >
+                      <Coins className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Button 
                     type="submit" 
                     disabled={!message.trim() || sendMessageMutation.isPending}
@@ -245,6 +313,13 @@ export default function UserDashboard() {
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
+                
+                {tipAmount > 0 && (
+                  <p className="text-xs text-green-400 mt-2">
+                    <Coins className="inline mr-1 h-3 w-3" />
+                    Will tip {tipAmount} tokens (${(currentStream.tokenPrice || 1) * tipAmount})
+                  </p>
+                )}
               </form>
             </CardContent>
           </Card>
