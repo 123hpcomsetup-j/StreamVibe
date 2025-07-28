@@ -38,8 +38,12 @@ export default function AdminLogin() {
         title: "Admin Login Successful",
         description: "Welcome to the admin panel",
       });
+      // Invalidate auth queries to refresh the auth state
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      setLocation("/admin-panel");
+      // Small delay to ensure auth state is updated before redirect
+      setTimeout(() => {
+        setLocation("/admin-panel");
+      }, 200);
     },
     onError: (error: any) => {
       toast({
