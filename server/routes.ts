@@ -5,6 +5,9 @@ import { storage } from "./storage";
 import { requireAuth } from "./simpleAuth";
 import authRoutes from "./authRoutes";
 import { setupWebRTC } from "./webrtc";
+import { db } from "./db";
+import { streams, users } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import { 
   insertStreamSchema,
   insertTransactionSchema,
