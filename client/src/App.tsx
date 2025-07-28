@@ -9,6 +9,7 @@ import Login from "@/pages/login";
 import CreatorLogin from "@/pages/creator-login";
 import UserLogin from "@/pages/user-login";
 import AdminLogin from "@/pages/admin-login";
+import PublicHome from "@/pages/public-home";
 import Home from "@/pages/home";
 import CreatorDashboard from "@/pages/creator-dashboard";
 import AdminPanel from "@/pages/admin-panel";
@@ -20,17 +21,17 @@ function Router() {
 
   return (
     <Switch>
-      {isLoading || !isAuthenticated ? (
+      {/* Public routes - always accessible */}
+      <Route path="/" component={PublicHome} />
+      <Route path="/login" component={Login} />
+      <Route path="/creator-login" component={CreatorLogin} />
+      <Route path="/user-login" component={UserLogin} />
+      <Route path="/admin" component={AdminLogin} />
+      
+      {/* Protected routes - require authentication */}
+      {isAuthenticated && typedUser && (
         <>
-          <Route path="/" component={Login} />
-          <Route path="/login" component={Login} />
-          <Route path="/creator-login" component={CreatorLogin} />
-          <Route path="/user-login" component={UserLogin} />
-          <Route path="/admin" component={AdminLogin} />
-        </>
-      ) : (
-        <>
-          <Route path="/" component={Home} />
+          <Route path="/home" component={Home} />
           {typedUser?.role === 'creator' && (
             <Route path="/creator-dashboard" component={CreatorDashboard} />
           )}
@@ -39,6 +40,7 @@ function Router() {
           )}
         </>
       )}
+      
       <Route component={NotFound} />
     </Switch>
   );
