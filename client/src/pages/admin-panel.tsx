@@ -38,22 +38,22 @@ export default function AdminPanel() {
   const { data: pendingCreators = [] } = useQuery({
     queryKey: ["/api/admin/pending-creators"],
     retry: false,
-  });
+  }) as { data: any[] };
 
   const { data: pendingReports = [] } = useQuery({
     queryKey: ["/api/admin/pending-reports"],
     retry: false,
-  });
+  }) as { data: any[] };
 
   const { data: pendingPayouts = [] } = useQuery({
     queryKey: ["/api/admin/pending-payouts"],
     retry: false,
-  });
+  }) as { data: any[] };
 
   const { data: pendingTokenPurchases = [] } = useQuery({
     queryKey: ["/api/admin/pending-token-purchases"],
     retry: false,
-  });
+  }) as { data: any[] };
 
   const approveCreatorMutation = useMutation({
     mutationFn: async (userId: string) => {
