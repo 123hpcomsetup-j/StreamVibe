@@ -301,7 +301,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create chat message for guest with sender name
         const chatMessage = await storage.createChatMessage({
           streamId,
-          userId: `guest-${sessionId}`,
+          userId: null, // Guests don't have user IDs
+          guestSessionId: guestSession.id, // Use guest session ID instead
           message,
           tipAmount: 0, // Guests can't tip
           senderName: senderName || 'Guest', // Use provided name or default
