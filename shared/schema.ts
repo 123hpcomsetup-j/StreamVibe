@@ -55,6 +55,7 @@ export const streams = pgTable("streams", {
   streamUrl: text("stream_url"),
   viewerCount: integer("viewer_count").default(0),
   minTip: integer("min_tip").default(5),
+  tokenPrice: integer("token_price").default(1), // Price per token in cents/currency units
   privateRate: integer("private_rate").default(20),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -105,10 +106,23 @@ export const payouts = pgTable("payouts", {
 export const chatMessages = pgTable("chat_messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   streamId: varchar("stream_id").references(() => streams.id).notNull(),
-  userId: varchar("user_id").references(() => users.id).notNull(),
+  userId: varchar("user_id").references(() => users.id),
+  guestSessionId: varchar("guest_session_id"),
+  senderName: varchar("sender_name").notNull(),
   message: text("message").notNull(),
   tipAmount: integer("tip_amount").default(0),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Guest sessions table for tracking guest viewing
+export const guestSessions = pgTable("guest_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  streamId: varchar("stream_id").references(() => streams.id).notNull(),
+  sessionId: varchar("session_id").notNull(),
+  tokensRemaining: integer("tokens_remaining").default(100),
+  viewTimeRemaining: integer("view_time_remaining").default(300), // 5 minutes in seconds
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Relations
@@ -128,6 +142,7 @@ export const streamsRelations = relations(streams, ({ one, many }) => ({
   }),
   transactions: many(transactions),
   chatMessages: many(chatMessages),
+  guestSessions: many(guestSessions),
 }));
 
 export const transactionsRelations = relations(transactions, ({ one }) => ({
@@ -184,6 +199,12 @@ export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
   createdAt: true,
 });
 
+export const insertGuestSessionSchema = createInsertSchema(guestSessions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -199,3 +220,5 @@ export type InsertPayout = z.infer<typeof insertPayoutSchema>;
 export type Payout = typeof payouts.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertGuestSession = z.infer<typeof insertGuestSessionSchema>;
+export type GuestSession = typeof guestSessions.$inferSelect;

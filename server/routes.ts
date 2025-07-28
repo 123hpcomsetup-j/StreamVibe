@@ -395,6 +395,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Guest session routes
+  app.post("/api/guest-session", async (req, res) => {
+    try {
+      const { streamId, sessionId } = req.body;
+      
+      if (!streamId || !sessionId) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Check if stream exists and is live
+      const stream = await storage.getStreamById(streamId);
+      if (!stream || !stream.isLive) {
+        return res.status(404).json({ message: "Stream not found or not live" });
+      }
+
+      const guestSession = await storage.createGuestSession({
+        streamId,
+        sessionId,
+        tokensRemaining: 100,
+        viewTimeRemaining: 300, // 5 minutes
+      });
+
+      res.json(guestSession);
+    } catch (error) {
+      console.error("Error creating guest session:", error);
+      res.status(500).json({ message: "Failed to create guest session" });
+    }
+  });
+
+  app.get("/api/guest-session/:streamId", async (req, res) => {
+    try {
+      const { streamId } = req.params;
+      const sessionId = req.headers['x-session-id'] as string;
+      
+      if (!sessionId) {
+        return res.status(400).json({ message: "Session ID required" });
+      }
+
+      const guestSession = await storage.getGuestSession(streamId, sessionId);
+      if (!guestSession) {
+        return res.status(404).json({ message: "Guest session not found" });
+      }
+
+      res.json(guestSession);
+    } catch (error) {
+      console.error("Error fetching guest session:", error);
+      res.status(500).json({ message: "Failed to fetch guest session" });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Setup WebRTC signaling server

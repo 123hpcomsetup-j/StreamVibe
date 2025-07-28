@@ -6,6 +6,7 @@ import {
   reports,
   payouts,
   chatMessages,
+  guestSessions,
   type User,
   type UpsertUser,
   type Stream,
@@ -20,6 +21,8 @@ import {
   type InsertPayout,
   type ChatMessage,
   type InsertChatMessage,
+  type GuestSession,
+  type InsertGuestSession,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -62,6 +65,12 @@ export interface IStorage {
   // Chat operations
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
   getChatMessages(streamId: string): Promise<ChatMessage[]>;
+  
+  // Guest sessions
+  createGuestSession(session: InsertGuestSession): Promise<GuestSession>;
+  getGuestSession(streamId: string, sessionId: string): Promise<GuestSession | undefined>;
+  getGuestSessionById(id: string): Promise<GuestSession | undefined>;
+  updateGuestSession(id: string, updates: Partial<GuestSession>): Promise<GuestSession>;
   
   // Admin operations
   getPendingCreators(): Promise<User[]>;
@@ -295,6 +304,32 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set({ isOnline })
       .where(eq(users.id, userId));
+  }
+
+  // Guest session methods
+  async createGuestSession(session: InsertGuestSession): Promise<GuestSession> {
+    const [newSession] = await db.insert(guestSessions).values(session).returning();
+    return newSession;
+  }
+
+  async getGuestSession(streamId: string, sessionId: string): Promise<GuestSession | undefined> {
+    const [session] = await db.select().from(guestSessions)
+      .where(and(eq(guestSessions.streamId, streamId), eq(guestSessions.sessionId, sessionId)));
+    return session;
+  }
+
+  async getGuestSessionById(id: string): Promise<GuestSession | undefined> {
+    const [session] = await db.select().from(guestSessions)
+      .where(eq(guestSessions.id, id));
+    return session;
+  }
+
+  async updateGuestSession(id: string, updates: Partial<GuestSession>): Promise<GuestSession> {
+    const [updatedSession] = await db.update(guestSessions)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(guestSessions.id, id))
+      .returning();
+    return updatedSession;
   }
 }
 

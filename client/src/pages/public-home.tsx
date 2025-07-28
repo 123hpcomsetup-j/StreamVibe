@@ -174,7 +174,7 @@ export default function PublicHome() {
                     {/* Hover overlay */}
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <Button 
-                        onClick={() => setLocation("/user-login")}
+                        onClick={() => setLocation(`/stream/${stream.id}`)}
                         className="bg-primary hover:bg-primary/80"
                       >
                         <Play className="mr-2 h-4 w-4" />

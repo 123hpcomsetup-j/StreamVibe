@@ -26,6 +26,7 @@ export default function CreatorDashboard() {
     title: "",
     category: "Art & Design",
     minTip: 5,
+    tokenPrice: 1,
     privateRate: 20,
     publicChat: true,
     privateSessions: true,
@@ -72,6 +73,7 @@ export default function CreatorDashboard() {
         title: currentStream.title || "",
         category: currentStream.category || "Art & Design",
         minTip: currentStream.minTip || 5,
+        tokenPrice: currentStream.tokenPrice || 1,
         privateRate: currentStream.privateRate || 20,
         publicChat: true,
         privateSessions: true,
@@ -333,6 +335,21 @@ export default function CreatorDashboard() {
                     checked={streamData.privateSessions}
                     onCheckedChange={(checked) => setStreamData({ ...streamData, privateSessions: checked })}
                   />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="tokenPrice">Token Price ($)</Label>
+                  <Input
+                    id="tokenPrice"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={streamData.tokenPrice}
+                    onChange={(e) => setStreamData({ ...streamData, tokenPrice: parseFloat(e.target.value) || 1 })}
+                    className="bg-slate-700 border-slate-600"
+                    placeholder="1.00"
+                  />
+                  <p className="text-xs text-slate-400">Set how much each token costs for viewers</p>
                 </div>
                 
                 <div className="space-y-2">

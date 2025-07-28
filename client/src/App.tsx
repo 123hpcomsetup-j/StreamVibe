@@ -13,6 +13,7 @@ import PublicHome from "@/pages/public-home";
 import Home from "@/pages/home";
 import CreatorDashboard from "@/pages/creator-dashboard";
 import AdminPanel from "@/pages/admin-panel";
+import GuestStream from "@/pages/guest-stream";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -23,6 +24,7 @@ function Router() {
     <Switch>
       {/* Public routes - always accessible */}
       <Route path="/" component={PublicHome} />
+      <Route path="/stream/:streamId" component={GuestStream} />
       <Route path="/login" component={Login} />
       <Route path="/creator-login" component={CreatorLogin} />
       <Route path="/user-login" component={UserLogin} />
