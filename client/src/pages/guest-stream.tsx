@@ -65,12 +65,7 @@ export default function GuestStream() {
   // Type assertion for stream to fix LSP errors
   const typedStream = stream as any;
 
-  // Fetch guest session
-  const { data: guestSession } = useQuery({
-    queryKey: ["/api/guest-session", streamId],
-    enabled: !!streamId && !!guestSessionId,
-    refetchInterval: false, // Don't auto-refetch, we manage state locally
-  });
+  // No need to fetch guest session separately since we create it and manage state locally
 
   // Fetch chat messages
   const { data: chatMessages = [], refetch: refetchMessages } = useQuery({
@@ -82,15 +77,28 @@ export default function GuestStream() {
   // Create guest session mutation
   const createSessionMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", `/api/guest-session`, {
-        streamId,
-        sessionId: crypto.randomUUID(),
+      const sessionId = crypto.randomUUID();
+      const response = await fetch('/api/guest-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          streamId,
+          sessionId,
+        }),
       });
-      return response as any; // Type assertion to fix LSP errors
+      
+      if (!response.ok) {
+        throw new Error('Failed to create guest session');
+      }
+      
+      const session = await response.json();
+      return { ...session, sessionId }; // Include sessionId for headers
     },
     onSuccess: (session: any) => {
       console.log("Guest session created:", session); // Debug log
-      setGuestSessionId(session.id);
+      setGuestSessionId(session.sessionId); // Use sessionId for headers
       setTimeLeft(session.viewTimeRemaining || 300);
       setTokensLeft(session.tokensRemaining || 100);
     },
@@ -107,19 +115,34 @@ export default function GuestStream() {
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (data: { message: string; tipAmount?: number }) => {
-      return await apiRequest("POST", `/api/streams/${streamId}/chat`, {
-        guestSessionId,
-        senderName: guestName,
-        message: data.message,
-        tipAmount: data.tipAmount || 0,
+      if (!guestSessionId) {
+        throw new Error("Guest session not initialized");
+      }
+      
+      const response = await fetch(`/api/streams/${streamId}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-session-id': guestSessionId, // Send session ID in header
+        },
+        body: JSON.stringify({
+          message: data.message,
+          senderName: guestName,
+          tipAmount: data.tipAmount || 0,
+        }),
       });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to send message');
+      }
+      
+      return await response.json();
     },
     onSuccess: () => {
       setMessage("");
-      refetchMessages();
-      if (guestSession) {
-        setTokensLeft(prev => Math.max(0, prev - 1));
-      }
+      setTokensLeft(prev => Math.max(0, prev - 1));
+      refetchMessages(); // Refresh chat to show new message
     },
     onError: (error) => {
       toast({
@@ -164,22 +187,7 @@ export default function GuestStream() {
     },
   });
 
-  // Timer effect
-  useEffect(() => {
-    if (!guestSessionId || timeLeft <= 0) return;
-
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          setShowSignupDialog(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [guestSessionId, timeLeft]);
+  // Remove duplicate timer effect - using the one below
 
   // Auto-scroll chat
   useEffect(() => {
@@ -195,12 +203,17 @@ export default function GuestStream() {
 
   // Timer countdown effect
   useEffect(() => {
-    if (timeLeft <= 0 || !guestSessionId) return;
+    if (timeLeft <= 0) return;
 
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
           setShowSignupDialog(true);
+          toast({
+            title: "Guest Time Expired",
+            description: "Your free preview has ended. Sign up to continue watching!",
+            variant: "destructive",
+          });
           return 0;
         }
         return prev - 1;
@@ -208,7 +221,7 @@ export default function GuestStream() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, guestSessionId]);
+  }, []); // Remove dependencies to prevent restart
 
   // Initialize WebRTC connection for live streaming
   useEffect(() => {
@@ -225,7 +238,7 @@ export default function GuestStream() {
       // Join stream as viewer
       newSocket.emit('join-stream', {
         streamId,
-        userId: guestSession?.id || `guest-${Date.now()}`,
+        userId: guestSessionId || `guest-${Date.now()}`,
         userType: 'guest'
       });
     });
@@ -270,7 +283,7 @@ export default function GuestStream() {
         peerConnection.close();
       }
     };
-  }, [streamId, stream?.isLive, guestSession]);
+  }, [streamId, typedStream?.isLive, guestSessionId]);
 
   // Handle WebRTC offer from creator
   const handleWebRTCOffer = async (offer: RTCSessionDescriptionInit, socket: Socket, creatorId: string) => {
@@ -322,7 +335,7 @@ export default function GuestStream() {
         answer,
         streamId,
         targetId: creatorId,
-        userId: guestSession?.id || `guest-${Date.now()}`
+        userId: guestSessionId || `guest-${Date.now()}`
       });
 
     } catch (error) {
@@ -332,7 +345,26 @@ export default function GuestStream() {
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim() || !isNameSet || tokensLeft <= 0) return;
+    if (!message.trim() || !isNameSet || !guestSessionId) {
+      if (!isNameSet) {
+        toast({
+          title: "Name Required",
+          description: "Please set your name before chatting",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
+    if (tokensLeft <= 0) {
+      toast({
+        title: "No Tokens Left",
+        description: "You've used all your free chat tokens. Sign up to continue chatting!",
+        variant: "destructive",
+      });
+      setShowSignupDialog(true);
+      return;
+    }
 
     sendMessageMutation.mutate({ message });
   };

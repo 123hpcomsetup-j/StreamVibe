@@ -288,7 +288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/streams/:streamId/chat', async (req: any, res) => {
     try {
       const { streamId } = req.params;
-      const { message, tipAmount = 0 } = req.body;
+      const { message, tipAmount = 0, senderName } = req.body;
       const sessionId = req.headers['x-session-id'] as string;
       
       // Check if this is a guest session
@@ -298,12 +298,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(403).json({ message: "Guest session expired or no tokens remaining" });
         }
         
-        // Create chat message for guest
+        // Create chat message for guest with sender name
         const chatMessage = await storage.createChatMessage({
           streamId,
           userId: `guest-${sessionId}`,
           message,
           tipAmount: 0, // Guests can't tip
+          senderName: senderName || 'Guest', // Use provided name or default
         });
         
         // Decrement guest tokens
