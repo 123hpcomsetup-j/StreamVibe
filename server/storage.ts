@@ -67,6 +67,10 @@ export interface IStorage {
   getPendingCreators(): Promise<User[]>;
   approveCreator(userId: string): Promise<User>;
   updateUserWallet(userId: string, amount: number): Promise<User>;
+  
+  // User status operations
+  getOnlineUsers(): Promise<User[]>;
+  updateUserOnlineStatus(userId: string, isOnline: boolean): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -279,6 +283,18 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
     return updated;
+  }
+
+  // User status operations
+  async getOnlineUsers(): Promise<User[]> {
+    return await db.select().from(users).where(eq(users.isOnline, true));
+  }
+
+  async updateUserOnlineStatus(userId: string, isOnline: boolean): Promise<void> {
+    await db
+      .update(users)
+      .set({ isOnline })
+      .where(eq(users.id, userId));
   }
 }
 

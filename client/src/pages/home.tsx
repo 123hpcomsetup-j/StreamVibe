@@ -37,6 +37,11 @@ export default function Home() {
     retry: false,
   });
 
+  const { data: onlineUsers = [], isLoading: usersLoading } = useQuery({
+    queryKey: ["/api/users/online"],
+    retry: false,
+  });
+
   const handleStreamError = (error: Error) => {
     if (isUnauthorizedError(error)) {
       toast({

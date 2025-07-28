@@ -30,6 +30,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.use('/api/auth', authRoutes);
 
+  // User routes
+  app.get('/api/users/online', async (req, res) => {
+    try {
+      const onlineUsers = await storage.getOnlineUsers();
+      res.json(onlineUsers);
+    } catch (error) {
+      console.error("Error fetching online users:", error);
+      res.status(500).json({ message: "Failed to fetch online users" });
+    }
+  });
+
   // Stream routes
   app.get('/api/streams', async (req, res) => {
     try {
