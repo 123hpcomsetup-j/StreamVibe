@@ -152,12 +152,14 @@ export default function PublicHome() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {Array.isArray(liveStreams) && liveStreams.slice(0, 6).map((stream: any) => (
                 <Card key={stream.id} className="bg-slate-800 border-slate-700 hover:bg-slate-800/80 transition-colors cursor-pointer group">
-                  <div className="aspect-video relative">
-                    <img 
-                      src="https://images.unsplash.com/photo-1542751371-adc38448a05e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=338" 
-                      alt="Stream thumbnail" 
-                      className="w-full h-full object-cover rounded-t-lg"
-                    />
+                  <div className="aspect-video relative bg-slate-700 rounded-t-lg flex items-center justify-center">
+                    {/* Live stream preview placeholder - real WebRTC will connect when clicked */}
+                    <div className="text-center">
+                      <Video className="h-12 w-12 text-slate-400 mx-auto mb-2" />
+                      <p className="text-slate-300 text-sm font-medium">Live Stream</p>
+                      <p className="text-slate-500 text-xs">Click to watch</p>
+                    </div>
+                    
                     <div className="absolute top-3 left-3">
                       <Badge className="bg-red-500 text-white">
                         <div className="w-1.5 h-1.5 bg-white rounded-full mr-1 animate-pulse"></div>
@@ -184,11 +186,9 @@ export default function PublicHome() {
                   </div>
                   <CardContent className="p-4">
                     <div className="flex items-center space-x-3 mb-3">
-                      <img 
-                        src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=48&h=48" 
-                        alt="Creator profile" 
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
+                      <div className="w-12 h-12 bg-slate-600 rounded-full flex items-center justify-center">
+                        <Video className="h-6 w-6 text-slate-400" />
+                      </div>
                       <div>
                         <h4 className="font-semibold text-white">{stream.title}</h4>
                         <p className="text-slate-400 text-sm">{stream.category}</p>
@@ -200,8 +200,8 @@ export default function PublicHome() {
                         Min: {stream.minTip || 5} tokens
                       </span>
                       <span className="text-slate-400 text-sm">
-                        <Heart className="mr-1 h-3 w-3 inline" />
-                        {Math.floor(Math.random() * 5000) + 500}
+                        <Users className="mr-1 h-3 w-3 inline" />
+                        {stream.viewerCount || 0} watching
                       </span>
                     </div>
                   </CardContent>
@@ -256,11 +256,17 @@ export default function PublicHome() {
                 <Card key={creator.id} className="bg-slate-800 border-slate-700 hover:bg-slate-800/80 transition-colors">
                   <CardContent className="p-4 text-center">
                     <div className="relative w-16 h-16 mx-auto mb-3">
-                      <img 
-                        src={creator.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(creator.firstName || creator.username || 'Creator')}&background=8b5cf6&color=fff&size=64`}
-                        alt={`${creator.firstName || creator.username || 'Creator'}'s profile`}
-                        className="w-full h-full rounded-full object-cover border-2 border-purple-500"
-                      />
+                      {creator.profileImageUrl ? (
+                        <img 
+                          src={creator.profileImageUrl}
+                          alt={`${creator.firstName || creator.username || 'Creator'}'s profile`}
+                          className="w-full h-full rounded-full object-cover border-2 border-purple-500"
+                        />
+                      ) : (
+                        <div className="w-full h-full rounded-full bg-slate-600 border-2 border-purple-500 flex items-center justify-center">
+                          <Users className="h-8 w-8 text-slate-400" />
+                        </div>
+                      )}
                       <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 border-slate-800 rounded-full animate-pulse"></div>
                     </div>
                     

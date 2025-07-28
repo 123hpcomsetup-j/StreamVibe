@@ -52,10 +52,13 @@ Preferred communication style: Simple, everyday language.
   - Creators now access actual camera/microphone when clicking "Go Live"
   - Real-time video streaming using WebRTC peer-to-peer connections
   - Viewers (both guests and authenticated users) receive actual live camera feeds
-  - Removed all placeholder videos, poster images, and demo content
+  - Removed all placeholder videos, poster images, and demo content from all pages
+  - Removed hardcoded Unsplash demo images from home page stream cards
+  - Removed mock statistics and external avatar generation services
   - Live streaming displays actual camera preview for creators
   - WebSocket signaling server handles peer connections and ICE candidates
   - STUN servers configured for NAT traversal in real network conditions
+  - Home page now shows only authentic data without demo content
 
 ## System Architecture
 
