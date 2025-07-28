@@ -129,15 +129,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLiveStreams(): Promise<Stream[]> {
-    // Include both live streams and recently ended streams (within last 24 hours)
+    // Only return streams that are currently live for real-time accuracy
     return await db
       .select()
       .from(streams)
-      .where(
-        // Live streams OR streams created within last 24 hours (including ended ones)
-        sql`${streams.isLive} = true OR ${streams.createdAt} > NOW() - INTERVAL '24 hours'`
-      )
-      .orderBy(desc(streams.isLive), desc(streams.viewerCount)); // Live streams first, then by viewer count
+      .where(eq(streams.isLive, true))
+      .orderBy(desc(streams.viewerCount), desc(streams.createdAt));
   }
 
   async getStreamById(id: string): Promise<Stream | undefined> {
@@ -345,6 +342,32 @@ export class DatabaseStorage implements IStorage {
       .where(eq(guestSessions.id, id))
       .returning();
     return updatedSession;
+  }
+
+  // Stream status management
+  async updateStreamStatus(streamId: string, isLive: boolean, viewerCount?: number): Promise<void> {
+    const updateData: any = { isLive };
+    if (viewerCount !== undefined) {
+      updateData.viewerCount = viewerCount;
+    }
+    
+    await db
+      .update(streams)
+      .set(updateData)
+      .where(eq(streams.id, streamId));
+  }
+
+  async cleanupStaleStreams(): Promise<number> {
+    // Mark streams as offline if they've been "live" for more than 2 hours
+    // This handles cases where creators close browser without properly ending stream
+    const result = await db
+      .update(streams)
+      .set({ isLive: false })
+      .where(
+        sql`${streams.isLive} = true AND ${streams.createdAt} < NOW() - INTERVAL '2 hours'`
+      );
+    
+    return result.rowCount || 0;
   }
 }
 

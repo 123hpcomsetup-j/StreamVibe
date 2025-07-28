@@ -45,10 +45,21 @@ export default function PublicHome() {
     newSocket.on('stream-status-changed', (data: { streamId: string, isLive: boolean, viewerCount: number }) => {
       setRealTimeStreams(prevStreams => {
         if (data.isLive) {
-          // Stream went live - refresh data to get latest info
-          refetchStreams();
-          refetchUsers();
-          return prevStreams;
+          // Stream went live - check if it's already in the list
+          const existingStreamIndex = prevStreams.findIndex(stream => stream.id === data.streamId);
+          if (existingStreamIndex === -1) {
+            // New stream, refetch to get full data
+            refetchStreams();
+            refetchUsers();
+            return prevStreams;
+          } else {
+            // Update existing stream
+            return prevStreams.map(stream => 
+              stream.id === data.streamId 
+                ? { ...stream, isLive: true, viewerCount: data.viewerCount }
+                : stream
+            );
+          }
         } else {
           // Stream went offline - remove from live streams
           return prevStreams.filter(stream => stream.id !== data.streamId);
@@ -70,7 +81,7 @@ export default function PublicHome() {
     return () => {
       newSocket.close();
     };
-  }, []);
+  }, []); // Remove dependencies to prevent infinite loop
 
   // Use real-time streams data instead of static query data
   const displayStreams = realTimeStreams.filter((stream: any) => stream.isLive);

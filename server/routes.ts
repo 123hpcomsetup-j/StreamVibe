@@ -67,9 +67,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/streams/live', async (req, res) => {
     try {
-      const streams = await storage.getLiveStreams();
-      // Only return streams that are actually live for real-time accuracy
-      const liveStreams = streams.filter(stream => stream.isLive);
+      // Clean up stale streams before fetching (streams older than 2 hours)
+      await storage.cleanupStaleStreams();
+      const liveStreams = await storage.getLiveStreams();
       res.json(liveStreams);
     } catch (error) {
       console.error("Error fetching live streams:", error);
