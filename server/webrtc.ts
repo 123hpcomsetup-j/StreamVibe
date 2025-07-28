@@ -73,82 +73,80 @@ export function setupWebRTC(server: Server) {
     });
 
     // Handle WebRTC signaling
-    socket.on('offer', (data: { target: string, offer: any, streamId: string }) => {
-      socket.to(data.target).emit('offer', {
+    socket.on('offer', (data: { offer: RTCSessionDescriptionInit, targetId: string, streamId: string }) => {
+      socket.to(data.targetId).emit('offer', {
         offer: data.offer,
-        sender: socket.id,
+        senderId: socket.id,
         streamId: data.streamId
       });
     });
 
-    socket.on('answer', (data: { target: string, answer: any, streamId: string }) => {
-      socket.to(data.target).emit('answer', {
+    socket.on('answer', (data: { answer: RTCSessionDescriptionInit, targetId: string, streamId: string }) => {
+      socket.to(data.targetId).emit('answer', {
         answer: data.answer,
-        sender: socket.id,
+        senderId: socket.id,
         streamId: data.streamId
       });
     });
 
-    socket.on('ice-candidate', (data: { target: string, candidate: any, streamId: string }) => {
-      socket.to(data.target).emit('ice-candidate', {
+    socket.on('ice-candidate', (data: { candidate: RTCIceCandidateInit, targetId: string, streamId: string }) => {
+      socket.to(data.targetId).emit('ice-candidate', {
         candidate: data.candidate,
-        sender: socket.id,
+        senderId: socket.id,
         streamId: data.streamId
       });
     });
 
-    // Chat messages
-    socket.on('chat-message', (data: { streamId: string, message: string, userId: string, username: string }) => {
+    // Handle chat messages
+    socket.on('chat-message', (data: { streamId: string, message: string, username: string, userId: string }) => {
+      // Broadcast to all users in the stream room
       io.to(`stream-${data.streamId}`).emit('chat-message', {
-        id: Date.now().toString(),
         message: data.message,
-        userId: data.userId,
         username: data.username,
+        userId: data.userId,
         timestamp: new Date().toISOString()
       });
     });
 
-    // Handle tips
-    socket.on('send-tip', (data: { streamId: string, amount: number, userId: string, username: string, message?: string }) => {
-      io.to(`stream-${data.streamId}`).emit('tip-received', {
-        id: Date.now().toString(),
+    // Handle tip messages
+    socket.on('tip-message', (data: { streamId: string, amount: number, username: string, userId: string }) => {
+      // Broadcast tip to all users in the stream room
+      io.to(`stream-${data.streamId}`).emit('tip-message', {
         amount: data.amount,
-        userId: data.userId,
         username: data.username,
-        message: data.message || '',
+        userId: data.userId,
         timestamp: new Date().toISOString()
       });
     });
 
-    // Creator stops streaming
-    socket.on('stop-stream', (data: { streamId: string }) => {
-      const { streamId } = data;
-      const stream = activeStreams.get(streamId);
-      
+    // Handle stream end
+    socket.on('end-stream', (data: { streamId: string }) => {
+      const stream = activeStreams.get(data.streamId);
       if (stream && stream.creatorSocketId === socket.id) {
         // Notify all viewers that stream ended
-        io.to(`stream-${streamId}`).emit('stream-ended', { streamId });
+        io.to(`stream-${data.streamId}`).emit('stream-ended', { streamId: data.streamId });
         
         // Clean up
-        activeStreams.delete(streamId);
-        console.log(`Stream ${streamId} ended`);
+        activeStreams.delete(data.streamId);
+        console.log(`Stream ${data.streamId} ended`);
       }
     });
 
-    // Handle disconnections
+    // Handle disconnect
     socket.on('disconnect', () => {
       console.log(`User disconnected: ${socket.id}`);
       
-      // Check if disconnected user was a creator
+      // Clean up streams if creator disconnected
       for (const [streamId, stream] of activeStreams.entries()) {
         if (stream.creatorSocketId === socket.id) {
-          // Creator disconnected - end stream
+          // Notify viewers that stream ended
           io.to(`stream-${streamId}`).emit('stream-ended', { streamId });
           activeStreams.delete(streamId);
           console.log(`Stream ${streamId} ended due to creator disconnect`);
         } else if (stream.viewers.has(socket.id)) {
-          // Viewer disconnected - remove from viewers
+          // Remove viewer from stream
           stream.viewers.delete(socket.id);
+          // Update viewer count
           io.to(`stream-${streamId}`).emit('viewer-count-update', { 
             streamId,
             count: stream.viewers.size 
