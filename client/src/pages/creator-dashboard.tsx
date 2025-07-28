@@ -237,8 +237,8 @@ export default function CreatorDashboard() {
         
         <main className="flex-1 overflow-y-auto p-6">
           <div className="mb-8">
-            <h2 className="text-3xl font-bold mb-2">Creator Dashboard</h2>
-            <p className="text-slate-400">Manage your streams and earnings</p>
+            <h2 className="text-3xl font-bold mb-2">Creator Dashboard - Real Analytics</h2>
+            <p className="text-slate-400">Manage your streams and view real earnings data</p>
           </div>
 
           {/* WebRTC Live Streaming */}

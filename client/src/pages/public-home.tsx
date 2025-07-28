@@ -27,7 +27,9 @@ export default function PublicHome() {
 
   // Initialize real-time updates with WebSocket
   useEffect(() => {
-    setRealTimeStreams(Array.isArray(liveStreams) ? liveStreams : []);
+    if (liveStreams && Array.isArray(liveStreams)) {
+      setRealTimeStreams(liveStreams);
+    }
   }, [liveStreams]);
 
   // WebSocket connection for real-time stream status updates
@@ -43,28 +45,16 @@ export default function PublicHome() {
 
     // Listen for real-time stream status changes
     newSocket.on('stream-status-changed', (data: { streamId: string, isLive: boolean, viewerCount: number }) => {
-      setRealTimeStreams(prevStreams => {
-        if (data.isLive) {
-          // Stream went live - check if it's already in the list
-          const existingStreamIndex = prevStreams.findIndex(stream => stream.id === data.streamId);
-          if (existingStreamIndex === -1) {
-            // New stream, refetch to get full data
-            refetchStreams();
-            refetchUsers();
-            return prevStreams;
-          } else {
-            // Update existing stream
-            return prevStreams.map(stream => 
-              stream.id === data.streamId 
-                ? { ...stream, isLive: true, viewerCount: data.viewerCount }
-                : stream
-            );
-          }
-        } else {
-          // Stream went offline - remove from live streams
-          return prevStreams.filter(stream => stream.id !== data.streamId);
-        }
-      });
+      if (data.isLive) {
+        // Stream went live - refetch to get full data
+        refetchStreams();
+        refetchUsers();
+      } else {
+        // Stream went offline - update state
+        setRealTimeStreams(prevStreams => 
+          prevStreams.filter(stream => stream.id !== data.streamId)
+        );
+      }
     });
 
     // Listen for viewer count updates
