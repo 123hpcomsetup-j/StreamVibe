@@ -1,7 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import session from "express-session";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { requireAuth } from "./simpleAuth";
+import authRoutes from "./authRoutes";
 import { setupWebRTC } from "./webrtc";
 import { 
   insertStreamSchema,
@@ -13,20 +15,20 @@ import {
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
+  // Simple session setup
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'dev-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: false, // Set to true in production with HTTPS
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 1 week
+    }
+  }));
 
   // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
+  app.use('/api/auth', authRoutes);
 
   // Stream routes
   app.get('/api/streams', async (req, res) => {
@@ -49,9 +51,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/streams', isAuthenticated, async (req: any, res) => {
+  app.post('/api/streams', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (user?.role !== 'creator' || !user.isApproved) {
@@ -71,9 +73,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/streams/:id', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/streams/:id', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const streamId = req.params.id;
       
       const stream = await storage.getStreamById(streamId);
@@ -90,7 +92,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Transaction routes
-  app.post('/api/transactions', isAuthenticated, async (req: any, res) => {
+  app.post('/api/transactions', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -122,9 +124,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/transactions', isAuthenticated, async (req: any, res) => {
+  app.get('/api/transactions', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const transactions = await storage.getTransactionsByUser(userId);
       res.json(transactions);
     } catch (error) {
@@ -134,9 +136,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Token purchase routes
-  app.post('/api/token-purchases', isAuthenticated, async (req: any, res) => {
+  app.post('/api/token-purchases', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const validatedData = insertTokenPurchaseSchema.parse({
         ...req.body,
         userId,
@@ -151,9 +153,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Report routes
-  app.post('/api/reports', isAuthenticated, async (req: any, res) => {
+  app.post('/api/reports', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const validatedData = insertReportSchema.parse({
         ...req.body,
         reportedBy: userId,
@@ -168,9 +170,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Payout routes
-  app.post('/api/payouts', isAuthenticated, async (req: any, res) => {
+  app.post('/api/payouts', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (user?.role !== 'creator') {
@@ -212,9 +214,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/chat', isAuthenticated, async (req: any, res) => {
+  app.post('/api/chat', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       
       // For featured stream, just return a mock response instead of database insert
       if (req.body.streamId === 'featured') {
@@ -242,9 +244,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin routes
-  app.get('/api/admin/pending-creators', isAuthenticated, async (req: any, res) => {
+  app.get('/api/admin/pending-creators', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (user?.role !== 'admin') {
@@ -259,9 +261,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/admin/approve-creator/:userId', isAuthenticated, async (req: any, res) => {
+  app.post('/api/admin/approve-creator/:userId', requireAuth, async (req: any, res) => {
     try {
-      const adminUserId = req.user.claims.sub;
+      const adminUserId = req.user.id;
       const admin = await storage.getUser(adminUserId);
       
       if (admin?.role !== 'admin') {
@@ -277,9 +279,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/admin/pending-reports', isAuthenticated, async (req: any, res) => {
+  app.get('/api/admin/pending-reports', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (user?.role !== 'admin') {
@@ -294,9 +296,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/admin/pending-payouts', isAuthenticated, async (req: any, res) => {
+  app.get('/api/admin/pending-payouts', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (user?.role !== 'admin') {
@@ -311,9 +313,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/admin/pending-token-purchases', isAuthenticated, async (req: any, res) => {
+  app.get('/api/admin/pending-token-purchases', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (user?.role !== 'admin') {
@@ -328,9 +330,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/admin/approve-token-purchase/:id', isAuthenticated, async (req: any, res) => {
+  app.post('/api/admin/approve-token-purchase/:id', requireAuth, async (req: any, res) => {
     try {
-      const adminUserId = req.user.claims.sub;
+      const adminUserId = req.user.id;
       const admin = await storage.getUser(adminUserId);
       
       if (admin?.role !== 'admin') {

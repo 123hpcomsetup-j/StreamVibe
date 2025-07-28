@@ -14,6 +14,9 @@ Preferred communication style: Simple, everyday language.
 ✓ Updated admin panel to focus on provider authorization and payment oversight
 ✓ Fixed user role assignment - updated test user to admin role for accessing admin panel
 ✓ Implemented comprehensive live stream controls with camera/microphone access
+✓ **MAJOR**: Replaced Replit Auth with simple username/password authentication system
+✓ Added username and password fields to users table with bcrypt password hashing
+✓ Created new login/register page with role selection (viewer, creator, admin)
 
 ## System Architecture
 
@@ -40,10 +43,11 @@ Preferred communication style: Simple, everyday language.
 ## Key Components
 
 ### Authentication System
-- **Provider**: Replit Auth with OpenID Connect
-- **Session Storage**: PostgreSQL-backed sessions with 7-day TTL
+- **Provider**: Simple username/password authentication with bcrypt
+- **Session Storage**: Express sessions with 7-day TTL
 - **Authorization**: Role-based access control (viewer, creator, admin)
-- **User Management**: Automatic user creation/update on login
+- **User Management**: Registration form with role selection
+- **Security**: Bcrypt password hashing, session-based authentication
 
 ### Streaming Platform
 - **Live Streams**: Real-time streaming with viewer count tracking
