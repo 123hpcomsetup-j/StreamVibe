@@ -151,12 +151,14 @@ export default function CreatorLogin() {
             </div>
 
             <div className="text-center mt-4">
-              <p className="text-slate-400 text-sm mb-2">
-                Test Creator Account:
+              <p className="text-slate-400 text-sm mb-3">
+                Test Creator Accounts:
               </p>
-              <p className="text-xs text-slate-500">
-                Username: creator | Password: creator123
-              </p>
+              <div className="text-xs text-slate-500 space-y-1">
+                <div>🎨 <strong>artist_sarah</strong> / creator123</div>
+                <div>🎮 <strong>gamer_mike</strong> / creator123</div>
+                <div>👨‍🍳 <strong>chef_emma</strong> / creator123</div>
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -151,12 +151,14 @@ export default function UserLogin() {
             </div>
 
             <div className="text-center mt-4">
-              <p className="text-slate-400 text-sm mb-2">
-                Test Viewer Account:
+              <p className="text-slate-400 text-sm mb-3">
+                Test Viewer Accounts:
               </p>
-              <p className="text-xs text-slate-500">
-                Username: viewer | Password: viewer123
-              </p>
+              <div className="text-xs text-slate-500 space-y-1">
+                <div>👤 <strong>alex_viewer</strong> / viewer123</div>
+                <div>💫 <strong>jenny_fan</strong> / viewer123</div>
+                <div>📺 <strong>david_watch</strong> / viewer123</div>
+              </div>
             </div>
           </CardContent>
         </Card>

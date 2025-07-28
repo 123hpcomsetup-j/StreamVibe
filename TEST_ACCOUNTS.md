@@ -1,53 +1,72 @@
 # StreamVibe Test Accounts
 
-## Test Account Credentials
+## Three Login Portals with Test Credentials
 
-### Creator Account (for streaming)
-- **Username:** `creator`
-- **Password:** `creator123`
-- **Email:** creator@streamvibe.com
-- **Role:** Creator
-- **Access:** Can create and manage live streams, view earnings, access creator dashboard
-- **Wallet Balance:** 100 tokens
+### 🎨 Creator Portal (`/creator-login`)
+**Access:** Purple-themed portal for content creators
+**Purpose:** Create and manage live streams, monetize content
 
-### Viewer Account (for watching)
-- **Username:** `viewer`
-- **Password:** `viewer123`
-- **Email:** viewer@streamvibe.com
-- **Role:** Viewer
-- **Access:** Can watch streams, tip creators, purchase tokens
-- **Wallet Balance:** 50 tokens
+| Username | Password | Profile | Specialization |
+|----------|----------|---------|----------------|
+| `artist_sarah` | `creator123` | Sarah Wilson | Digital Art & Tutorials |
+| `gamer_mike` | `creator123` | Mike Chen | Gaming Content |
+| `chef_emma` | `creator123` | Emma Rodriguez | Cooking Shows |
 
-### Admin Account (for management)
-- **Username:** `admin`
-- **Password:** `admin123`
-- **Email:** admin@streamvibe.com
-- **Role:** Admin
-- **Access:** Full admin panel access, can approve creators, manage payments, moderate content
+---
 
-## Login Pages
+### 👥 Viewer Portal (`/user-login`) 
+**Access:** Blue-themed portal for viewers
+**Purpose:** Watch live streams, chat, tip creators
 
-### Regular Users (Creator & Viewer)
-- **URL:** `/` or `/login`
-- **Features:** Login and registration forms with role selection (creator/viewer only)
-- **Admin Access Link:** Bottom of the page
+| Username | Password | Profile | Description |
+|----------|----------|---------|-------------|
+| `alex_viewer` | `viewer123` | Alex Johnson | Active Community Member |
+| `jenny_fan` | `viewer123` | Jenny Smith | Stream Enthusiast |
+| `david_watch` | `viewer123` | David Brown | Regular Viewer |
 
-### Admin Users
-- **URL:** `/admin`
-- **Features:** Dedicated admin login page with enhanced security styling
-- **Restrictions:** Only accepts admin role users
-- **Redirect:** Successful admin login goes directly to `/admin-panel`
+---
 
-## Authentication Flow
+### 🛡️ Admin Portal (`/admin`)
+**Access:** Red-themed portal for administrators  
+**Purpose:** Platform management, user moderation, system oversight
 
-1. **Creators and Viewers** use the main login page
-2. **Admins** use the separate admin portal at `/admin`
-3. Registration is limited to creator and viewer roles only
-4. Admin accounts must be created manually by existing admins
+| Username | Password | Profile | Role |
+|----------|----------|---------|------|
+| `super_admin` | `admin123` | Admin Master | Super Administrator |
+| `content_mod` | `admin123` | Content Moderator | Content Management |
+| `sys_admin` | `admin123` | System Administrator | Technical Operations |
 
-## Security Features
+---
 
-- **Password Hashing:** bcrypt with 10 salt rounds
-- **Session Management:** Express sessions with 7-day TTL
-- **Role-based Access:** Middleware checks user roles for protected routes
-- **Separate Admin Portal:** Enhanced security for administrative access
+## Quick Access URLs
+
+- **Creator Login:** `https://your-app-url.replit.app/creator-login`
+- **Viewer Login:** `https://your-app-url.replit.app/user-login`  
+- **Admin Portal:** `https://your-app-url.replit.app/admin`
+
+## Features by Role
+
+### Creators Can:
+- Start live WebRTC streams with video/audio
+- Manage stream settings and categories
+- View real-time viewer count and chat
+- Track earnings and tip history
+- Control camera/microphone during streams
+
+### Viewers Can:
+- Watch live streams in real-time
+- Participate in live chat with creators
+- See all online users on main page
+- Browse active streams by category
+- Send tips to creators (token system)
+
+### Admins Can:
+- Monitor all platform activity
+- Manage user accounts and permissions
+- Oversee content moderation
+- Review payment and token transactions
+- Access system analytics and reports
+
+---
+
+*All passwords use bcrypt hashing for security. Test accounts are pre-created in the database with proper role assignments.*

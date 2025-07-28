@@ -118,6 +118,17 @@ export default function AdminLogin() {
               </Button>
             </form>
             
+            <div className="text-center mt-4 border-t border-slate-600 pt-4">
+              <p className="text-slate-400 text-sm mb-3">
+                Test Admin Accounts:
+              </p>
+              <div className="text-xs text-slate-500 space-y-1">
+                <div>🔥 <strong>super_admin</strong> / admin123</div>
+                <div>🛡️ <strong>content_mod</strong> / admin123</div>
+                <div>⚙️ <strong>sys_admin</strong> / admin123</div>
+              </div>
+            </div>
+            
             <div className="mt-6 text-center">
               <Button 
                 variant="link" 
