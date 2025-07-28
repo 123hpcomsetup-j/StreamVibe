@@ -67,14 +67,14 @@ export default function CreatorDashboard() {
 
   // Update streaming state based on current stream
   useEffect(() => {
-    if (currentStream && currentStream.isLive) {
+    if (currentStream && (currentStream as any).isLive) {
       setIsStreaming(true);
       setStreamData({
-        title: currentStream.title || "",
-        category: currentStream.category || "Art & Design",
-        minTip: currentStream.minTip || 5,
-        tokenPrice: currentStream.tokenPrice || 1,
-        privateRate: currentStream.privateRate || 20,
+        title: (currentStream as any).title || "",
+        category: (currentStream as any).category || "Art & Design",
+        minTip: (currentStream as any).minTip || 5,
+        tokenPrice: (currentStream as any).tokenPrice || 1,
+        privateRate: (currentStream as any).privateRate || 20,
         publicChat: true,
         privateSessions: true,
       });
