@@ -141,7 +141,7 @@ export class DatabaseStorage implements IStorage {
 
   async getStreamById(id: string): Promise<Stream | undefined> {
     const [stream] = await db.select().from(streams).where(eq(streams.id, id));
-    return stream;
+    return stream || undefined;
   }
 
   async updateStream(id: string, updates: Partial<InsertStream>): Promise<Stream> {

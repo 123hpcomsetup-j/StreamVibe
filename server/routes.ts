@@ -117,39 +117,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const streamId = req.params.id;
       
-      // Get stream with creator information for both live and ended streams
-      const [stream] = await db
-        .select({
-          id: streams.id,
-          title: streams.title,
-          description: streams.description,
-          category: streams.category,
-          isLive: streams.isLive,
-          viewerCount: streams.viewerCount,
-          createdAt: streams.createdAt,
-          creatorId: streams.creatorId,
-          streamUrl: streams.streamUrl,
-          thumbnailUrl: streams.thumbnailUrl,
-          tokenPrice: streams.tokenPrice,
-          minTip: streams.minTip,
-          creator: {
-            id: users.id,
-            username: users.username,
-            firstName: users.firstName,
-            lastName: users.lastName,
-            profileImageUrl: users.profileImageUrl,
-            role: users.role,
-          },
-        })
-        .from(streams)
-        .leftJoin(users, eq(streams.creatorId, users.id))
-        .where(eq(streams.id, streamId));
-      
+      // Get stream with creator information - simplified query to avoid drizzle issues
+      const stream = await storage.getStreamById(streamId);
       if (!stream) {
         return res.status(404).json({ message: "Stream not found" });
       }
 
-      res.json(stream);
+      // Get creator information separately
+      const creator = await storage.getUser(stream.creatorId);
+      
+      // Combine stream and creator data
+      const streamWithCreator = {
+        ...stream,
+        creator: creator ? {
+          id: creator.id,
+          username: creator.username,
+          firstName: creator.firstName,
+          lastName: creator.lastName,
+          profileImageUrl: creator.profileImageUrl,
+          role: creator.role,
+        } : null
+      };
+
+      res.json(streamWithCreator);
     } catch (error) {
       console.error("Error fetching stream:", error);
       res.status(500).json({ message: "Failed to fetch stream" });

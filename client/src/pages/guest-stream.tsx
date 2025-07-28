@@ -23,6 +23,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { io, Socket } from 'socket.io-client';
 import type { ChatMessage, GuestSession } from "@shared/schema";
 
 export default function GuestStream() {
@@ -31,6 +32,11 @@ export default function GuestStream() {
   const { toast } = useToast();
   const videoRef = useRef<HTMLVideoElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  
+  // WebRTC state for receiving live stream
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [peerConnection, setPeerConnection] = useState<RTCPeerConnection | null>(null);
+  const [isStreamConnected, setIsStreamConnected] = useState(false);
   
   const [guestName, setGuestName] = useState("");
   const [message, setMessage] = useState("");
@@ -178,6 +184,112 @@ export default function GuestStream() {
     }
   }, [streamId]);
 
+  // Initialize WebRTC connection for live streaming
+  useEffect(() => {
+    if (!streamId || !stream?.isLive) return;
+
+    const newSocket = io(window.location.origin, {
+      transports: ['websocket', 'polling']
+    });
+
+    newSocket.on('connect', () => {
+      console.log('Connected to streaming server');
+      setSocket(newSocket);
+      
+      // Join stream as viewer
+      newSocket.emit('join-stream', {
+        streamId,
+        userId: guestSession?.id || `guest-${Date.now()}`,
+        userType: 'guest'
+      });
+    });
+
+    // Handle WebRTC offer from creator
+    newSocket.on('offer', async (data: { offer: RTCSessionDescriptionInit, streamId: string, creatorId: string }) => {
+      if (data.streamId === streamId) {
+        await handleWebRTCOffer(data.offer, newSocket, data.creatorId);
+      }
+    });
+
+    // Handle ICE candidates
+    newSocket.on('ice-candidate', async (data: { candidate: RTCIceCandidateInit }) => {
+      if (peerConnection && data.candidate) {
+        try {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+        } catch (error) {
+          console.error('Error adding ICE candidate:', error);
+        }
+      }
+    });
+
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.close();
+      if (peerConnection) {
+        peerConnection.close();
+      }
+    };
+  }, [streamId, stream?.isLive, guestSession]);
+
+  // Handle WebRTC offer from creator
+  const handleWebRTCOffer = async (offer: RTCSessionDescriptionInit, socket: Socket, creatorId: string) => {
+    try {
+      const pc = new RTCPeerConnection({
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+      });
+
+      setPeerConnection(pc);
+
+      // Handle incoming video stream
+      pc.ontrack = (event) => {
+        console.log('Received remote stream');
+        if (videoRef.current && event.streams[0]) {
+          videoRef.current.srcObject = event.streams[0];
+          setIsStreamConnected(true);
+        }
+      };
+
+      // Handle connection state changes
+      pc.onconnectionstatechange = () => {
+        console.log('Connection state:', pc.connectionState);
+        if (pc.connectionState === 'connected') {
+          setIsStreamConnected(true);
+        } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+          setIsStreamConnected(false);
+        }
+      };
+
+      // Handle ICE candidates
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          socket.emit('ice-candidate', {
+            candidate: event.candidate,
+            targetId: creatorId,
+            streamId
+          });
+        }
+      };
+
+      await pc.setRemoteDescription(offer);
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      socket.emit('answer', {
+        answer,
+        streamId,
+        targetId: creatorId,
+        userId: guestSession?.id || `guest-${Date.now()}`
+      });
+
+    } catch (error) {
+      console.error('Error handling WebRTC offer:', error);
+    }
+  };
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim() || !isNameSet || tokensLeft <= 0) return;
@@ -268,13 +380,10 @@ export default function GuestStream() {
                     <video
                       ref={videoRef}
                       className="w-full h-full object-cover"
-                      controls
                       autoPlay
                       muted
-                      poster="https://images.unsplash.com/photo-1542751371-adc38448a05e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=450"
-                    >
-                      <source src={stream.streamUrl || ""} type="video/mp4" />
-                    </video>
+                      playsInline
+                    />
                     
                     {/* Guest overlay for live streams */}
                     <div className="absolute top-4 left-4 flex flex-col space-y-2">
@@ -288,15 +397,17 @@ export default function GuestStream() {
                       </Badge>
                     </div>
 
-                    {/* Center play button if needed */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Button 
-                        size="lg" 
-                        className="bg-white/20 backdrop-blur-sm hover:bg-white/30"
-                      >
-                        <Play className="h-8 w-8" />
-                      </Button>
-                    </div>
+                    {!videoRef.current?.srcObject && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80">
+                        <div className="text-center">
+                          <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Video className="w-8 h-8 text-slate-400 animate-pulse" />
+                          </div>
+                          <p className="text-white text-lg">Connecting to live stream...</p>
+                          <p className="text-slate-400 text-sm mt-2">Please wait while we establish connection</p>
+                        </div>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-slate-800">
