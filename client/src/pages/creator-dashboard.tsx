@@ -49,13 +49,13 @@ export default function CreatorDashboard() {
     }
   }, [isAuthenticated, isLoading, typedUser, toast]);
 
-  const { data: earnings } = useQuery({
-    queryKey: ["/api/creator/earnings"],
+  const { data: stats } = useQuery({
+    queryKey: ["/api/creator/stats"],
     retry: false,
   });
 
-  const { data: transactions = [] } = useQuery({
-    queryKey: ["/api/transactions"],
+  const { data: recentTips = [] } = useQuery({
+    queryKey: ["/api/creator/tips"],
     retry: false,
   });
 
@@ -204,7 +204,7 @@ export default function CreatorDashboard() {
   };
 
   const handleRequestPayout = () => {
-    const availableEarnings = 2450; // Mock data
+    const availableEarnings = stats?.availableEarnings || 0;
     if (availableEarnings < 500) {
       toast({
         title: "Error",
@@ -379,94 +379,106 @@ export default function CreatorDashboard() {
             </Card>
           </div>
 
-          {/* Earnings Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card className="bg-gradient-to-br from-accent to-accent/80 text-white">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-semibold">Today's Earnings</h4>
-                  <DollarSign className="h-5 w-5" />
-                </div>
-                <div className="text-2xl font-bold">₹485</div>
-                <div className="text-green-100 text-sm">+12% from yesterday</div>
+          {/* Analytics Dashboard - Real Data */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">₹{stats?.totalEarnings || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  {stats?.earningsGrowth ? `+${stats.earningsGrowth}% from last month` : 'No previous data'}
+                </p>
               </CardContent>
             </Card>
-
+            
             <Card className="bg-slate-800 border-slate-700">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-semibold text-white">Total Tips</h4>
-                  <Heart className="h-5 w-5 text-secondary" />
-                </div>
-                <div className="text-2xl font-bold text-white">1,250</div>
-                <div className="text-slate-400 text-sm">This month</div>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Followers</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats?.followerCount || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  {stats?.newFollowers ? `+${stats.newFollowers} new this week` : 'No new followers'}
+                </p>
               </CardContent>
             </Card>
-
+            
             <Card className="bg-slate-800 border-slate-700">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-semibold text-white">Stream Hours</h4>
-                  <Clock className="h-5 w-5 text-primary" />
-                </div>
-                <div className="text-2xl font-bold text-white">42</div>
-                <div className="text-slate-400 text-sm">This month</div>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Stream Hours</CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats?.totalStreamHours || 0}</div>
+                <p className="text-xs text-muted-foreground">This month</p>
               </CardContent>
             </Card>
-
+            
             <Card className="bg-slate-800 border-slate-700">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-semibold text-white">Followers</h4>
-                  <Users className="h-5 w-5 text-red-500" />
-                </div>
-                <div className="text-2xl font-bold text-white">12.5K</div>
-                <div className="text-green-400 text-sm">+245 this week</div>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Tips</CardTitle>
+                <Heart className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats?.totalTips || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  {stats?.weeklyTips ? `+${stats.weeklyTips} this week` : 'No tips yet'}
+                </p>
               </CardContent>
             </Card>
           </div>
 
+          {/* Recent Tips */}
+          <Card className="bg-slate-800 border-slate-700 mb-8">
+            <CardHeader>
+              <CardTitle className="text-white">Recent Tips</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {recentTips.length > 0 ? (
+                  recentTips.map((tip: any) => (
+                    <div key={tip.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-700">
+                      <div>
+                        <p className="font-medium">{tip.senderName || 'Anonymous'}</p>
+                        <p className="text-sm text-slate-400">{new Date(tip.createdAt).toLocaleDateString()}</p>
+                        {tip.message && <p className="text-sm text-slate-300 mt-1">"{tip.message}"</p>}
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-green-400">+{tip.amount} tokens</p>
+                        <p className="text-xs text-slate-400">₹{(tip.amount * (stats?.tokenPrice || 1)).toFixed(2)}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-slate-400 text-center">No tips received yet</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Payout Section */}
           <Card className="bg-slate-800 border-slate-700">
             <CardHeader>
-              <CardTitle className="text-white">Payout Management</CardTitle>
+              <CardTitle className="text-white">Earnings & Payouts</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="font-semibold mb-4 text-white">Available for Payout</h4>
-                  <div className="bg-slate-700 rounded-lg p-4 mb-4">
-                    <div className="text-3xl font-bold text-accent mb-2">₹2,450</div>
-                    <p className="text-slate-400">Minimum payout: ₹500</p>
-                  </div>
-                  <Button 
-                    onClick={handleRequestPayout}
-                    disabled={requestPayoutMutation.isPending}
-                    className="w-full bg-accent hover:bg-accent/80"
-                  >
-                    {requestPayoutMutation.isPending ? "Requesting..." : "Request Payout"}
-                  </Button>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span>Available for Payout</span>
+                  <span className="font-bold text-2xl">₹{stats?.availableEarnings || 0}</span>
                 </div>
-                
-                <div>
-                  <h4 className="font-semibold mb-4 text-white">Recent Payouts</h4>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between py-2 border-b border-slate-700">
-                      <div>
-                        <p className="font-medium text-white">₹1,200</p>
-                        <p className="text-slate-400 text-sm">Jan 15, 2025</p>
-                      </div>
-                      <Badge className="bg-accent text-white">Completed</Badge>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-b border-slate-700">
-                      <div>
-                        <p className="font-medium text-white">₹800</p>
-                        <p className="text-slate-400 text-sm">Jan 8, 2025</p>
-                      </div>
-                      <Badge className="bg-yellow-600 text-white">Pending</Badge>
-                    </div>
-                  </div>
-                </div>
+                <Button 
+                  onClick={handleRequestPayout}
+                  disabled={requestPayoutMutation.isPending || (stats?.availableEarnings || 0) < 500}
+                  className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600"
+                >
+                  {requestPayoutMutation.isPending ? "Processing..." : "Request Payout"}
+                </Button>
+                <p className="text-xs text-slate-400">Minimum payout amount: ₹500</p>
               </div>
             </CardContent>
           </Card>
