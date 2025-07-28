@@ -110,6 +110,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/streams/:id', async (req, res) => {
+    try {
+      const streamId = req.params.id;
+      
+      // Get stream with creator information for both live and ended streams
+      const [stream] = await db
+        .select({
+          id: streams.id,
+          title: streams.title,
+          description: streams.description,
+          category: streams.category,
+          isLive: streams.isLive,
+          viewerCount: streams.viewerCount,
+          createdAt: streams.createdAt,
+          creatorId: streams.creatorId,
+          streamUrl: streams.streamUrl,
+          thumbnailUrl: streams.thumbnailUrl,
+          tokenPrice: streams.tokenPrice,
+          minTip: streams.minTip,
+          creator: {
+            id: users.id,
+            username: users.username,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            profileImageUrl: users.profileImageUrl,
+            role: users.role,
+          },
+        })
+        .from(streams)
+        .leftJoin(users, eq(streams.creatorId, users.id))
+        .where(eq(streams.id, streamId));
+      
+      if (!stream) {
+        return res.status(404).json({ message: "Stream not found" });
+      }
+
+      res.json(stream);
+    } catch (error) {
+      console.error("Error fetching stream:", error);
+      res.status(500).json({ message: "Failed to fetch stream" });
+    }
+  });
+
   app.patch('/api/streams/:id', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -235,7 +278,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Chat routes
+  // Chat routes  
+  app.get('/api/streams/:streamId/chat', async (req, res) => {
+    try {
+      const { streamId } = req.params;
+      const messages = await storage.getChatMessages(streamId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching chat messages:", error);
+      res.status(500).json({ message: "Failed to fetch chat messages" });
+    }
+  });
+
+  app.post('/api/streams/:streamId/chat', async (req: any, res) => {
+    try {
+      const { streamId } = req.params;
+      const { message, tipAmount = 0 } = req.body;
+      const sessionId = req.headers['x-session-id'] as string;
+      
+      // Check if this is a guest session
+      if (sessionId && !req.user) {
+        const guestSession = await storage.getGuestSession(streamId, sessionId);
+        if (!guestSession || guestSession.tokensRemaining <= 0) {
+          return res.status(403).json({ message: "Guest session expired or no tokens remaining" });
+        }
+        
+        // Create chat message for guest
+        const chatMessage = await storage.createChatMessage({
+          streamId,
+          userId: `guest-${sessionId}`,
+          message,
+          tipAmount: 0, // Guests can't tip
+        });
+        
+        // Decrement guest tokens
+        await storage.updateGuestSession(guestSession.id, {
+          tokensRemaining: guestSession.tokensRemaining - 1
+        });
+        
+        return res.json(chatMessage);
+      }
+      
+      // Regular authenticated user flow
+      if (!req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const userId = req.user.id;
+      
+      // Handle tip if provided
+      if (tipAmount > 0) {
+        const user = await storage.getUser(userId);
+        if (!user || (user.walletBalance || 0) < tipAmount) {
+          return res.status(400).json({ message: "Insufficient wallet balance" });
+        }
+        
+        // Get stream creator
+        const stream = await storage.getStreamById(streamId);
+        if (stream && stream.creatorId) {
+          // Create transaction for tip
+          await storage.createTransaction({
+            fromUserId: userId,
+            toUserId: stream.creatorId,
+            tokenAmount: tipAmount,
+            type: 'tip',
+            description: `Tip for stream: ${stream.title}`,
+          });
+          
+          // Update wallets
+          await storage.updateUserWallet(userId, -tipAmount);
+          await storage.updateUserWallet(stream.creatorId, tipAmount);
+        }
+      }
+      
+      // Create chat message
+      const chatMessage = await storage.createChatMessage({
+        streamId,
+        userId,
+        message,
+        tipAmount,
+      });
+      
+      res.json(chatMessage);
+    } catch (error) {
+      console.error("Error creating chat message:", error);
+      res.status(400).json({ message: "Failed to create chat message" });
+    }
+  });
+
   app.get('/api/chat/:streamId', async (req, res) => {
     try {
       const { streamId } = req.params;
@@ -404,10 +534,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
-      // Check if stream exists and is live
+      // Check if stream exists (allow both live and ended streams for guest sessions)
       const stream = await storage.getStreamById(streamId);
-      if (!stream || !stream.isLive) {
-        return res.status(404).json({ message: "Stream not found or not live" });
+      if (!stream) {
+        return res.status(404).json({ message: "Stream not found" });
       }
 
       const guestSession = await storage.createGuestSession({

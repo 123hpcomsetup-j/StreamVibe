@@ -128,11 +128,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLiveStreams(): Promise<Stream[]> {
+    // Include both live streams and recently ended streams (within last 24 hours)
     return await db
       .select()
       .from(streams)
-      .where(eq(streams.isLive, true))
-      .orderBy(desc(streams.viewerCount));
+      .where(
+        // Live streams OR streams created within last 24 hours (including ended ones)
+        sql`${streams.isLive} = true OR ${streams.createdAt} > NOW() - INTERVAL '24 hours'`
+      )
+      .orderBy(desc(streams.isLive), desc(streams.viewerCount)); // Live streams first, then by viewer count
   }
 
   async getStreamById(id: string): Promise<Stream | undefined> {
