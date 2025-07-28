@@ -9,7 +9,7 @@ import Login from "@/pages/login";
 import AdminLogin from "@/pages/admin-login";
 import Home from "@/pages/home";
 import CreatorDashboard from "@/pages/creator-dashboard";
-import AdminProviderAuth from "@/pages/admin-provider-auth";
+import AdminPanel from "@/pages/admin-panel";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -31,7 +31,7 @@ function Router() {
             <Route path="/creator-dashboard" component={CreatorDashboard} />
           )}
           {typedUser?.role === 'admin' && (
-            <Route path="/admin-panel" component={AdminProviderAuth} />
+            <Route path="/admin-panel" component={AdminPanel} />
           )}
         </>
       )}
