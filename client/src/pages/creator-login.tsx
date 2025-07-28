@@ -35,10 +35,11 @@ export default function CreatorLogin() {
 
   const loginMutation = useMutation({
     mutationFn: async (data: { username: string; password: string }) => {
-      return await apiRequest("POST", "/api/auth/login", data);
+      const response = await apiRequest("POST", "/api/auth/login", data);
+      return await response.json();
     },
     onSuccess: (user: any) => {
-      if (user.role === 'creator') {
+      if (user && user.role === 'creator') {
         toast({
           title: "Welcome Creator!",
           description: "Redirecting to your creator dashboard...",
@@ -69,13 +70,14 @@ export default function CreatorLogin() {
       if (data.password.length < 6) {
         throw new Error("Password must be at least 6 characters");
       }
-      return await apiRequest("POST", "/api/auth/register", {
+      const response = await apiRequest("POST", "/api/auth/register", {
         username: data.username,
         password: data.password,
         firstName: data.firstName,
         lastName: data.lastName,
         role: "creator",
       });
+      return await response.json();
     },
     onSuccess: () => {
       toast({
@@ -108,10 +110,11 @@ export default function CreatorLogin() {
       if (data.newPassword.length < 6) {
         throw new Error("Password must be at least 6 characters");
       }
-      return await apiRequest("POST", "/api/auth/reset-password", {
+      const response = await apiRequest("POST", "/api/auth/reset-password", {
         username: data.username,
         newPassword: data.newPassword,
       });
+      return await response.json();
     },
     onSuccess: () => {
       toast({
