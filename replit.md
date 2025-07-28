@@ -139,3 +139,17 @@ Preferred communication style: Simple, everyday language.
 - **Solution**: Leverage Replit's OAuth system
 - **Benefits**: Seamless integration, no custom auth needed
 - **Trade-offs**: Platform dependency, limited customization
+
+## Testing & User Management
+
+### Test Account Setup
+- Created dedicated test users for each role type
+- Manual role switching via SQL for testing different flows
+- Comprehensive testing documentation in TESTING.md
+- Role switching guide in ROLE_SWITCHER.md
+
+### Authentication Limitations
+- OAuth shows "StreamConnect" name (Replit's registered app name)
+- Cannot create traditional username/password accounts
+- Testing requires manual database role updates
+- Single OAuth identity used for role testing

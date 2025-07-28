@@ -161,8 +161,9 @@ export default function Landing() {
               Get Started - Sign In with Replit
             </Button>
             <div className="text-sm text-slate-400 bg-slate-800/50 p-3 rounded-lg max-w-md mx-auto">
-              <p className="font-medium text-slate-300 mb-1">Quick Note:</p>
+              <p className="font-medium text-slate-300 mb-1">Testing Guide:</p>
               <p>You'll see "StreamConnect" in the authorization dialog - this is our registered OAuth app name in Replit's system. You're still signing into StreamVibe!</p>
+              <p className="mt-2 text-xs">For testing different roles, see TESTING.md for role switching instructions.</p>
             </div>
           </div>
         </div>
