@@ -89,6 +89,34 @@ router.post('/logout', (req, res) => {
   });
 });
 
+// Reset password
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { username, newPassword } = req.body;
+
+    if (!username || !newPassword) {
+      return res.status(400).json({ message: 'Username and new password required' });
+    }
+
+    // Check if user exists
+    const existingUser = await storage.getUserByUsername(username);
+    if (!existingUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Hash new password
+    const hashedPassword = await hashPassword(newPassword);
+
+    // Update user password
+    await storage.updateUserPassword(username, hashedPassword);
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Password reset error:', error);
+    res.status(500).json({ message: 'Password reset failed' });
+  }
+});
+
 // Get current user
 router.get('/user', requireAuth, (req, res) => {
   const { password, ...userWithoutPassword } = (req as any).user;

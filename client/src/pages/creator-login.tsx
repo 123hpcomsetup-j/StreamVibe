@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Video, Users, DollarSign } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Video, Users, DollarSign, UserPlus, KeyRound } from "lucide-react";
 
 export default function CreatorLogin() {
   const [, setLocation] = useLocation();
@@ -17,6 +18,20 @@ export default function CreatorLogin() {
     username: "",
     password: "",
   });
+  const [signupData, setSignupData] = useState({
+    username: "",
+    password: "",
+    confirmPassword: "",
+    firstName: "",
+    lastName: "",
+  });
+  const [resetData, setResetData] = useState({
+    username: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [showSignup, setShowSignup] = useState(false);
+  const [showReset, setShowReset] = useState(false);
 
   const loginMutation = useMutation({
     mutationFn: async (data: { username: string; password: string }) => {
@@ -46,6 +61,79 @@ export default function CreatorLogin() {
     },
   });
 
+  const signupMutation = useMutation({
+    mutationFn: async (data: typeof signupData) => {
+      if (data.password !== data.confirmPassword) {
+        throw new Error("Passwords do not match");
+      }
+      if (data.password.length < 6) {
+        throw new Error("Password must be at least 6 characters");
+      }
+      return await apiRequest("POST", "/api/auth/register", {
+        username: data.username,
+        password: data.password,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        role: "creator",
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Account Created!",
+        description: "Your creator account has been created. You can now login.",
+      });
+      setShowSignup(false);
+      setSignupData({
+        username: "",
+        password: "",
+        confirmPassword: "",
+        firstName: "",
+        lastName: "",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Signup Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resetMutation = useMutation({
+    mutationFn: async (data: typeof resetData) => {
+      if (data.newPassword !== data.confirmPassword) {
+        throw new Error("Passwords do not match");
+      }
+      if (data.newPassword.length < 6) {
+        throw new Error("Password must be at least 6 characters");
+      }
+      return await apiRequest("POST", "/api/auth/reset-password", {
+        username: data.username,
+        newPassword: data.newPassword,
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Password Reset!",
+        description: "Your password has been updated. You can now login with your new password.",
+      });
+      setShowReset(false);
+      setResetData({
+        username: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Reset Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.username || !formData.password) {
@@ -57,6 +145,16 @@ export default function CreatorLogin() {
       return;
     }
     loginMutation.mutate(formData);
+  };
+
+  const handleSignup = (e: React.FormEvent) => {
+    e.preventDefault();
+    signupMutation.mutate(signupData);
+  };
+
+  const handleReset = (e: React.FormEvent) => {
+    e.preventDefault();
+    resetMutation.mutate(resetData);
   };
 
   return (
@@ -137,10 +235,164 @@ export default function CreatorLogin() {
               </Button>
             </form>
 
+            {/* Forgot Password Link */}
+            <div className="text-center mt-4">
+              <Dialog open={showReset} onOpenChange={setShowReset}>
+                <DialogTrigger asChild>
+                  <Button variant="link" className="text-purple-400 hover:text-purple-300 p-0 h-auto">
+                    <KeyRound className="h-3 w-3 mr-1" />
+                    Forgot Password?
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md bg-slate-800 border-slate-700">
+                  <DialogHeader>
+                    <DialogTitle className="text-white">Reset Password</DialogTitle>
+                    <DialogDescription className="text-slate-300">
+                      Enter your username and new password to reset your account.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleReset} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="reset-username" className="text-white">Username</Label>
+                      <Input
+                        id="reset-username"
+                        value={resetData.username}
+                        onChange={(e) => setResetData({ ...resetData, username: e.target.value })}
+                        className="bg-slate-700 border-slate-600 text-white"
+                        placeholder="Enter your username"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="new-password" className="text-white">New Password</Label>
+                      <Input
+                        id="new-password"
+                        type="password"
+                        value={resetData.newPassword}
+                        onChange={(e) => setResetData({ ...resetData, newPassword: e.target.value })}
+                        className="bg-slate-700 border-slate-600 text-white"
+                        placeholder="Enter new password"
+                        minLength={6}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirm-new-password" className="text-white">Confirm New Password</Label>
+                      <Input
+                        id="confirm-new-password"
+                        type="password"
+                        value={resetData.confirmPassword}
+                        onChange={(e) => setResetData({ ...resetData, confirmPassword: e.target.value })}
+                        className="bg-slate-700 border-slate-600 text-white"
+                        placeholder="Confirm new password"
+                        minLength={6}
+                        required
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      disabled={resetMutation.isPending}
+                      className="w-full bg-purple-600 hover:bg-purple-700"
+                    >
+                      {resetMutation.isPending ? "Resetting..." : "Reset Password"}
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {/* Signup Section */}
             <div className="text-center mt-6 pt-6 border-t border-slate-600">
               <p className="text-slate-400 text-sm mb-3">
-                Are you a viewer?
+                New to StreamVibe?
               </p>
+              <Dialog open={showSignup} onOpenChange={setShowSignup}>
+                <DialogTrigger asChild>
+                  <Button className="w-full bg-green-600 hover:bg-green-700 mb-3">
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Create Creator Account
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md bg-slate-800 border-slate-700">
+                  <DialogHeader>
+                    <DialogTitle className="text-white">Create Creator Account</DialogTitle>
+                    <DialogDescription className="text-slate-300">
+                      Join StreamVibe as a content creator and start monetizing your streams.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleSignup} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="firstName" className="text-white">First Name</Label>
+                        <Input
+                          id="firstName"
+                          value={signupData.firstName}
+                          onChange={(e) => setSignupData({ ...signupData, firstName: e.target.value })}
+                          className="bg-slate-700 border-slate-600 text-white"
+                          placeholder="First name"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="lastName" className="text-white">Last Name</Label>
+                        <Input
+                          id="lastName"
+                          value={signupData.lastName}
+                          onChange={(e) => setSignupData({ ...signupData, lastName: e.target.value })}
+                          className="bg-slate-700 border-slate-600 text-white"
+                          placeholder="Last name"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-username" className="text-white">Username</Label>
+                      <Input
+                        id="signup-username"
+                        value={signupData.username}
+                        onChange={(e) => setSignupData({ ...signupData, username: e.target.value })}
+                        className="bg-slate-700 border-slate-600 text-white"
+                        placeholder="Choose a unique username"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-password" className="text-white">Password</Label>
+                      <Input
+                        id="signup-password"
+                        type="password"
+                        value={signupData.password}
+                        onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                        className="bg-slate-700 border-slate-600 text-white"
+                        placeholder="Create a password"
+                        minLength={6}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirm-password" className="text-white">Confirm Password</Label>
+                      <Input
+                        id="confirm-password"
+                        type="password"
+                        value={signupData.confirmPassword}
+                        onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
+                        className="bg-slate-700 border-slate-600 text-white"
+                        placeholder="Confirm your password"
+                        minLength={6}
+                        required
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      disabled={signupMutation.isPending}
+                      className="w-full bg-purple-600 hover:bg-purple-700"
+                    >
+                      {signupMutation.isPending ? "Creating Account..." : "Create Creator Account"}
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+              
               <Button
                 variant="outline"
                 className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
@@ -155,9 +407,9 @@ export default function CreatorLogin() {
                 Test Creator Accounts:
               </p>
               <div className="text-xs text-slate-500 space-y-1">
-                <div>🎨 <strong>artist_sarah</strong> / creator123</div>
-                <div>🎮 <strong>gamer_mike</strong> / creator123</div>
-                <div>👨‍🍳 <strong>chef_emma</strong> / creator123</div>
+                <div>🎨 <strong>bob_gamer</strong> / password123</div>
+                <div>🎭 <strong>charlie_art</strong> / password123</div>
+                <div>🎵 <strong>diana_music</strong> / password123</div>
               </div>
             </div>
           </CardContent>

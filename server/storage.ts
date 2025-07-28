@@ -33,6 +33,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(insertUser: any): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
+  updateUserPassword(username: string, hashedPassword: string): Promise<void>;
   
   // Stream operations
   createStream(stream: InsertStream): Promise<Stream>;
@@ -116,6 +117,13 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+
+  async updateUserPassword(username: string, hashedPassword: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ password: hashedPassword })
+      .where(eq(users.username, username));
   }
 
   // Stream operations
