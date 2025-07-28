@@ -235,7 +235,7 @@ export default function LiveStreamControls({ onStreamStart, onStreamStop }: Live
         // Get media stream first
         await getMediaStream();
         
-        // Start WebRTC streaming
+        // Start WebRTC streaming if socket is available
         if (socket && typedUser) {
           socket.emit('start-stream', {
             streamId,
@@ -247,7 +247,7 @@ export default function LiveStreamControls({ onStreamStart, onStreamStop }: Live
         setIsStreaming(true);
         
         toast({
-          title: "🔴 Live Stream Started!",
+          title: "Live Stream Started!",
           description: "You are now broadcasting live to viewers.",
         });
         
@@ -255,6 +255,11 @@ export default function LiveStreamControls({ onStreamStart, onStreamStop }: Live
         queryClient.invalidateQueries({ queryKey: ["/api/streams"] });
       } catch (error) {
         console.error("Failed to start WebRTC stream:", error);
+        toast({
+          title: "Camera Access Required",
+          description: "Please allow camera and microphone access to start streaming.",
+          variant: "destructive"
+        });
         // Clean up the stream record if WebRTC fails
         await apiRequest("PATCH", `/api/streams/${streamId}`, { isLive: false });
       }
@@ -456,7 +461,7 @@ export default function LiveStreamControls({ onStreamStart, onStreamStop }: Live
             ) : (
               <Button 
                 onClick={handleStartStream}
-                disabled={createStreamMutation.isPending || connectionStatus !== 'connected'}
+                disabled={createStreamMutation.isPending}
                 className="w-full bg-red-500 hover:bg-red-600"
               >
                 <Play className="mr-2 h-4 w-4" />
