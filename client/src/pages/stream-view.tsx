@@ -29,7 +29,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { io, Socket } from 'socket.io-client';
 import type { ChatMessage, User } from "@shared/schema";
 import NodeMediaPlayer from "@/components/node-media-player";
-import WebRTCStreamViewer from "@/components/webrtc-stream-viewer";
 import AgoraStreamViewer from "@/components/agora-stream-viewer";
 
 export default function StreamView() {
@@ -39,15 +38,10 @@ export default function StreamView() {
   const { user, isAuthenticated } = useAuth();
   const typedUser = user as User | undefined;
   
-  const videoRef = useRef<HTMLVideoElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   
-  // WebRTC state
-  const [socket, setSocket] = useState<Socket | null>(null);
-  const [peerConnection, setPeerConnection] = useState<RTCPeerConnection | null>(null);
-  const [isStreamConnected, setIsStreamConnected] = useState(false);
+  // Simple stream state - Agora handles connections
   const [streamEnded, setStreamEnded] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
   
   // Guest state
   const [guestName, setGuestName] = useState("");
@@ -146,16 +140,9 @@ export default function StreamView() {
     }
   }, [timeLeft, isAuthenticated, guestSessionId]);
 
-  // WebRTC configuration
-  const rtcConfiguration = {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' }
-    ]
-  };
+  // Stream check for Agora
 
-  // Initialize WebSocket and WebRTC
+  // Initialize WebSocket for chat only - Agora handles streaming
   useEffect(() => {
     if (!streamId) return;
 
@@ -165,119 +152,15 @@ export default function StreamView() {
     });
 
     newSocket.on('connect', () => {
-      console.log('Connected to streaming server');
-      setConnectionStatus('connected');
+      console.log('Connected to chat server');
       
-      // Join stream room
+      // Join stream room for chat
       const userId = typedUser?.id || `guest_${guestSessionId}`;
       newSocket.emit('join-stream', { streamId, userId });
     });
 
     newSocket.on('disconnect', () => {
-      console.log('Disconnected from streaming server');
-      setConnectionStatus('disconnected');
-    });
-
-    // Listen for stream ready signal
-    newSocket.on('stream-ready', async (data: { streamId: string, creatorSocketId: string }) => {
-      console.log('Stream ready, creating peer connection');
-      setConnectionStatus('connecting');
-      
-      // Create peer connection
-      const pc = new RTCPeerConnection(rtcConfiguration);
-      
-      pc.ontrack = (event) => {
-        console.log('Received remote track');
-        if (videoRef.current && event.streams[0]) {
-          videoRef.current.srcObject = event.streams[0];
-          setIsStreamConnected(true);
-          setConnectionStatus('connected');
-        }
-      };
-
-      pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          newSocket.emit('ice-candidate', {
-            candidate: event.candidate,
-            targetId: data.creatorSocketId,
-            streamId
-          });
-        }
-      };
-
-      // Set connection timeout
-      setTimeout(() => {
-        if (!isStreamConnected) {
-          setConnectionStatus('disconnected');
-          toast({
-            title: "Connection Failed",
-            description: "Unable to connect to stream. The creator may not be broadcasting.",
-            variant: "destructive"
-          });
-        }
-      }, 10000); // 10 second timeout
-
-      setPeerConnection(pc);
-    });
-
-    // Listen for no active stream
-    newSocket.on('no-active-stream', () => {
-      console.log('No active stream found');
-      setConnectionStatus('disconnected');
-      setStreamEnded(false); // Don't set as ended, just not active
-      toast({
-        title: "Stream Not Broadcasting",
-        description: "The creator is not currently live.",
-        variant: "destructive"
-      });
-    });
-
-    // Handle WebRTC signaling
-    newSocket.on('offer', async (data: { offer: RTCSessionDescriptionInit, senderId: string }) => {
-      console.log('Received offer, creating peer connection for viewer');
-      
-      // Create new peer connection for this offer
-      const pc = new RTCPeerConnection(rtcConfiguration);
-      
-      pc.ontrack = (event) => {
-        console.log('Viewer received remote track');
-        if (videoRef.current && event.streams[0]) {
-          videoRef.current.srcObject = event.streams[0];
-          setIsStreamConnected(true);
-        }
-      };
-
-      pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          newSocket.emit('ice-candidate', {
-            candidate: event.candidate,
-            targetId: data.senderId,
-            streamId
-          });
-        }
-      };
-
-      await pc.setRemoteDescription(data.offer);
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      
-      newSocket.emit('answer', {
-        answer,
-        targetId: data.senderId,
-        streamId
-      });
-      
-      setPeerConnection(pc);
-    });
-
-    newSocket.on('ice-candidate', async (data: { candidate: RTCIceCandidateInit }) => {
-      if (peerConnection) {
-        try {
-          await peerConnection.addIceCandidate(data.candidate);
-        } catch (error) {
-          console.error('Error adding ICE candidate:', error);
-        }
-      }
+      console.log('Disconnected from chat server');
     });
 
     // Listen for chat messages
@@ -288,19 +171,13 @@ export default function StreamView() {
     // Handle stream end
     newSocket.on('stream-ended', (data: { message: string }) => {
       setStreamEnded(true);
-      setIsStreamConnected(false);
       toast({
         title: "Stream Ended",
         description: data.message || "The stream has ended.",
       });
     });
 
-    setSocket(newSocket);
-
     return () => {
-      if (peerConnection) {
-        peerConnection.close();
-      }
       newSocket.close();
     };
   }, [streamId, typedUser?.id, guestSessionId]);
@@ -526,7 +403,7 @@ export default function StreamView() {
             </CardHeader>
             <CardContent>
               <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
-                {/* Use Agora for browser streaming */}
+                {/* Agora Stream Player */}
                 {!streamEnded && typedStream && (
                   <AgoraStreamViewer
                     streamId={typedStream.id}
