@@ -1,12 +1,13 @@
 import React from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Play, Users, Video, Heart, Coins, ChevronRight } from "lucide-react";
 
 export default function PublicHome() {
   const [, setLocation] = useLocation();
-
-  // Test to ensure the component renders
-  console.log('PublicHome component is rendering');
 
   const { data: liveStreams = [], isLoading: streamsLoading } = useQuery({
     queryKey: ["/api/streams/live"],
@@ -25,174 +26,344 @@ export default function PublicHome() {
   const displayStreams = Array.isArray(liveStreams) ? liveStreams.filter((stream: any) => stream.isLive) : [];
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#1e293b', color: 'white', padding: '20px' }}>
-      {/* Simple test content */}
-      <h1 style={{ fontSize: '32px', color: '#8b5cf6', marginBottom: '20px', textAlign: 'center' }}>
-        StreamVibe - Live Streaming Platform
-      </h1>
-      
-      <div style={{ backgroundColor: '#334155', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
-        <h2 style={{ fontSize: '18px', marginBottom: '16px', color: '#60a5fa' }}>Platform Status</h2>
-        <p>Welcome to StreamVibe! This is a test to ensure the page is loading correctly.</p>
-        <p>Live Streams: {displayStreams.length}</p>
-        <p>Online Creators: {onlineCreators.length}</p>
-        <p>Total Users: {Array.isArray(onlineUsers) ? onlineUsers.length : 0}</p>
-        <p>Loading: {streamsLoading ? 'Yes' : 'No'}</p>
-      </div>
-      
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Navigation */}
-      <nav style={{ backgroundColor: '#475569', padding: '16px', borderRadius: '8px', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: '18px', color: '#8b5cf6' }}>Navigation</h2>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button 
-              onClick={() => setLocation("/user-login")}
-              style={{ padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-            >
-              Watch Streams
-            </button>
-            <button 
-              onClick={() => setLocation("/creator-login")}
-              style={{ padding: '8px 16px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-            >
-              Start Creating
-            </button>
-            <button 
-              onClick={() => setLocation("/login")}
-              style={{ padding: '8px 16px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-            >
-              Sign In
-            </button>
+      <nav className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center">
+              <h1 className="text-2xl font-bold text-primary">StreamVibe</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Button 
+                variant="ghost"
+                onClick={() => setLocation("/user-login")}
+                className="text-slate-300 hover:text-white"
+              >
+                Watch Streams
+              </Button>
+              <Button 
+                variant="ghost"
+                onClick={() => setLocation("/creator-login")}
+                className="text-slate-300 hover:text-white"
+              >
+                Start Creating
+              </Button>
+              <Button 
+                onClick={() => setLocation("/login")}
+                className="bg-primary hover:bg-primary/80"
+              >
+                Sign In
+              </Button>
+            </div>
           </div>
         </div>
       </nav>
-      
-      {/* Live Streams Section */}
-      <div style={{ backgroundColor: '#334155', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
-        <h2 style={{ fontSize: '20px', marginBottom: '16px', color: '#f59e0b' }}>
-          Live Streams ({displayStreams.length})
-        </h2>
-        {streamsLoading ? (
-          <p>Loading streams...</p>
-        ) : displayStreams.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '20px' }}>
-            <p style={{ fontSize: '16px', marginBottom: '10px' }}>No live streams at the moment.</p>
-            <p style={{ color: '#94a3b8' }}>Be the first to start streaming!</p>
-            <button 
-              onClick={() => setLocation("/creator-login")}
-              style={{ marginTop: '10px', padding: '10px 20px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
-            >
-              Start Your Stream
-            </button>
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
-            {displayStreams.slice(0, 6).map((stream: any) => (
-              <div 
-                key={stream.id} 
-                style={{ backgroundColor: '#475569', padding: '16px', borderRadius: '8px', cursor: 'pointer', transition: 'background-color 0.2s' }}
-                onClick={() => setLocation(`/stream/${stream.id}`)}
-              >
-                <h3 style={{ fontSize: '16px', marginBottom: '8px', color: 'white' }}>{stream.title}</h3>
-                <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '4px' }}>Category: {stream.category}</p>
-                <p style={{ color: '#22c55e', fontSize: '14px' }}>👥 {stream.viewerCount || 0} viewers</p>
-                <div style={{ marginTop: '8px', padding: '4px 8px', backgroundColor: '#dc2626', color: 'white', fontSize: '12px', borderRadius: '4px', display: 'inline-block' }}>
-                  🔴 LIVE
+
+      {/* Hero Section */}
+      <div className="relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+          <div className="text-center">
+            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
+              Live Streaming 
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary"> Community</span>
+            </h1>
+            <p className="text-xl text-slate-300 mb-8 max-w-3xl mx-auto">
+              Join thousands of creators and viewers in real-time streaming experiences. Watch live content, chat with creators, and be part of an amazing community.
+            </p>
+            
+            {/* Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 max-w-2xl mx-auto">
+              <div className="bg-slate-800/50 rounded-lg p-4">
+                <div className="text-2xl font-bold text-primary mb-1">
+                  {displayStreams.length}
                 </div>
+                <div className="text-slate-400 text-sm">Live Streams</div>
               </div>
-            ))}
+              <div className="bg-slate-800/50 rounded-lg p-4">
+                <div className="text-2xl font-bold text-green-500 mb-1">
+                  {onlineCreators.length}
+                </div>
+                <div className="text-slate-400 text-sm">Online Creators</div>
+              </div>
+              <div className="bg-slate-800/50 rounded-lg p-4">
+                <div className="text-2xl font-bold text-blue-500 mb-1">
+                  {Array.isArray(onlineUsers) ? onlineUsers.length : 0}
+                </div>
+                <div className="text-slate-400 text-sm">Active Users</div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button 
+                size="lg" 
+                onClick={() => setLocation("/user-login")}
+                className="bg-primary hover:bg-primary/80 text-lg px-8 py-3"
+              >
+                <Play className="mr-2 h-5 w-5" />
+                Start Watching
+              </Button>
+              <Button 
+                size="lg" 
+                variant="outline" 
+                onClick={() => setLocation("/creator-login")}
+                className="border-primary text-primary hover:bg-primary hover:text-white text-lg px-8 py-3"
+              >
+                <Video className="mr-2 h-5 w-5" />
+                Become a Creator
+              </Button>
+            </div>
           </div>
-        )}
+        </div>
+      </div>
+
+      {/* Live Streams Section */}
+      <div className="py-16 bg-slate-800/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-3xl font-bold text-white">Live Now</h2>
+            <Button 
+              variant="outline" 
+              onClick={() => setLocation("/user-login")}
+              className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            >
+              View All <ChevronRight className="ml-1 h-4 w-4" />
+            </Button>
+          </div>
+
+          {streamsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <Card key={i} className="bg-slate-800 animate-pulse">
+                  <div className="aspect-video bg-slate-700 rounded-t-lg"></div>
+                  <CardContent className="p-4">
+                    <div className="h-4 bg-slate-700 rounded mb-2"></div>
+                    <div className="h-3 bg-slate-700 rounded w-2/3"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : displayStreams.length === 0 ? (
+            <div className="text-center py-12">
+              <Video className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-slate-300 mb-2">No Live Streams</h3>
+              <p className="text-slate-400 mb-6">Be the first to start streaming today!</p>
+              <Button onClick={() => setLocation("/creator-login")}>
+                Start Your Stream
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {displayStreams.slice(0, 6).map((stream: any) => (
+                <Card key={stream.id} className="bg-slate-800 border-slate-700 hover:bg-slate-800/80 transition-colors cursor-pointer group">
+                  <div className="aspect-video relative bg-slate-700 rounded-t-lg flex items-center justify-center">
+                    {/* Live stream preview placeholder - real WebRTC will connect when clicked */}
+                    <div className="text-center">
+                      <Video className="h-12 w-12 text-slate-400 mx-auto mb-2" />
+                      <p className="text-slate-300 text-sm font-medium">Live Stream</p>
+                      <p className="text-slate-500 text-xs">Click to watch</p>
+                    </div>
+                    
+                    <div className="absolute top-3 left-3">
+                      <Badge className="bg-red-500 text-white">
+                        <div className="w-1.5 h-1.5 bg-white rounded-full mr-1 animate-pulse"></div>
+                        LIVE
+                      </Badge>
+                    </div>
+                    <div className="absolute top-3 right-3">
+                      <Badge variant="secondary" className="bg-black/50 text-white">
+                        <Users className="mr-1 h-3 w-3" />
+                        {stream.viewerCount || 0}
+                      </Badge>
+                    </div>
+                    
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button 
+                        onClick={() => {
+                          // Navigate to stream view as guest
+                          setLocation(`/stream/${stream.id}`);
+                        }}
+                        className="bg-primary hover:bg-primary/80"
+                      >
+                        <Play className="mr-2 h-4 w-4" />
+                        Watch Stream
+                      </Button>
+                    </div>
+                  </div>
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-3 mb-3">
+                      <div className="w-12 h-12 bg-slate-600 rounded-full flex items-center justify-center">
+                        <Video className="h-6 w-6 text-slate-400" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-white">{stream.title}</h4>
+                        <p className="text-slate-400 text-sm">{stream.category}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-accent text-sm font-medium">
+                        <Coins className="mr-1 h-3 w-3 inline" />
+                        Min: {stream.minTip || 5} tokens
+                      </span>
+                      <span className="text-slate-400 text-sm">
+                        <Users className="mr-1 h-3 w-3 inline" />
+                        {stream.viewerCount || 0} watching
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Online Creators Section */}
-      <div style={{ backgroundColor: '#334155', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
-        <h2 style={{ fontSize: '20px', marginBottom: '16px', color: '#10b981' }}>
-          👥 Online Creators ({onlineCreators.length})
-        </h2>
-        {usersLoading ? (
-          <p>Loading creators...</p>
-        ) : onlineCreators.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '20px' }}>
-            <p style={{ fontSize: '16px', marginBottom: '10px' }}>No creators online right now.</p>
-            <p style={{ color: '#94a3b8' }}>Check back later or become a creator yourself!</p>
-            <button 
-              onClick={() => setLocation("/creator-login")}
-              style={{ marginTop: '10px', padding: '10px 20px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+      <div className="py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-3xl font-bold text-white flex items-center">
+              <Users className="mr-3 h-8 w-8 text-green-500" />
+              Online Creators ({onlineCreators.length})
+            </h2>
+            <Button 
+              variant="outline" 
+              onClick={() => setLocation("/user-login")}
+              className="border-slate-600 text-slate-300 hover:bg-slate-700"
             >
-              Become a Creator
-            </button>
+              Join Community <ChevronRight className="ml-1 h-4 w-4" />
+            </Button>
           </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-            {onlineCreators.slice(0, 8).map((creator: any) => (
-              <div key={creator.id} style={{ backgroundColor: '#475569', padding: '12px', borderRadius: '8px', textAlign: 'center' }}>
-                <div style={{ width: '40px', height: '40px', backgroundColor: '#6366f1', borderRadius: '50%', margin: '0 auto 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
-                  👤
-                </div>
-                <h4 style={{ fontSize: '14px', color: 'white', marginBottom: '4px' }}>
-                  {creator.firstName && creator.lastName 
-                    ? `${creator.firstName} ${creator.lastName}` 
-                    : creator.username || 'Creator'}
-                </h4>
-                <div style={{ fontSize: '12px', color: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  🟢 Online
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+
+          {usersLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {[...Array(12)].map((_, i) => (
+                <Card key={i} className="bg-slate-800 animate-pulse">
+                  <CardContent className="p-4 text-center">
+                    <div className="w-16 h-16 bg-slate-700 rounded-full mx-auto mb-3"></div>
+                    <div className="h-4 bg-slate-700 rounded mb-2"></div>
+                    <div className="h-3 bg-slate-700 rounded w-2/3 mx-auto"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : onlineCreators.length === 0 ? (
+            <div className="text-center py-12">
+              <Users className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-slate-300 mb-2">No Creators Online</h3>
+              <p className="text-slate-400 mb-6">Check back later or become a creator yourself!</p>
+              <Button onClick={() => setLocation("/creator-login")}>
+                Start Creating
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {onlineCreators.map((creator: any) => (
+                <Card key={creator.id} className="bg-slate-800 border-slate-700 hover:bg-slate-800/80 transition-colors">
+                  <CardContent className="p-4 text-center">
+                    <div className="relative w-16 h-16 mx-auto mb-3">
+                      {creator.profileImageUrl ? (
+                        <img 
+                          src={creator.profileImageUrl}
+                          alt={`${creator.firstName || creator.username || 'Creator'}'s profile`}
+                          className="w-full h-full rounded-full object-cover border-2 border-purple-500"
+                        />
+                      ) : (
+                        <div className="w-full h-full rounded-full bg-slate-600 border-2 border-purple-500 flex items-center justify-center">
+                          <Users className="h-8 w-8 text-slate-400" />
+                        </div>
+                      )}
+                      <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 border-slate-800 rounded-full animate-pulse"></div>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <h4 className="font-medium text-white text-sm truncate">
+                        {creator.firstName && creator.lastName 
+                          ? `${creator.firstName} ${creator.lastName}` 
+                          : creator.username || 'Creator'}
+                      </h4>
+                      <Badge 
+                        variant="outline" 
+                        className="text-xs border-purple-500 text-purple-400"
+                      >
+                        creator
+                      </Badge>
+                      <div className="flex items-center justify-center text-xs text-green-400">
+                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1"></div>
+                        Online
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Call to Action */}
-      <div style={{ backgroundColor: '#1e40af', padding: '30px', borderRadius: '12px', textAlign: 'center' }}>
-        <h2 style={{ fontSize: '24px', marginBottom: '10px', color: 'white' }}>
-          Ready to Join StreamVibe?
-        </h2>
-        <p style={{ fontSize: '16px', color: '#bfdbfe', marginBottom: '20px' }}>
-          Choose your path: watch amazing content or start creating your own
-        </p>
-        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button 
-            onClick={() => setLocation("/user-login")}
-            style={{ padding: '12px 24px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px' }}
-          >
-            🎬 I Want to Watch
-          </button>
-          <button 
-            onClick={() => setLocation("/creator-login")}
-            style={{ padding: '12px 24px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px' }}
-          >
-            📹 I Want to Create
-          </button>
+      {/* CTA Section */}
+      <div className="py-16 bg-slate-800/50">
+        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold text-white mb-4">
+            Ready to Join StreamVibe?
+          </h2>
+          <p className="text-xl text-slate-300 mb-8">
+            Choose your path: watch amazing content or start creating your own
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              size="lg" 
+              onClick={() => setLocation("/user-login")}
+              className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-3"
+            >
+              I Want to Watch
+            </Button>
+            <Button 
+              size="lg" 
+              onClick={() => setLocation("/creator-login")}
+              className="bg-purple-600 hover:bg-purple-700 text-lg px-8 py-3"
+            >
+              I Want to Create
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div style={{ marginTop: '40px', padding: '20px', textAlign: 'center', color: '#94a3b8', borderTop: '1px solid #475569' }}>
-        <h3 style={{ fontSize: '18px', color: '#8b5cf6', marginBottom: '8px' }}>StreamVibe</h3>
-        <p style={{ fontSize: '14px', marginBottom: '16px' }}>The future of live streaming and creator economy</p>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap' }}>
-          <button 
-            onClick={() => setLocation("/user-login")}
-            style={{ color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
-          >
-            Watch Streams
-          </button>
-          <button 
-            onClick={() => setLocation("/creator-login")}
-            style={{ color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
-          >
-            Become Creator
-          </button>
-          <button 
-            onClick={() => setLocation("/admin")}
-            style={{ color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
-          >
-            Admin Panel
-          </button>
+      <footer className="bg-slate-900 border-t border-slate-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center">
+            <h3 className="text-2xl font-bold text-primary mb-4">StreamVibe</h3>
+            <p className="text-slate-400 mb-4">
+              The future of live streaming and creator economy
+            </p>
+            <div className="flex justify-center space-x-6">
+              <Button 
+                variant="link" 
+                onClick={() => setLocation("/user-login")}
+                className="text-slate-400 hover:text-white"
+              >
+                Watch Streams
+              </Button>
+              <Button 
+                variant="link" 
+                onClick={() => setLocation("/creator-login")}
+                className="text-slate-400 hover:text-white"
+              >
+                Become Creator
+              </Button>
+              <Button 
+                variant="link" 
+                onClick={() => setLocation("/admin")}
+                className="text-slate-400 hover:text-white"
+              >
+                Admin
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }
