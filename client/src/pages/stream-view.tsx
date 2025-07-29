@@ -469,7 +469,7 @@ export default function StreamView() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Button 
             variant="ghost" 
-            onClick={() => setLocation("/")}
+            onClick={() => setLocation(isAuthenticated ? "/user-dashboard" : "/")}
             className="text-slate-300 hover:text-white"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -539,7 +539,7 @@ export default function StreamView() {
                       <AlertTriangle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
                       <h3 className="text-xl font-bold text-white mb-2">Stream Ended</h3>
                       <p className="text-slate-400 mb-4">This live stream has ended.</p>
-                      <Button onClick={() => setLocation("/")} className="bg-primary hover:bg-primary/80">
+                      <Button onClick={() => setLocation(isAuthenticated ? "/user-dashboard" : "/")} className="bg-primary hover:bg-primary/80">
                         Find More Streams
                       </Button>
                     </div>

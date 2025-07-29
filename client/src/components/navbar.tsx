@@ -44,7 +44,7 @@ export default function Navbar({ user }: NavbarProps) {
             </div>
             <div className="hidden md:block ml-10">
               <div className="flex items-baseline space-x-4">
-                <a href="/" className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                <a href={user?.role === 'admin' ? '/admin-panel' : user?.role === 'creator' ? '/creator-dashboard' : '/user-dashboard'} className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">
                   Home
                 </a>
                 <a href="/user-dashboard" className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">
@@ -124,7 +124,7 @@ export default function Navbar({ user }: NavbarProps) {
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-slate-700">
             <div className="px-2 pt-2 pb-3 space-y-1">
-              <a href="/" className="text-slate-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+              <a href={user?.role === 'admin' ? '/admin-panel' : user?.role === 'creator' ? '/creator-dashboard' : '/user-dashboard'} className="text-slate-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
                 Home
               </a>
               <a href="/user-dashboard" className="text-slate-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">

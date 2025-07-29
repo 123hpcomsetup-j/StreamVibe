@@ -203,7 +203,7 @@ export default function UserDashboard() {
   };
 
   const handleGoHome = () => {
-    setLocation("/");
+    setLocation("/user-dashboard"); // Keep users in their dashboard
   };
 
   const handleBuyTokens = () => {
