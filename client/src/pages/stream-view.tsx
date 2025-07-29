@@ -509,71 +509,47 @@ export default function StreamView() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Video Stream */}
-        <div className="lg:col-span-2">
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-white">{typedStream.title}</CardTitle>
-                {getConnectionBadge()}
-              </div>
-              <p className="text-slate-400">{typedStream.category}</p>
-            </CardHeader>
-            <CardContent>
-              <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
-                {/* Agora Stream Player */}
-                {!streamEnded && typedStream && (
-                  <AgoraStreamViewer
-                    streamId={typedStream.id}
-                    userId={typedUser?.id || guestSessionId || ''}
-                    username={displayName}
-                    creatorName={typedStream.creatorName}
-                    title={typedStream.title}
-                  />
-                )}
-                
-                {streamEnded && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-slate-900 bg-opacity-90">
-                    <div className="text-center">
-                      <AlertTriangle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
-                      <h3 className="text-xl font-bold text-white mb-2">Stream Ended</h3>
-                      <p className="text-slate-400 mb-4">This live stream has ended.</p>
-                      <Button onClick={() => setLocation(isAuthenticated ? "/user-dashboard" : "/")} className="bg-primary hover:bg-primary/80">
-                        Find More Streams
-                      </Button>
-                    </div>
+      <div className="max-w-7xl mx-auto p-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Video Stream - Full width and responsive */}
+          <div className="lg:col-span-2">
+            {!streamEnded && typedStream ? (
+              <AgoraStreamViewer
+                streamId={typedStream.id}
+                userId={typedUser?.id || guestSessionId || ''}
+                username={displayName}
+                creatorName={typedStream.creatorName}
+                title={typedStream.title}
+              />
+            ) : (
+              <Card className="bg-slate-800 border-slate-700">
+                <CardContent className="p-8">
+                  <div className="text-center">
+                    <AlertTriangle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-white mb-2">Stream Ended</h3>
+                    <p className="text-slate-400 mb-4">This live stream has ended.</p>
+                    <Button 
+                      onClick={() => setLocation(isAuthenticated ? "/user-dashboard" : "/")} 
+                      className="bg-primary hover:bg-primary/80"
+                    >
+                      Find More Streams
+                    </Button>
                   </div>
-                )}
-                
-                {/* Stream Stats Overlay - only show when streaming */}
-                {typedStream.streamKey && !streamEnded && (
-                  <div className="absolute top-4 left-4 flex items-center space-x-2">
-                    <Badge className="bg-red-500 text-white">
-                      <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse"></div>
-                      LIVE
-                    </Badge>
-                    <Badge className="bg-black/50 text-white">
-                      <Users className="mr-1 h-3 w-3" />
-                      {typedStream.viewerCount || 0} watching
-                    </Badge>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
 
-        {/* Chat */}
-        <div className="lg:col-span-1">
-          <Card className="bg-slate-800 border-slate-700 h-[600px] flex flex-col">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center">
-                <MessageCircle className="mr-2 h-5 w-5" />
-                Live Chat
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1 flex flex-col overflow-hidden">
+          {/* Chat - Integrated with Agora viewer on mobile */}
+          <div className="lg:col-span-1 lg:block hidden">
+            <Card className="bg-slate-800 border-slate-700 h-[600px] flex flex-col">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center">
+                  <MessageCircle className="mr-2 h-5 w-5" />
+                  Live Chat
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex-1 flex flex-col overflow-hidden">
               <ScrollArea className="flex-1 pr-4">
                 <div className="space-y-3">
                   {chatMessages.length === 0 ? (
@@ -690,8 +666,9 @@ export default function StreamView() {
                   )}
                 </div>
               </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
       

@@ -52,13 +52,53 @@ export default function AgoraStreamViewer({
   const remoteAudioRef = useRef<IRemoteAudioTrack | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Initialize Agora client
+  // Device compatibility check
   useEffect(() => {
-    const client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
-    clientRef.current = client;
+    const checkDeviceCompatibility = async () => {
+      try {
+        // Check if browser supports WebRTC
+        if (!AgoraRTC.checkSystemRequirements()) {
+          toast({
+            title: "Browser Not Supported",
+            description: "Your browser doesn't support live streaming. Please use Chrome, Firefox, Safari, or Edge.",
+            variant: "destructive",
+          });
+          return;
+        }
 
-    // Set client role to audience (viewer)
-    client.setClientRole("audience");
+        // Check for mobile devices and adjust codec
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const codec = isMobile ? "h264" : "vp8"; // H.264 is better for mobile devices
+        
+        console.log(`Device: ${isMobile ? 'Mobile' : 'Desktop'}, Using codec: ${codec}`);
+        
+        const client = AgoraRTC.createClient({ 
+          mode: "live", 
+          codec: codec as "vp8" | "h264"
+        });
+        clientRef.current = client;
+
+        // Set client role to audience (viewer)
+        client.setClientRole("audience");
+        
+      } catch (error) {
+        console.error("Device compatibility check failed:", error);
+        toast({
+          title: "Compatibility Error",
+          description: "Unable to initialize streaming on this device.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    checkDeviceCompatibility();
+  }, []);
+
+  // Initialize Agora client event handlers
+  useEffect(() => {
+    if (!clientRef.current) return;
+
+    const client = clientRef.current;
 
     // Handle remote user events
     client.on("user-published", async (user, mediaType) => {
@@ -73,7 +113,14 @@ export default function AgoraStreamViewer({
           const remoteVideoTrack = user.videoTrack;
           if (remoteVideoTrack && videoContainerRef.current) {
             console.log("📺 Playing creator video stream");
-            remoteVideoTrack.play(videoContainerRef.current);
+            
+            // Configure video playback for mobile compatibility
+            const playConfig = {
+              fit: "cover" as const,
+              mirror: false
+            };
+            
+            remoteVideoTrack.play(videoContainerRef.current, playConfig);
             remoteVideoRef.current = remoteVideoTrack;
             setHasVideo(true);
             setIsLoading(false);
@@ -342,159 +389,105 @@ export default function AgoraStreamViewer({
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      {/* Video Player */}
-      <div className="lg:col-span-2 space-y-4">
-        {/* Stream Info */}
-        <Card className="bg-slate-800 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center justify-between">
-            <div>
-              <div className="text-lg">{title}</div>
-              <div className="text-sm text-slate-400">by {creatorName}</div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Badge variant="secondary" className="bg-red-600 text-white">
-                <div className="w-2 h-2 bg-white rounded-full animate-pulse mr-2"></div>
-                LIVE
-              </Badge>
-              <Badge variant="outline" className="border-slate-600 text-slate-300">
-                <Users className="w-3 h-3 mr-1" />
-                {viewerCount} viewers
-              </Badge>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setShowChat(!showChat)}
-                className="lg:hidden border-slate-600 text-slate-300"
-              >
-                <MessageCircle className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardTitle>
-        </CardHeader>
-        </Card>
-        
-        {/* Video Player */}
-        <Card className="bg-slate-800 border-slate-700">
-          <CardContent className="p-0">
-            <div className="relative">
-            <div 
-              ref={videoContainerRef}
-              className="w-full h-96 bg-slate-900 flex items-center justify-center"
-            >
-              {!hasVideo && (
-                <div className="text-center text-slate-400">
-                  {isConnected ? (
-                    <div>
-                      <div className="text-lg mb-2">🎥</div>
-                      <p>Waiting for video...</p>
-                    </div>
-                  ) : (
-                    <div>
-                      <div className="text-lg mb-2">📺</div>
-                      <p>Stream not available</p>
-                    </div>
-                  )}
+    <div className="w-full">
+      {/* Responsive Video Container */}
+      <div className="relative w-full bg-black rounded-lg overflow-hidden" style={{ aspectRatio: '16/9' }}>
+        {/* Video Stream Container */}
+        <div 
+          ref={videoContainerRef}
+          className="absolute inset-0 w-full h-full bg-slate-900 flex items-center justify-center"
+          style={{ 
+            maxWidth: '100%', 
+            maxHeight: '100%',
+            // Ensure Agora video fills container properly
+            objectFit: 'cover',
+            // Mobile-specific optimizations
+            WebkitBackfaceVisibility: 'hidden',
+            WebkitTransform: 'translate3d(0, 0, 0)',
+            transform: 'translate3d(0, 0, 0)'
+          }}
+        >
+          {!hasVideo && (
+            <div className="text-center text-slate-400 z-10">
+              {isConnected ? (
+                <div className="space-y-3">
+                  <div className="text-4xl">🎥</div>
+                  <p className="text-lg">Waiting for {creatorName}...</p>
+                  <p className="text-sm text-slate-500">Stream will appear automatically</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="text-4xl">📺</div>
+                  <p className="text-lg">Connecting to stream...</p>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mx-auto"></div>
                 </div>
               )}
             </div>
-            
-            {/* Video Controls */}
-            {hasVideo && (
-              <div className="absolute bottom-4 right-4">
-                <Button
-                  size="sm"
-                  variant={isMuted ? "destructive" : "secondary"}
-                  className="bg-black/50 hover:bg-black/70"
-                  onClick={toggleMute}
-                >
-                  {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                </Button>
-              </div>
-            )}
-            </div>
-          </CardContent>
-        </Card>
-
+          )}
+        </div>
+        
+        {/* Stream Status Overlay */}
+        <div className="absolute top-4 left-4 flex items-center space-x-2 z-20">
+          <Badge className="bg-red-600 text-white shadow-lg">
+            <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse"></div>
+            LIVE
+          </Badge>
+          <Badge className="bg-black/70 backdrop-blur-sm text-white">
+            <Users className="mr-1 h-3 w-3" />
+            {viewerCount} watching
+          </Badge>
+        </div>
+        
+        {/* Video Controls */}
+        {hasVideo && (
+          <div className="absolute bottom-4 right-4 z-20">
+            <Button
+              size="sm"
+              variant={isMuted ? "destructive" : "secondary"}
+              className="bg-black/70 hover:bg-black/90 backdrop-blur-sm border-none shadow-lg"
+              onClick={toggleMute}
+            >
+              {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            </Button>
+          </div>
+        )}
+        
         {/* Connection Status */}
         {isConnected && (
-          <div className="text-center">
-            <div className="inline-flex items-center text-green-400 text-sm">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
-              Connected to Agora Live Stream
-            </div>
+          <div className="absolute bottom-4 left-4 z-20">
+            <Badge className="bg-green-600/80 backdrop-blur-sm text-white">
+              <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse"></div>
+              Connected
+            </Badge>
           </div>
         )}
       </div>
 
-      {/* Live Chat Panel */}
-      <div className={`${showChat ? 'block' : 'hidden'} lg:block`}>
-        <Card className="bg-slate-800 border-slate-700 h-[600px] flex flex-col">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-white text-lg flex items-center">
-              <MessageCircle className="mr-2 h-5 w-5" />
-              Live Chat
-            </CardTitle>
-          </CardHeader>
-          
-          <CardContent className="flex-1 flex flex-col p-4">
-            {/* Chat Messages */}
-            <ScrollArea className="flex-1 pr-4 mb-4">
-              <div className="space-y-3">
-                {chatMessages.length === 0 ? (
-                  <div className="text-center text-slate-400 py-8">
-                    <MessageCircle className="mx-auto h-8 w-8 mb-2 opacity-50" />
-                    <p>No messages yet</p>
-                    <p className="text-sm">Be the first to say hello!</p>
-                  </div>
-                ) : (
-                  chatMessages.map((msg, index) => (
-                    <div key={index} className="flex flex-col space-y-1">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium text-white">
-                          {msg.senderName || msg.guestName || 'Anonymous'}
-                        </span>
-                        <span className="text-xs text-slate-400">
-                          {new Date(msg.createdAt).toLocaleTimeString()}
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-300">{msg.message}</p>
-                    </div>
-                  ))
-                )}
-                <div ref={chatEndRef} />
-              </div>
-            </ScrollArea>
-
-            {/* Chat Input */}
-            <div className="border-t border-slate-700 pt-4">
-              <div className="flex space-x-2">
-                <Input
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder={isAuthenticated ? "Type a message..." : "Type a message (guest)..."}
-                  className="flex-1 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                  onKeyPress={(e) => e.key === 'Enter' && !sendChatMutation.isPending && sendChatMutation.mutate()}
-                  disabled={sendChatMutation.isPending}
-                />
-                <Button 
-                  onClick={() => sendChatMutation.mutate()}
-                  size="sm" 
-                  className="bg-primary hover:bg-primary/90"
-                  disabled={!message.trim() || sendChatMutation.isPending}
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-              {!isAuthenticated && (
-                <p className="text-xs text-slate-400 mt-2">
-                  Watching as guest • <span className="text-primary">Sign up</span> for unlimited chat
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Mobile-Friendly Stream Info */}
+      <div className="mt-4 p-4 bg-slate-800 rounded-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-semibold text-white">{title}</h3>
+            <p className="text-sm text-slate-400">by {creatorName}</p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {isConnected && (
+              <Badge className="bg-green-600 text-white">
+                <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse"></div>
+                Connected
+              </Badge>
+            )}
+            {!isConnected && (
+              <Button 
+                onClick={connectToStream}
+                className="bg-blue-600 hover:bg-blue-700"
+                disabled={isLoading}
+              >
+                {isLoading ? "Connecting..." : "Connect to Stream"}
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
