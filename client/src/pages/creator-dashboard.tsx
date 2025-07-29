@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -33,6 +33,9 @@ export default function CreatorDashboard() {
     lastName: "",
     username: "",
   });
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [peerConnections, setPeerConnections] = useState<Map<string, RTCPeerConnection>>(new Map());
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const typedUser = user as User | undefined;
 
@@ -87,12 +90,72 @@ export default function CreatorDashboard() {
         queryClient.invalidateQueries({ queryKey: ["/api/streams/live"] });
       });
 
+      // Handle viewer joining - create offer for them
+      socket.on('viewer-joined', async (data: { viewerId: string, userId: string, viewerCount: number }) => {
+        console.log('Viewer joined:', data);
+        
+        if (localStream) {
+          const pc = new RTCPeerConnection({
+            iceServers: [
+              { urls: 'stun:stun.l.google.com:19302' },
+              { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+          });
+
+          // Add local stream tracks to peer connection
+          localStream.getTracks().forEach(track => {
+            pc.addTrack(track, localStream);
+          });
+
+          // Handle ICE candidates
+          pc.onicecandidate = (event) => {
+            if (event.candidate) {
+              socket.emit('ice-candidate', {
+                candidate: event.candidate,
+                targetId: data.viewerId,
+                streamId: data.streamId || (window as any).currentStreamId
+              });
+            }
+          };
+
+          // Create and send offer
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          
+          socket.emit('offer', {
+            offer,
+            targetId: data.viewerId,
+            streamId: data.streamId || (window as any).currentStreamId
+          });
+
+          // Store peer connection
+          peerConnections.set(data.viewerId, pc);
+          setPeerConnections(new Map(peerConnections));
+        }
+      });
+
+      // Handle answer from viewer
+      socket.on('answer', async (data: { answer: RTCSessionDescriptionInit, senderId: string }) => {
+        const pc = peerConnections.get(data.senderId);
+        if (pc) {
+          await pc.setRemoteDescription(data.answer);
+        }
+      });
+
+      // Handle ICE candidates from viewers
+      socket.on('ice-candidate', async (data: { candidate: RTCIceCandidateInit, senderId: string }) => {
+        const pc = peerConnections.get(data.senderId);
+        if (pc) {
+          await pc.addIceCandidate(data.candidate);
+        }
+      });
+
       return () => {
         socket.disconnect();
         delete (window as any).streamSocket;
       };
     }
-  }, [typedUser?.id, toast]);
+  }, [typedUser?.id, toast, localStream, peerConnections]);
 
   // Initialize profile data when user loads
   useEffect(() => {
@@ -169,6 +232,9 @@ export default function CreatorDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/streams/current"] });
       queryClient.invalidateQueries({ queryKey: ["/api/streams/live"] });
       
+      // Store stream ID globally for WebRTC
+      (window as any).currentStreamId = newStream.id;
+      
       // Emit WebSocket event to properly start stream
       const socket = (window as any).streamSocket;
       if (socket && newStream?.id) {
@@ -223,6 +289,18 @@ export default function CreatorDashboard() {
 
   const stopStreamMutation = useMutation({
     mutationFn: async () => {
+      // Stop local stream tracks
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        setLocalStream(null);
+      }
+      
+      // Close all peer connections
+      peerConnections.forEach(pc => pc.close());
+      setPeerConnections(new Map());
+      
+      // Clear global stream ID
+      delete (window as any).currentStreamId;
       if (!currentStream) return;
       
       // Emit WebSocket event to properly stop stream
@@ -389,6 +467,19 @@ export default function CreatorDashboard() {
         variant: "default",
       });
 
+      // Get camera and microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
+      });
+      
+      setLocalStream(stream);
+      
+      // Show video preview if ref exists
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+
       createStreamMutation.mutate(finalStreamData);
     } catch (error) {
       console.error('Stream start error:', error);
@@ -506,6 +597,20 @@ export default function CreatorDashboard() {
             <CardContent>
               {isStreaming && currentStream && (
                 <div className="space-y-4">
+                  {/* Video Preview */}
+                  <div className="relative rounded-lg overflow-hidden bg-black">
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      muted
+                      playsInline
+                      className="w-full aspect-video"
+                    />
+                    <div className="absolute top-4 left-4 flex items-center gap-2">
+                      <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                      <span className="text-white text-sm font-medium">LIVE</span>
+                    </div>
+                  </div>
                   <LiveStreamControls 
                     streamId={(currentStream as any).id}
                     onStreamStart={handleStartStream}
