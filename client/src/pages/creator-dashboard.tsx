@@ -13,7 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { DollarSign, Users, Clock, Heart, Play, Square, Settings, Phone, Mail, Camera, UserIcon, Plus, Trash2, Edit, Save } from "lucide-react";
+import { DollarSign, Users, Clock, Heart, Play, Square, Settings, Phone, Mail, Camera, UserIcon, Plus, Trash2, Edit, Save, Video } from "lucide-react";
+import PrivateCallRequests from "@/components/private-call-requests";
 import StreamModal from "@/components/stream-modal";
 import AgoraStreamCreator from "@/components/agora-stream-creator";
 
@@ -1192,6 +1193,9 @@ export default function CreatorDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Private Call Requests */}
+        <PrivateCallRequests />
 
         {/* Payout Section */}
         <Card className="bg-slate-800 border-slate-700">

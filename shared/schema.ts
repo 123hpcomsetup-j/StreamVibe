@@ -144,6 +144,28 @@ export const guestSessions = pgTable("guest_sessions", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Private call request status enum
+export const privateCallStatusEnum = pgEnum('private_call_status', ['pending', 'accepted', 'rejected', 'active', 'completed', 'cancelled']);
+
+// Private call requests table
+export const privateCallRequests = pgTable("private_call_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  streamId: varchar("stream_id").references(() => streams.id).notNull(),
+  creatorId: varchar("creator_id").references(() => users.id).notNull(),
+  requesterId: varchar("requester_id").references(() => users.id), // null for guest users
+  guestSessionId: varchar("guest_session_id").references(() => guestSessions.id), // for guest requests
+  requesterName: varchar("requester_name").notNull(), // Display name for request
+  message: text("message"), // Optional message from requester
+  tokenCost: integer("token_cost").notNull(), // Cost for private call
+  durationMinutes: integer("duration_minutes").default(10), // Default 10 minutes
+  status: privateCallStatusEnum("status").default('pending'),
+  privateChannelId: varchar("private_channel_id"), // Agora channel for private call
+  startedAt: timestamp("started_at"),
+  endedAt: timestamp("ended_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   streams: many(streams),
@@ -185,6 +207,27 @@ export const creatorActionPresetsRelations = relations(creatorActionPresets, ({ 
   creator: one(users, {
     fields: [creatorActionPresets.creatorId],
     references: [users.id],
+  }),
+}));
+
+export const privateCallRequestsRelations = relations(privateCallRequests, ({ one }) => ({
+  stream: one(streams, {
+    fields: [privateCallRequests.streamId],
+    references: [streams.id],
+  }),
+  creator: one(users, {
+    fields: [privateCallRequests.creatorId],
+    references: [users.id],
+    relationName: "creatorCallRequests",
+  }),
+  requester: one(users, {
+    fields: [privateCallRequests.requesterId],
+    references: [users.id],
+    relationName: "requesterCallRequests",
+  }),
+  guestSession: one(guestSessions, {
+    fields: [privateCallRequests.guestSessionId],
+    references: [guestSessions.id],
   }),
 }));
 
@@ -237,6 +280,12 @@ export const insertCreatorActionPresetSchema = createInsertSchema(creatorActionP
   updatedAt: true,
 });
 
+export const insertPrivateCallRequestSchema = createInsertSchema(privateCallRequests).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Custom action interface
 export interface CustomAction {
   id: string;
@@ -265,3 +314,5 @@ export type InsertGuestSession = z.infer<typeof insertGuestSessionSchema>;
 export type GuestSession = typeof guestSessions.$inferSelect;
 export type InsertCreatorActionPreset = z.infer<typeof insertCreatorActionPresetSchema>;
 export type CreatorActionPreset = typeof creatorActionPresets.$inferSelect;
+export type InsertPrivateCallRequest = z.infer<typeof insertPrivateCallRequestSchema>;
+export type PrivateCallRequest = typeof privateCallRequests.$inferSelect;

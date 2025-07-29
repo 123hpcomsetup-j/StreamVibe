@@ -19,7 +19,10 @@ import {
   insertPayoutSchema,
   insertChatMessageSchema,
   insertCreatorActionPresetSchema,
-  creatorActionPresets 
+  insertPrivateCallRequestSchema,
+  creatorActionPresets,
+  privateCallRequests,
+  guestSessions 
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1018,6 +1021,214 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting action preset:", error);
       res.status(400).json({ message: "Failed to delete action preset" });
+    }
+  });
+
+  // Private Call Request Endpoints
+  
+  // Create private call request (for authenticated users and guests)
+  app.post('/api/streams/:streamId/private-call-request', async (req, res) => {
+    try {
+      const { streamId } = req.params;
+      const { message, tokenCost, durationMinutes } = req.body;
+      const sessionId = req.headers['x-session-id'] as string;
+      const isAuthenticated = !!(req as any).user;
+      
+      // Get stream info to validate and get creator
+      const [stream] = await db.select()
+        .from(streams)
+        .where(eq(streams.id, streamId));
+        
+      if (!stream || !stream.isLive) {
+        return res.status(404).json({ message: "Stream not found or not live" });
+      }
+
+      let requestData: any = {
+        streamId,
+        creatorId: stream.creatorId,
+        tokenCost: tokenCost || stream.privateRate,
+        durationMinutes: durationMinutes || 10,
+        message: message || '',
+        status: 'pending'
+      };
+
+      if (isAuthenticated) {
+        const user = (req as any).user;
+        requestData.requesterId = user.id;
+        requestData.requesterName = user.username || `${user.firstName} ${user.lastName}`;
+      } else {
+        // Guest user - find or create guest session
+        if (!sessionId) {
+          return res.status(400).json({ message: "Session ID required for guest requests" });
+        }
+
+        const [guestSession] = await db.select()
+          .from(guestSessions)
+          .where(eq(guestSessions.sessionId, sessionId));
+
+        if (!guestSession) {
+          return res.status(404).json({ message: "Guest session not found" });
+        }
+
+        requestData.guestSessionId = guestSession.id;
+        requestData.requesterName = guestSession.guestName;
+      }
+
+      const [request] = await db.insert(privateCallRequests)
+        .values(requestData)
+        .returning();
+
+      res.json(request);
+    } catch (error) {
+      console.error("Error creating private call request:", error);
+      res.status(500).json({ message: "Failed to create private call request" });
+    }
+  });
+
+  // Get private call requests for creator
+  app.get('/api/creator/private-call-requests', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'creator') {
+        return res.status(403).json({ message: "Creator access required" });
+      }
+
+      const requests = await db.select()
+        .from(privateCallRequests)
+        .where(eq(privateCallRequests.creatorId, userId))
+        .orderBy(privateCallRequests.createdAt);
+
+      res.json(requests);
+    } catch (error) {
+      console.error("Error fetching private call requests:", error);
+      res.status(500).json({ message: "Failed to fetch requests" });
+    }
+  });
+
+  // Accept/reject private call request
+  app.patch('/api/private-call-requests/:requestId/:action', requireAuth, async (req: any, res) => {
+    try {
+      const { requestId, action } = req.params;
+      const userId = req.user.id;
+      
+      if (!['accept', 'reject'].includes(action)) {
+        return res.status(400).json({ message: "Invalid action. Use 'accept' or 'reject'" });
+      }
+
+      const [request] = await db.select()
+        .from(privateCallRequests)
+        .where(eq(privateCallRequests.id, requestId));
+
+      if (!request) {
+        return res.status(404).json({ message: "Private call request not found" });
+      }
+
+      if (request.creatorId !== userId) {
+        return res.status(403).json({ message: "Not authorized to manage this request" });
+      }
+
+      if (request.status !== 'pending') {
+        return res.status(400).json({ message: "Request already processed" });
+      }
+
+      const newStatus = action === 'accept' ? 'accepted' : 'rejected';
+      let updateData: any = { 
+        status: newStatus as any,
+        updatedAt: new Date()
+      };
+
+      // If accepting, create private channel ID
+      if (action === 'accept') {
+        updateData.privateChannelId = `private_${requestId}_${Date.now()}`;
+      }
+
+      const [updatedRequest] = await db.update(privateCallRequests)
+        .set(updateData)
+        .where(eq(privateCallRequests.id, requestId))
+        .returning();
+
+      res.json(updatedRequest);
+    } catch (error) {
+      console.error("Error updating private call request:", error);
+      res.status(500).json({ message: "Failed to update request" });
+    }
+  });
+
+  // Start private call (moves from accepted to active)
+  app.post('/api/private-call-requests/:requestId/start', requireAuth, async (req: any, res) => {
+    try {
+      const { requestId } = req.params;
+      const userId = req.user.id;
+
+      const [request] = await db.select()
+        .from(privateCallRequests)
+        .where(eq(privateCallRequests.id, requestId));
+
+      if (!request) {
+        return res.status(404).json({ message: "Private call request not found" });
+      }
+
+      if (request.creatorId !== userId) {
+        return res.status(403).json({ message: "Not authorized to start this call" });
+      }
+
+      if (request.status !== 'accepted') {
+        return res.status(400).json({ message: "Request must be accepted first" });
+      }
+
+      const [updatedRequest] = await db.update(privateCallRequests)
+        .set({ 
+          status: 'active' as any,
+          startedAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(privateCallRequests.id, requestId))
+        .returning();
+
+      res.json(updatedRequest);
+    } catch (error) {
+      console.error("Error starting private call:", error);
+      res.status(500).json({ message: "Failed to start private call" });
+    }
+  });
+
+  // End private call
+  app.post('/api/private-call-requests/:requestId/end', requireAuth, async (req: any, res) => {
+    try {
+      const { requestId } = req.params;
+      const userId = req.user.id;
+
+      const [request] = await db.select()
+        .from(privateCallRequests)
+        .where(eq(privateCallRequests.id, requestId));
+
+      if (!request) {
+        return res.status(404).json({ message: "Private call request not found" });
+      }
+
+      if (request.creatorId !== userId) {
+        return res.status(403).json({ message: "Not authorized to end this call" });
+      }
+
+      if (request.status !== 'active') {
+        return res.status(400).json({ message: "Call is not currently active" });
+      }
+
+      const [updatedRequest] = await db.update(privateCallRequests)
+        .set({ 
+          status: 'completed' as any,
+          endedAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(privateCallRequests.id, requestId))
+        .returning();
+
+      res.json(updatedRequest);
+    } catch (error) {
+      console.error("Error ending private call:", error);
+      res.status(500).json({ message: "Failed to end private call" });
     }
   });
 

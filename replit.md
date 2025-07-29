@@ -10,7 +10,10 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (January 29, 2025)
 
-**LATEST UPDATE - Enhanced Stream Controls with Video Overlay Interface (January 29, 2025):**
+**LATEST UPDATE - Complete Private Call Request System (January 29, 2025):**
+Successfully implemented comprehensive private call request system allowing viewers and guests to request private sessions with creators. Added privateCallRequests database table with status tracking, token cost management, and duration controls. Created viewer-side StreamChat integration with private call request buttons and creator-side PrivateCallRequests management interface. Implemented complete API endpoints for creating, accepting, rejecting, starting, and ending private calls. System includes real-time status updates, proper authentication, and token-based payment integration.
+
+**Previous Update - Enhanced Stream Controls with Video Overlay Interface (January 29, 2025):**
 Redesigned creator dashboard with modern overlay-based stream controls displayed directly on live video feed. Implemented compact, smaller buttons with semi-transparent backgrounds for video/audio toggles, viewer count display, and stream management. Added intelligent control placement: top-right for media controls, top-center for viewer count, bottom-center for stop stream button, creating professional broadcast interface that doesn't obstruct video content.
 
 **Previous Update - Fixed Agora Video Stream Visibility Issue (January 29, 2025):**
