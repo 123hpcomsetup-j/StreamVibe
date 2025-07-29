@@ -89,6 +89,39 @@ router.post('/logout', (req, res) => {
   });
 });
 
+// Logout user with redirect (used by dashboards)
+router.get('/logout', async (req, res) => {
+  // Get user role before destroying session
+  const userId = (req.session as any).userId;
+  let userRole = 'viewer';
+  
+  if (userId) {
+    try {
+      const user = await storage.getUser(userId);
+      if (user) {
+        userRole = user.role;
+      }
+    } catch (error) {
+      console.error('Error fetching user for logout:', error);
+    }
+  }
+  
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ message: 'Logout failed' });
+    }
+    
+    // Redirect based on user role
+    if (userRole === 'admin') {
+      res.redirect('/admin');
+    } else if (userRole === 'creator') {
+      res.redirect('/creator-login');
+    } else {
+      res.redirect('/user-login');
+    }
+  });
+});
+
 // Reset password
 router.post('/reset-password', async (req, res) => {
   try {
