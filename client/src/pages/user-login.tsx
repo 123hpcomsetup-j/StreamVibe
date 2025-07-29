@@ -29,9 +29,14 @@ export default function UserLogin() {
 
   const loginMutation = useMutation({
     mutationFn: async (data: { username: string; password: string }) => {
-      return await apiRequest("POST", "/api/auth/login", data);
+      const response = await apiRequest("POST", "/api/auth/login", data);
+      return await response.json();
     },
     onSuccess: (user: any) => {
+      console.log('Login response:', user);
+      console.log('User role:', user.role);
+      console.log('Role comparison:', user.role === 'viewer');
+      
       if (user.role === 'viewer') {
         toast({
           title: "Welcome!",
@@ -41,7 +46,7 @@ export default function UserLogin() {
       } else {
         toast({
           title: "Access Denied",
-          description: "This portal is for viewers only. Please use the creator login.",
+          description: `This portal is for viewers only. You have role: ${user.role}`,
           variant: "destructive",
         });
       }
@@ -63,10 +68,11 @@ export default function UserLogin() {
       if (data.password.length < 6) {
         throw new Error("Password must be at least 6 characters");
       }
-      return await apiRequest("POST", "/api/auth/register", {
+      const response = await apiRequest("POST", "/api/auth/register", {
         ...data,
         role: "viewer"
       });
+      return await response.json();
     },
     onSuccess: (user: any) => {
       toast({
