@@ -27,6 +27,12 @@ export default function CreatorDashboard() {
     tokenPrice: 1,
     privateRate: 20,
   });
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileData, setProfileData] = useState({
+    firstName: "",
+    lastName: "",
+    username: "",
+  });
 
   const typedUser = user as User | undefined;
 
@@ -73,6 +79,17 @@ export default function CreatorDashboard() {
       };
     }
   }, [typedUser?.id, toast]);
+
+  // Initialize profile data when user loads
+  useEffect(() => {
+    if (typedUser) {
+      setProfileData({
+        firstName: typedUser.firstName || "",
+        lastName: typedUser.lastName || "",
+        username: typedUser.username || "",
+      });
+    }
+  }, [typedUser]);
 
   // Redirect if not authenticated or not a creator
   useEffect(() => {
@@ -252,6 +269,44 @@ export default function CreatorDashboard() {
     },
   });
 
+  // Update profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: { firstName: string; lastName: string; username: string }) => {
+      const response = await apiRequest("PUT", "/api/auth/profile", data);
+      return await response.json();
+    },
+    onSuccess: () => {
+      setIsEditingProfile(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({
+        title: "Success",
+        description: "Profile updated successfully!",
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleUpdateProfile = () => {
+    updateProfileMutation.mutate(profileData);
+  };
+
   const handleStartStream = async () => {
     // Use creator's name as default title if no title provided
     const defaultTitle = typedUser?.username ? `${typedUser.username}'s Live Stream` : "Live Stream";
@@ -346,6 +401,14 @@ export default function CreatorDashboard() {
                 Request Payout
               </Button>
               <Button 
+                onClick={() => setIsEditingProfile(!isEditingProfile)}
+                variant="outline"
+                className="border-slate-600 hover:bg-slate-700"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                {isEditingProfile ? "Cancel" : "Edit Profile"}
+              </Button>
+              <Button 
                 onClick={() => window.location.href = "/api/logout"}
                 variant="ghost"
                 className="text-slate-300 hover:text-white"
@@ -393,6 +456,67 @@ export default function CreatorDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Profile Editing */}
+        {isEditingProfile && (
+          <div className="mb-8">
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white">Edit Profile</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name</Label>
+                    <Input
+                      id="firstName"
+                      placeholder="Enter first name..."
+                      value={profileData.firstName}
+                      onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
+                      className="bg-slate-700 border-slate-600"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      placeholder="Enter last name..."
+                      value={profileData.lastName}
+                      onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
+                      className="bg-slate-700 border-slate-600"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    placeholder="Enter username..."
+                    value={profileData.username}
+                    onChange={(e) => setProfileData({ ...profileData, username: e.target.value })}
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+                <div className="flex space-x-4">
+                  <Button 
+                    onClick={handleUpdateProfile}
+                    disabled={updateProfileMutation.isPending}
+                    className="bg-primary hover:bg-primary/80"
+                  >
+                    {updateProfileMutation.isPending ? "Updating..." : "Update Profile"}
+                  </Button>
+                  <Button 
+                    onClick={() => setIsEditingProfile(false)}
+                    variant="outline"
+                    className="border-slate-600 hover:bg-slate-700"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Stream Setup - Only show when not streaming */}
         {!isStreaming && (

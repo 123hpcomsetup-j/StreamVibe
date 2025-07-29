@@ -123,4 +123,33 @@ router.get('/user', requireAuth, (req, res) => {
   res.json(userWithoutPassword);
 });
 
+// Update user profile
+router.put('/profile', requireAuth, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const { firstName, lastName, username } = req.body;
+    
+    // Check if username is already taken by another user
+    if (username) {
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser && existingUser.id !== userId) {
+        return res.status(400).json({ message: "Username already taken" });
+      }
+    }
+    
+    const updatedUser = await storage.updateUser(userId, {
+      firstName,
+      lastName,
+      username
+    });
+    
+    // Return user without password
+    const { password: _, ...userWithoutPassword } = updatedUser;
+    res.json(userWithoutPassword);
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    res.status(500).json({ message: "Failed to update profile" });
+  }
+});
+
 export default router;

@@ -32,8 +32,13 @@ export default function PublicHome() {
     }
   }, [liveStreams]);
 
+  // Prevent infinite re-renders by memoizing the dependency
+  const [socketInitialized, setSocketInitialized] = useState(false);
+
   // WebSocket connection for real-time stream status updates
   useEffect(() => {
+    if (socketInitialized) return;
+
     const newSocket = io(window.location.origin, {
       transports: ['websocket', 'polling']
     });
@@ -41,6 +46,7 @@ export default function PublicHome() {
     newSocket.on('connect', () => {
       console.log('Connected to streaming server for real-time updates');
       setSocket(newSocket);
+      setSocketInitialized(true);
     });
 
     // Listen for real-time stream status changes
@@ -68,9 +74,10 @@ export default function PublicHome() {
     });
 
     return () => {
-      newSocket.close();
+      newSocket.disconnect();
+      setSocketInitialized(false);
     };
-  }, []); // Remove dependencies to prevent infinite loop
+  }, [socketInitialized]);
 
   // Use real-time streams data instead of static query data
   const displayStreams = realTimeStreams.filter((stream: any) => stream.isLive);
@@ -230,7 +237,10 @@ export default function PublicHome() {
                     {/* Hover overlay */}
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <Button 
-                        onClick={() => setLocation(`/stream/${stream.id}`)}
+                        onClick={() => {
+                          // Navigate to stream view as guest
+                          setLocation(`/stream/${stream.id}`);
+                        }}
                         className="bg-primary hover:bg-primary/80"
                       >
                         <Play className="mr-2 h-4 w-4" />
