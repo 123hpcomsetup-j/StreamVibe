@@ -174,6 +174,11 @@ All major platform components have been successfully tested and validated. The A
   - App now loads immediately with beautiful Tailwind CSS styling and full functionality
   - All navigation, hero section, live streams, and creator sections working perfectly
   - Frontend successfully connecting to backend API with proper data fetching and display
+
+✓ **ROUTING FIX**: Restored original homepage routing (January 29, 2025):
+  - Moved landing page from "/" to "/landing" as requested by user
+  - Restored PublicHome component as the main homepage at "/"
+  - Updated routing structure to match user preferences for homepage access
 ✓ **MAJOR**: Replaced WebRTC with Agora.io streaming platform (January 29, 2025):
   - Replaced complex WebRTC implementation with professional Agora.io SDK
   - Simplified streaming architecture eliminates "Creator not connected" errors

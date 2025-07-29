@@ -28,8 +28,8 @@ function Router() {
   return (
     <Switch>
       {/* Public routes - always accessible */}
-      <Route path="/" component={Landing} />
-      <Route path="/public-home" component={PublicHome} />
+      <Route path="/" component={PublicHome} />
+      <Route path="/landing" component={Landing} />
       <Route path="/stream/:streamId" component={StreamView} />
       <Route path="/login" component={Login} />
       <Route path="/creator-login" component={CreatorLogin} />
