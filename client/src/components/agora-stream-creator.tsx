@@ -92,6 +92,19 @@ export default function AgoraStreamCreator({
       setChatMessages(prev => [...prev, data]);
     });
 
+    // Listen for tips
+    newSocket.on('tip-message', (data) => {
+      console.log('Creator received tip:', data);
+      const tipMessage = {
+        message: `💰 ${data.username} tipped ${data.amount} tokens!`,
+        username: 'System',
+        timestamp: data.timestamp,
+        tipAmount: data.amount,
+        userType: 'system'
+      };
+      setChatMessages(prev => [...prev, tipMessage]);
+    });
+
     // Listen for viewer count updates from server
     newSocket.on('viewer-count-update', (data) => {
       console.log('Creator received viewer count update:', data);

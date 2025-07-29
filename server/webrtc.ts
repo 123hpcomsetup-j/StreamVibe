@@ -318,14 +318,61 @@ export function setupWebRTC(server: Server) {
     });
 
     // Handle tip messages
-    socket.on('tip-message', (data: { streamId: string, amount: number, username: string, userId: string }) => {
-      // Broadcast tip to all users in the stream room
-      io.to(`stream-${data.streamId}`).emit('tip-message', {
-        amount: data.amount,
-        username: data.username,
-        userId: data.userId,
-        timestamp: new Date().toISOString()
-      });
+    socket.on('tip-message', async (data: { streamId: string, amount: number, username: string, userId: string }) => {
+      try {
+        console.log(`Processing tip: ${data.username} tipping ${data.amount} tokens to stream ${data.streamId}`);
+        
+        // Get stream to find creator
+        const stream = await storage.getStreamById(data.streamId);
+        if (!stream) {
+          socket.emit('tip-error', { message: 'Stream not found' });
+          return;
+        }
+
+        // Get user making the tip
+        const user = await storage.getUser(data.userId);
+        if (!user) {
+          socket.emit('tip-error', { message: 'User not found' });
+          return;
+        }
+
+        // Check if user has enough balance
+        if ((user.walletBalance || 0) < data.amount) {
+          socket.emit('tip-error', { message: 'Insufficient wallet balance' });
+          return;
+        }
+
+        // Create transaction for tip
+        await storage.createTransaction({
+          fromUserId: data.userId,
+          toUserId: stream.creatorId,
+          tokenAmount: data.amount,
+          purpose: 'tip',
+          streamId: data.streamId,
+        });
+
+        // Update wallets
+        await storage.updateUserWallet(data.userId, -data.amount);
+        await storage.updateUserWallet(stream.creatorId, data.amount);
+
+        console.log(`✅ Tip processed: ${data.amount} tokens from ${data.username} to creator ${stream.creatorId}`);
+
+        // Broadcast tip to all users in the stream room
+        const tipData = {
+          amount: data.amount,
+          username: data.username,
+          userId: data.userId,
+          streamId: data.streamId,
+          timestamp: new Date().toISOString()
+        };
+
+        io.to(`stream-${data.streamId}`).emit('tip-message', tipData);
+        console.log(`Broadcasting tip notification to stream-${data.streamId} room`);
+
+      } catch (error) {
+        console.error('Error processing tip:', error);
+        socket.emit('tip-error', { message: 'Failed to process tip' });
+      }
     });
 
     // Handle stream start - when creator successfully starts broadcasting

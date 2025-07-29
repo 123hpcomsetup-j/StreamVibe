@@ -173,6 +173,29 @@ export default function StreamView() {
       setChatMessages(prev => [...prev, message]);
     });
 
+    // Listen for tip notifications  
+    newSocket.on('tip-message', (data: any) => {
+      console.log('Received tip notification:', data);
+      const tipNotification = {
+        message: `💰 ${data.username} tipped ${data.amount} tokens!`,
+        username: 'System',
+        timestamp: data.timestamp,
+        tipAmount: data.amount,
+        userType: 'system'
+      };
+      setChatMessages(prev => [...prev, tipNotification]);
+    });
+
+    // Listen for tip errors
+    newSocket.on('tip-error', (data: any) => {
+      console.error('Tip error:', data);
+      toast({
+        title: "Tip Failed",
+        description: data.message,
+        variant: "destructive",
+      });
+    });
+
     // Handle stream end
     newSocket.on('stream-ended', (data: { message: string }) => {
       setStreamEnded(true);
@@ -238,9 +261,9 @@ export default function StreamView() {
     }
   };
 
-  // Send tip to creator
-  const sendTip = async () => {
-    if (!isAuthenticated || !tipAmount || tipAmount <= 0) {
+  // Send tip to creator via WebSocket
+  const sendTip = () => {
+    if (!isAuthenticated || !tipAmount || tipAmount <= 0 || !socket) {
       toast({
         title: "Authentication Required",
         description: "Please sign up to send tips to creators.",
@@ -249,38 +272,41 @@ export default function StreamView() {
       return;
     }
 
-    try {
-      const response = await fetch(`/api/streams/${streamId}/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          message: `💰 Sent ${tipAmount} tokens!`,
-          tipAmount: tipAmount
-        })
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to send tip');
-      }
-
-      setTipAmount(0);
-      setShowTipDialog(false);
+    if (!typedUser) {
       toast({
-        title: "Tip Sent!",
-        description: `You tipped ${tipAmount} tokens to the creator.`,
-      });
-
-    } catch (error: any) {
-      toast({
-        title: "Tip Failed",
-        description: error.message,
+        title: "User Error",
+        description: "Please refresh and try again.",
         variant: "destructive",
       });
+      return;
     }
+
+    if ((typedUser.walletBalance || 0) < tipAmount) {
+      toast({
+        title: "Insufficient Balance",
+        description: "You don't have enough tokens for this tip.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log('Sending tip via WebSocket:', { streamId, tipAmount, username: displayName, userId: typedUser.id });
+
+    // Send tip via WebSocket for real-time processing
+    socket.emit('tip-message', {
+      streamId,
+      amount: tipAmount,
+      username: displayName,
+      userId: typedUser.id
+    });
+
+    setTipAmount(0);
+    setShowTipDialog(false);
+    
+    toast({
+      title: "Tip Sent!",
+      description: `You tipped ${tipAmount} tokens to the creator.`,
+    });
   };
 
   // Sign up mutation
@@ -561,11 +587,74 @@ export default function StreamView() {
                     </Button>
                   </form>
                 )}
+                
+                {/* Tip Button - only for authenticated users */}
+                {isAuthenticated && (
+                  <div className="mt-2 flex justify-center">
+                    <Button 
+                      size="sm"
+                      onClick={() => setShowTipDialog(true)}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      <Coins className="mr-1 h-4 w-4" />
+                      Send Tip
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* Tip Dialog */}
+      <Dialog open={showTipDialog} onOpenChange={setShowTipDialog}>
+        <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Send Tip to Creator</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Support this creator with tokens
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label className="text-slate-300">Tip Amount (tokens)</Label>
+              <Input
+                type="number"
+                min={typedStream?.minTip || 1}
+                value={tipAmount}
+                onChange={(e) => setTipAmount(Number(e.target.value))}
+                className="bg-slate-700 border-slate-600 text-white"
+                placeholder={`Minimum: ${typedStream?.minTip || 1} tokens`}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between text-sm text-slate-400">
+              <span>Minimum Tip: {typedStream?.minTip || 1} tokens</span>
+              <span>Your Balance: {typedUser?.walletBalance || 0} tokens</span>
+            </div>
+            
+            <div className="flex space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowTipDialog(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={sendTip}
+                disabled={tipAmount < (typedStream?.minTip || 1) || tipAmount > (typedUser?.walletBalance || 0)}
+                className="flex-1 bg-green-600 hover:bg-green-700"
+              >
+                <Coins className="mr-1 h-4 w-4" />
+                Send {tipAmount} Tokens
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Signup Dialog */}
       <Dialog open={showSignupDialog} onOpenChange={setShowSignupDialog}>
