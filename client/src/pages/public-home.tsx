@@ -1,15 +1,19 @@
 import React, { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Play, Users, Video, Heart, Coins, ChevronRight } from "lucide-react";
 import { io } from "socket.io-client";
 import { queryClient } from "@/lib/queryClient";
+import Navbar from "@/components/navbar";
+import type { User } from "@shared/schema";
 
 export default function PublicHome() {
   const [, setLocation] = useLocation();
+  const { user, isAuthenticated } = useAuth();
 
   const { data: liveStreams = [], isLoading: streamsLoading } = useQuery({
     queryKey: ["/api/streams/live"],
@@ -61,38 +65,42 @@ export default function PublicHome() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Navigation */}
-      <nav className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-primary">StreamVibe</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Button 
-                variant="ghost"
-                onClick={() => setLocation("/user-login")}
-                className="text-slate-300 hover:text-white"
-              >
-                Watch Streams
-              </Button>
-              <Button 
-                variant="ghost"
-                onClick={() => setLocation("/creator-login")}
-                className="text-slate-300 hover:text-white"
-              >
-                Start Creating
-              </Button>
-              <Button 
-                onClick={() => setLocation("/login")}
-                className="bg-primary hover:bg-primary/80"
-              >
-                Sign In
-              </Button>
+      {/* Navigation - use proper Navbar component if authenticated, otherwise show guest navigation */}
+      {isAuthenticated && user ? (
+        <Navbar user={user as User} />
+      ) : (
+        <nav className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center">
+                <h1 className="text-2xl font-bold text-primary">StreamVibe</h1>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Button 
+                  variant="ghost"
+                  onClick={() => setLocation("/user-login")}
+                  className="text-slate-300 hover:text-white"
+                >
+                  Watch Streams
+                </Button>
+                <Button 
+                  variant="ghost"
+                  onClick={() => setLocation("/creator-login")}
+                  className="text-slate-300 hover:text-white"
+                >
+                  Start Creating
+                </Button>
+                <Button 
+                  onClick={() => setLocation("/login")}
+                  className="bg-primary hover:bg-primary/80"
+                >
+                  Sign In
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      </nav>
+        </nav>
+      )}
 
       {/* Hero Section */}
       <div className="relative overflow-hidden">
