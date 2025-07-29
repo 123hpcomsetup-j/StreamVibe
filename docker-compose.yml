@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  antmedia:
+    image: antmedia/ams:latest
+    container_name: antmedia-server
+    ports:
+      - "5080:5080"   # HTTP Web Panel
+      - "5443:5443"   # HTTPS Web Panel  
+      - "1935:1935"   # RTMP
+      - "5000-5020:5000-5020/udp"  # WebRTC UDP ports
+    volumes:
+      - antmedia_data:/usr/local/antmedia
+    environment:
+      - AMS_JVM_MEMORY_OPTIONS=-Xmx4g
+    restart: unless-stopped
+    
+  # Your existing StreamVibe app
+  streamvibe:
+    build: .
+    container_name: streamvibe-app
+    ports:
+      - "3000:5000"   # Changed to 3000 to avoid conflict
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - ANTMEDIA_SERVER_URL=http://antmedia:5080
+    depends_on:
+      - antmedia
+    restart: unless-stopped
+
+volumes:
+  antmedia_data:
