@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { DollarSign, Users, Clock, Heart, Play, Square, Settings, Phone, Mail, Camera, UserIcon, Plus, Trash2, Edit, Save, Video } from "lucide-react";
+import { DollarSign, Users, Clock, Heart, Play, Settings, Phone, Mail, UserIcon, Video } from "lucide-react";
 import PrivateCallRequests from "@/components/private-call-requests";
 import StreamModal from "@/components/stream-modal";
 import AgoraStreamCreator from "@/components/agora-stream-creator";
@@ -28,17 +28,9 @@ export default function CreatorDashboard() {
     minTip: 5,
     tokenPrice: 1,
     privateRate: 20,
-    customActions: [] as Array<{
-      id: string;
-      name: string;
-      tokenCost: number;
-      enabled: boolean;
-    }>
   });
   
-  // Add custom action management state
-  const [newAction, setNewAction] = useState({ name: "", tokenCost: 1 });
-  const [editingAction, setEditingAction] = useState<string | null>(null);
+
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileData, setProfileData] = useState({
     firstName: "",
@@ -52,7 +44,7 @@ export default function CreatorDashboard() {
   const [showAgoraModal, setShowAgoraModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [streamKey, setStreamKey] = useState<string>("");
-  const [showActionPresets, setShowActionPresets] = useState(false);
+
 
   const typedUser = user as User | undefined;
 
@@ -63,11 +55,7 @@ export default function CreatorDashboard() {
     }
   }, [typedUser?.id]);
 
-  // Fetch creator action presets
-  const { data: actionPresets = [] } = useQuery({
-    queryKey: ["/api/creator/action-presets"],
-    retry: false,
-  }) as { data: Array<{ id: string; name: string; tokenCost: number; isEnabled: boolean; order: number }> };
+
 
   // Initialize profile data when user loads
   useEffect(() => {
@@ -83,88 +71,13 @@ export default function CreatorDashboard() {
     }
   }, [typedUser]);
 
-  // Load saved action presets into stream data when going live
-  useEffect(() => {
-    if (actionPresets.length > 0 && streamData.customActions.length === 0) {
-      const presetsAsActions = actionPresets.map((preset: any) => ({
-        id: preset.id,
-        name: preset.name,
-        tokenCost: preset.tokenCost,
-        enabled: preset.isEnabled
-      }));
-      setStreamData(prev => ({
-        ...prev,
-        customActions: presetsAsActions
-      }));
-    }
-  }, [actionPresets, streamData.customActions.length]);
+
 
   const handleProfileSave = () => {
     updateProfileMutation.mutate(profileData);
   };
 
-  // Action preset mutations
-  const createActionPresetMutation = useMutation({
-    mutationFn: async (data: { name: string; tokenCost: number; order: number }) => {
-      return await apiRequest("POST", "/api/creator/action-presets", data);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Action Preset Saved",
-        description: "Your custom action has been saved for future streams.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/creator/action-presets"] });
-      setNewAction({ name: "", tokenCost: 1 });
-    },
-    onError: (error) => {
-      toast({
-        title: "Save Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  });
 
-  const updateActionPresetMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: { name: string; tokenCost: number; isEnabled: boolean } }) => {
-      return await apiRequest("PUT", `/api/creator/action-presets/${id}`, data);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Action Updated",
-        description: "Your action preset has been updated.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/creator/action-presets"] });
-      setEditingAction(null);
-    },
-    onError: (error) => {
-      toast({
-        title: "Update Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  });
-
-  const deleteActionPresetMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return await apiRequest("DELETE", `/api/creator/action-presets/${id}`, {});
-    },
-    onSuccess: () => {
-      toast({
-        title: "Action Deleted",
-        description: "Your action preset has been removed.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/creator/action-presets"] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Delete Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  });
 
   // Redirect if not authenticated or not a creator
   useEffect(() => {
@@ -239,58 +152,23 @@ export default function CreatorDashboard() {
         category: stream.category || "Art & Design",
         minTip: stream.minTip || 5,
         tokenPrice: stream.tokenPrice || 1,
-        privateRate: stream.privateRate || 20,
-        customActions: stream.customActions || []
+        privateRate: stream.privateRate || 20
       });
     } else {
       setIsStreaming(false);
     }
   }, [currentStream]);
 
-  // Custom action management functions
-  const addCustomAction = () => {
-    if (!newAction.name.trim() || streamData.customActions.length >= 5) return;
-    
-    const action = {
-      id: Date.now().toString(),
-      name: newAction.name.trim(),
-      tokenCost: newAction.tokenCost,
-      enabled: true
-    };
-    
-    setStreamData(prev => ({
-      ...prev,
-      customActions: [...prev.customActions, action]
-    }));
-    
-    setNewAction({ name: "", tokenCost: 1 });
-  };
 
-  const removeCustomAction = (actionId: string) => {
-    setStreamData(prev => ({
-      ...prev,
-      customActions: prev.customActions.filter(action => action.id !== actionId)
-    }));
-  };
-
-  const updateCustomAction = (actionId: string, updates: Partial<{ name: string; tokenCost: number; enabled: boolean }>) => {
-    setStreamData(prev => ({
-      ...prev,
-      customActions: prev.customActions.map(action => 
-        action.id === actionId ? { ...action, ...updates } : action
-      )
-    }));
-  };
 
   const createStreamMutation = useMutation({
     mutationFn: async (streamData: any) => {
       const response = await apiRequest("POST", "/api/streams", {
-        title: streamData.title || "Untitled Stream",
+        title: streamData.title || `${typedUser?.firstName || typedUser?.username || 'Creator'}'s Stream`,
         category: streamData.category,
         minTip: streamData.minTip,
         tokenPrice: streamData.tokenPrice,
         privateRate: streamData.privateRate,
-        customActions: streamData.customActions,
       });
       return response.json();
     },
@@ -668,31 +546,7 @@ export default function CreatorDashboard() {
       </nav>
 
       <main className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Stream Status */}
-        <Card className="bg-slate-800 border-slate-700">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className={`w-3 h-3 rounded-full ${(currentStream as any)?.isLive ? 'bg-red-500 animate-pulse' : 'bg-gray-500'}`}></div>
-                <span className="text-white font-medium">
-                  {(currentStream as any)?.isLive ? 'LIVE' : 'OFFLINE'}
-                </span>
-                {(currentStream as any)?.isLive && (
-                  <Badge className="bg-red-500 text-white">
-                    <Users className="mr-1 h-3 w-3" />
-                    {(currentStream as any)?.viewerCount || 0} viewers
-                  </Badge>
-                )}
-              </div>
-              <div className="text-right">
-                <p className="text-slate-400 text-sm">Status</p>
-                <p className="text-white font-medium">
-                  {(currentStream as any)?.isLive ? (currentStream as any)?.title : 'Not streaming'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+
 
         {/* Stream Settings */}
         <Card className="bg-slate-800 border-slate-700">
@@ -762,88 +616,7 @@ export default function CreatorDashboard() {
               </div>
             </div>
 
-            {/* Custom Chat Actions Section */}
-            <div className="border-t border-slate-600 pt-4 mt-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-white">Custom Chat Actions</h3>
-                <Badge variant="outline" className="text-slate-400">
-                  {streamData.customActions.length}/5 actions
-                </Badge>
-              </div>
-              <p className="text-slate-400 text-sm mb-4">
-                Set up custom chat actions that viewers can use to interact with you. Each action costs tokens.
-              </p>
 
-              {/* Existing Custom Actions */}
-              <div className="space-y-2 mb-4">
-                {streamData.customActions.map((action) => (
-                  <div key={action.id} className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <span className="text-white font-medium">{action.name}</span>
-                      <Badge className="bg-green-600 text-white">
-                        {action.tokenCost} tokens
-                      </Badge>
-                      <Badge variant={action.enabled ? "default" : "secondary"}>
-                        {action.enabled ? "Enabled" : "Disabled"}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => updateCustomAction(action.id, { enabled: !action.enabled })}
-                        className="text-slate-300 hover:text-white"
-                      >
-                        {action.enabled ? "Disable" : "Enable"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => removeCustomAction(action.id)}
-                        className="text-red-400 hover:text-red-300"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Add New Action */}
-              {streamData.customActions.length < 5 && (
-                <div className="flex space-x-2">
-                  <Input
-                    placeholder="Action name (e.g., 'say hi', 'wave', 'heart')"
-                    value={newAction.name}
-                    onChange={(e) => setNewAction({ ...newAction, name: e.target.value })}
-                    className="bg-slate-700 border-slate-600 text-white flex-1"
-                  />
-                  <Input
-                    type="number"
-                    min="1"
-                    max="100"
-                    placeholder="Tokens"
-                    value={newAction.tokenCost}
-                    onChange={(e) => setNewAction({ ...newAction, tokenCost: Number(e.target.value) })}
-                    className="bg-slate-700 border-slate-600 text-white w-24"
-                  />
-                  <Button
-                    onClick={addCustomAction}
-                    disabled={!newAction.name.trim()}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add
-                  </Button>
-                </div>
-              )}
-
-              {streamData.customActions.length >= 5 && (
-                <p className="text-yellow-500 text-sm">
-                  Maximum of 5 custom actions reached. Remove an action to add a new one.
-                </p>
-              )}
-            </div>
 
             <div className="flex space-x-4">
               {!currentStream ? (
@@ -868,114 +641,7 @@ export default function CreatorDashboard() {
           </CardContent>
         </Card>
 
-        {/* Action Presets Management */}
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center">
-              <Heart className="mr-2 h-5 w-5" />
-              Custom Chat Actions
-              <Badge variant="outline" className="ml-2 text-xs">
-                Saved for all streams
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-slate-400 text-sm mb-4">
-              Set up custom actions that viewers can purchase with tokens. These will be automatically loaded for all your future streams.
-            </div>
-            
-            {/* Existing saved actions */}
-            <div className="space-y-2">
-              {actionPresets.map((preset: any) => (
-                <div key={preset.id} className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="text-white font-medium">{preset.name}</div>
-                    <Badge variant="outline" className="text-xs">
-                      {preset.tokenCost} token{preset.tokenCost !== 1 ? 's' : ''}
-                    </Badge>
-                    <Badge variant={preset.isEnabled ? "default" : "secondary"} className="text-xs">
-                      {preset.isEnabled ? "Enabled" : "Disabled"}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      onClick={() => updateActionPresetMutation.mutate({
-                        id: preset.id,
-                        data: { ...preset, isEnabled: !preset.isEnabled }
-                      })}
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                    >
-                      {preset.isEnabled ? "Disable" : "Enable"}
-                    </Button>
-                    <Button
-                      onClick={() => deleteActionPresetMutation.mutate(preset.id)}
-                      variant="outline"
-                      size="sm"
-                      className="text-red-400 border-red-600 hover:bg-red-900/20"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              
-              {actionPresets.length === 0 && (
-                <div className="text-center py-6 text-slate-400">
-                  <Heart className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No custom actions saved yet</p>
-                  <p className="text-sm">Create your first custom action below</p>
-                </div>
-              )}
-            </div>
 
-            {/* Add new action */}
-            {actionPresets.length < 5 && (
-              <div className="border-t border-slate-600 pt-4">
-                <div className="flex items-center space-x-2">
-                  <Input
-                    placeholder="Action name (e.g., 'say hi', 'dance')"
-                    value={newAction.name}
-                    onChange={(e) => setNewAction({ ...newAction, name: e.target.value })}
-                    className="bg-slate-700 border-slate-600 text-white flex-1"
-                  />
-                  <Input
-                    type="number"
-                    min="1"
-                    max="100"
-                    placeholder="Cost"
-                    value={newAction.tokenCost}
-                    onChange={(e) => setNewAction({ ...newAction, tokenCost: Number(e.target.value) })}
-                    className="bg-slate-700 border-slate-600 text-white w-20"
-                  />
-                  <Button
-                    onClick={() => {
-                      if (newAction.name.trim()) {
-                        createActionPresetMutation.mutate({
-                          name: newAction.name.trim(),
-                          tokenCost: newAction.tokenCost,
-                          order: actionPresets.length
-                        });
-                      }
-                    }}
-                    disabled={!newAction.name.trim() || createActionPresetMutation.isPending}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Save
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {actionPresets.length >= 5 && (
-              <div className="text-yellow-500 text-sm text-center">
-                Maximum of 5 custom actions reached. Delete an action to add a new one.
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
         {/* Profile Management */}
         <Card className="bg-slate-800 border-slate-700">
@@ -1083,14 +749,34 @@ export default function CreatorDashboard() {
                     />
                   </div>
                   <div>
-                    <Label className="text-slate-300">Profile Image URL</Label>
-                    <Input
-                      type="url"
-                      value={profileData.profileImageUrl}
-                      onChange={(e) => setProfileData({ ...profileData, profileImageUrl: e.target.value })}
-                      className="bg-slate-700 border-slate-600 text-white"
-                      placeholder="https://example.com/image.jpg"
-                    />
+                    <Label className="text-slate-300">Profile Image</Label>
+                    <div className="space-y-2">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            // Convert to base64 for simple storage
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              const result = event.target?.result as string;
+                              setProfileData({ ...profileData, profileImageUrl: result });
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="bg-slate-700 border-slate-600 text-white file:bg-slate-600 file:text-white file:border-0 file:rounded file:px-3 file:py-1"
+                      />
+                      <p className="text-xs text-slate-400">Upload an image or paste URL below</p>
+                      <Input
+                        type="url"
+                        value={profileData.profileImageUrl}
+                        onChange={(e) => setProfileData({ ...profileData, profileImageUrl: e.target.value })}
+                        className="bg-slate-700 border-slate-600 text-white"
+                        placeholder="https://example.com/image.jpg"
+                      />
+                    </div>
                   </div>
                 </div>
 
