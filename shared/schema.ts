@@ -96,10 +96,13 @@ export const reports = pgTable("reports", {
 export const payouts = pgTable("payouts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   creatorId: varchar("creator_id").references(() => users.id).notNull(),
-  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  utrNumber: varchar("utr_number"),
-  status: varchar("status").default('pending'), // 'pending', 'approved', 'rejected'
+  tokenAmount: integer("token_amount").notNull(), // Amount in tokens
+  requestedAmount: decimal("requested_amount", { precision: 10, scale: 2 }).notNull(), // Amount in currency
+  upiId: varchar("upi_id").notNull(), // Creator's UPI ID
+  utrNumber: varchar("utr_number"), // Admin fills this when released
+  status: varchar("status").default('pending'), // 'pending', 'released', 'rejected'
   createdAt: timestamp("created_at").defaultNow(),
+  releasedAt: timestamp("released_at"),
 });
 
 // Chat messages table

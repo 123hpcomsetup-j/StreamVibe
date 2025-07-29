@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DollarSign, Users, Clock, Heart, Play, Square, Settings } from "lucide-react";
 import StreamModal from "@/components/stream-modal";
 import AgoraStreamCreator from "@/components/agora-stream-creator";
@@ -211,16 +212,24 @@ export default function CreatorDashboard() {
     }
   });
 
+  const [showPayoutDialog, setShowPayoutDialog] = useState(false);
+  const [payoutData, setPayoutData] = useState({
+    tokenAmount: 0,
+    upiId: ""
+  });
+
   const requestPayoutMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/creator/payout");
+    mutationFn: async (data: { tokenAmount: number; upiId: string }) => {
+      const response = await apiRequest("POST", "/api/creator/request-payout", data);
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/creator/stats"] });
+      setShowPayoutDialog(false);
+      setPayoutData({ tokenAmount: 0, upiId: "" });
       toast({
         title: "Payout Requested",
-        description: "Your payout request has been submitted for review.",
+        description: "Your payout request has been submitted for admin review.",
       });
     },
     onError: (error: Error) => {
@@ -307,7 +316,7 @@ export default function CreatorDashboard() {
   };
 
   const handleRequestPayout = () => {
-    requestPayoutMutation.mutate();
+    setShowPayoutDialog(true);
   };
 
   if (isLoading) {
@@ -659,17 +668,17 @@ export default function CreatorDashboard() {
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span>Available for Payout</span>
-                <span className="font-bold text-2xl">₹{(stats as any)?.availableEarnings || 0}</span>
+                <span>Available Tokens</span>
+                <span className="font-bold text-2xl">{(stats as any)?.totalEarnings || 0} tokens</span>
               </div>
               <Button 
                 onClick={handleRequestPayout}
-                disabled={requestPayoutMutation.isPending || ((stats as any)?.availableEarnings || 0) < 500}
+                disabled={requestPayoutMutation.isPending || ((stats as any)?.totalEarnings || 0) < 1000}
                 className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600"
               >
                 {requestPayoutMutation.isPending ? "Processing..." : "Request Payout"}
               </Button>
-              <p className="text-xs text-slate-400">Minimum payout amount: ₹500</p>
+              <p className="text-xs text-slate-400">Minimum payout: 1000 tokens</p>
             </div>
           </CardContent>
         </Card>
@@ -713,6 +722,93 @@ export default function CreatorDashboard() {
           </div>
         </div>
       )}
+
+      {/* Payout Request Dialog */}
+      <Dialog open={showPayoutDialog} onOpenChange={setShowPayoutDialog}>
+        <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Request Payout</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Convert your tokens to cash and receive payment via UPI
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="bg-slate-700 p-4 rounded-lg">
+              <p className="text-white font-medium">Available Balance:</p>
+              <p className="text-slate-400">{(stats as any)?.totalEarnings || 0} tokens</p>
+              <p className="text-slate-400">≈ ₹{((stats as any)?.totalEarnings || 0) * 1}.00</p>
+            </div>
+            
+            <div>
+              <Label className="text-slate-300">Withdrawal Amount (tokens) *</Label>
+              <Input
+                type="number"
+                min="1000"
+                max={(stats as any)?.totalEarnings || 0}
+                value={payoutData.tokenAmount}
+                onChange={(e) => setPayoutData({...payoutData, tokenAmount: parseInt(e.target.value) || 0})}
+                placeholder="Minimum 1000 tokens"
+                className="bg-slate-700 border-slate-600 text-white"
+              />
+              <p className="text-slate-500 text-sm mt-1">
+                Cash equivalent: ₹{(payoutData.tokenAmount * 1).toFixed(2)}
+              </p>
+            </div>
+            
+            <div>
+              <Label className="text-slate-300">UPI ID *</Label>
+              <Input
+                value={payoutData.upiId}
+                onChange={(e) => setPayoutData({...payoutData, upiId: e.target.value})}
+                placeholder="yourname@paytm / 9876543210@ybl"
+                className="bg-slate-700 border-slate-600 text-white"
+              />
+              <p className="text-slate-500 text-sm mt-1">
+                Payment will be sent to this UPI ID after admin approval
+              </p>
+            </div>
+            
+            <div className="flex space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowPayoutDialog(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (payoutData.tokenAmount < 1000) {
+                    toast({
+                      title: "Invalid Amount",
+                      description: "Minimum withdrawal is 1000 tokens",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  if (!payoutData.upiId.trim()) {
+                    toast({
+                      title: "UPI ID Required",
+                      description: "Please enter your UPI ID for payment",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  requestPayoutMutation.mutate({
+                    tokenAmount: payoutData.tokenAmount,
+                    upiId: payoutData.upiId.trim()
+                  });
+                }}
+                disabled={requestPayoutMutation.isPending}
+                className="flex-1 bg-green-600 hover:bg-green-700"
+              >
+                {requestPayoutMutation.isPending ? "Submitting..." : "Submit Request"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

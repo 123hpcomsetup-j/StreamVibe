@@ -733,6 +733,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Creator payout request
+  app.post("/api/creator/request-payout", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'creator') {
+        return res.status(403).json({ message: "Creator access required" });
+      }
+
+      const { tokenAmount, upiId } = req.body;
+
+      if (!tokenAmount || !upiId || tokenAmount < 1000) {
+        return res.status(400).json({ message: "Invalid payout request. Minimum 1000 tokens required." });
+      }
+
+      // Get creator stats to verify available tokens
+      const stats = await storage.getCreatorStats(user.id);
+      if (stats.totalEarnings < tokenAmount) {
+        return res.status(400).json({ message: "Insufficient token balance" });
+      }
+
+      const payout = await storage.createPayout({
+        creatorId: user.id,
+        tokenAmount,
+        requestedAmount: (tokenAmount * 1).toString(), // 1 token = ₹1
+        upiId: upiId.trim(),
+        status: 'pending'
+      });
+
+      res.json(payout);
+    } catch (error) {
+      console.error('Payout request error:', error);
+      res.status(500).json({ message: "Failed to request payout" });
+    }
+  });
+
+  // Admin release payout
+  app.post("/api/admin/release-payout/:id", requireAuth, async (req: any, res) => {
+    try {
+      const adminUserId = req.user.id;
+      const admin = await storage.getUser(adminUserId);
+      
+      if (admin?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const { utrNumber } = req.body;
+
+      if (!utrNumber) {
+        return res.status(400).json({ message: "UTR number is required" });
+      }
+
+      const payout = await storage.releasePayout(id, utrNumber);
+      res.json(payout);
+    } catch (error) {
+      console.error("Error releasing payout:", error);
+      res.status(400).json({ message: "Failed to release payout" });
+    }
+  });
+
   // Guest session routes with IP-based limiting
   app.post("/api/guest-session", async (req: any, res) => {
     try {

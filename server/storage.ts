@@ -64,6 +64,7 @@ export interface IStorage {
   createPayout(payout: InsertPayout): Promise<Payout>;
   getPendingPayouts(): Promise<Payout[]>;
   updatePayoutStatus(id: string, status: string): Promise<Payout>;
+  releasePayout(payoutId: string, utrNumber: string): Promise<Payout>;
   
   // Chat operations
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
@@ -283,6 +284,19 @@ export class DatabaseStorage implements IStorage {
       .update(payouts)
       .set({ status })
       .where(eq(payouts.id, id))
+      .returning();
+    return updated;
+  }
+
+  async releasePayout(payoutId: string, utrNumber: string): Promise<Payout> {
+    const [updated] = await db
+      .update(payouts)
+      .set({ 
+        status: 'released',
+        utrNumber,
+        releasedAt: new Date()
+      })
+      .where(eq(payouts.id, payoutId))
       .returning();
     return updated;
   }
