@@ -90,6 +90,11 @@ Preferred communication style: Simple, everyday language.
   - Fixed infinite React re-render loop in PublicHome component
   - Eliminated duplicate socket connections between App.tsx and PublicHome.tsx
   - App now loads immediately with stable WebSocket connection for real-time updates
+✓ **FIXED**: Authentication system for all user types (January 29, 2025):
+  - Fixed missing password hashes for test accounts in database
+  - All test accounts now properly authenticate with password123
+  - Admin, viewer, and creator login portals fully functional
+  - Session management working correctly across all user types
 ✓ **FIXED**: Creator approval system and streaming access (January 29, 2025):
   - Fixed "failed to start stream" error by approving test creator accounts
   - All creator test accounts (test_creator, stream_bob, live_charlie) now approved and can stream
