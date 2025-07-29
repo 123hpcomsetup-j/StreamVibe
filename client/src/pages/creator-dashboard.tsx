@@ -368,6 +368,18 @@ export default function CreatorDashboard() {
   };
 
   const handleRequestPayout = () => {
+    const availableEarnings = (stats as any)?.availableEarnings || 0;
+    const minimumPayout = 1000; // Minimum 1000 tokens for withdrawal
+    
+    if (availableEarnings < minimumPayout) {
+      toast({
+        title: "Not Enough Tokens to Withdraw",
+        description: `You need at least ${minimumPayout} tokens to request a payout. Current balance: ${availableEarnings} tokens.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setShowPayoutDialog(true);
   };
 
@@ -440,12 +452,15 @@ export default function CreatorDashboard() {
               <Button 
                 onClick={handleRequestPayout}
                 variant="outline"
-                disabled={requestPayoutMutation.isPending || ((stats as any)?.availableEarnings || 0) < 500}
-                className="border-green-600 text-green-400 hover:bg-green-600 hover:text-white"
+                disabled={requestPayoutMutation.isPending || ((stats as any)?.availableEarnings || 0) < 1000}
+                className="border-green-600 text-green-400 hover:bg-green-600 hover:text-white disabled:border-gray-600 disabled:text-gray-500"
                 size="sm"
               >
                 <DollarSign className="mr-2 h-4 w-4" />
-                Request Payout
+                {requestPayoutMutation.isPending ? "Processing..." : 
+                 ((stats as any)?.availableEarnings || 0) < 1000 ? 
+                 `Need ${1000 - ((stats as any)?.availableEarnings || 0)} more tokens` : 
+                 "Request Payout"}
               </Button>
               <Button 
                 onClick={handleLogout}
@@ -496,11 +511,14 @@ export default function CreatorDashboard() {
               </Button>
               <Button 
                 onClick={handleRequestPayout}
-                disabled={requestPayoutMutation.isPending || ((stats as any)?.availableEarnings || 0) < 500}
-                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600"
+                disabled={requestPayoutMutation.isPending || ((stats as any)?.availableEarnings || 0) < 1000}
+                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:text-gray-400"
                 size="sm"
               >
-                {requestPayoutMutation.isPending ? "Processing..." : "Request Payout"}
+                {requestPayoutMutation.isPending ? "Processing..." : 
+                 ((stats as any)?.availableEarnings || 0) < 1000 ? 
+                 `Need ${1000 - ((stats as any)?.availableEarnings || 0)} more tokens` : 
+                 "Request Payout"}
               </Button>
               <Button 
                 onClick={handleLogout}
@@ -866,7 +884,10 @@ export default function CreatorDashboard() {
                 disabled={requestPayoutMutation.isPending || ((stats as any)?.totalEarnings || 0) < 1000}
                 className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600"
               >
-                {requestPayoutMutation.isPending ? "Processing..." : "Request Payout"}
+                {requestPayoutMutation.isPending ? "Processing..." : 
+                 ((stats as any)?.availableEarnings || 0) < 1000 ? 
+                 `Need ${1000 - ((stats as any)?.availableEarnings || 0)} more tokens` : 
+                 "Request Payout"}
               </Button>
               <p className="text-xs text-slate-400">Minimum payout: 1000 tokens</p>
             </div>
