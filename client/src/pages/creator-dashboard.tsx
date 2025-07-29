@@ -39,7 +39,7 @@ export default function CreatorDashboard() {
   const [showStreamModal, setShowStreamModal] = useState(false);
   const [showWebRTCModal, setShowWebRTCModal] = useState(false);
   const [streamKey, setStreamKey] = useState<string>("");
-  const [useWebRTC, setUseWebRTC] = useState(true); // Default to WebRTC
+  const [useWebRTC, setUseWebRTC] = useState(true); // Always use WebRTC
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const typedUser = user as User | undefined;
@@ -260,19 +260,9 @@ export default function CreatorDashboard() {
       // Store stream ID globally
       (window as any).currentStreamId = newStream.id;
       
-      // Emit WebSocket event to notify about new stream
-      const socket = (window as any).streamSocket;
-      if (socket && newStream?.id) {
-        console.log('Emitting start-stream event:', { streamId: newStream.id, userId: typedUser?.id });
-        socket.emit('start-stream', {
-          streamId: newStream.id,
-          userId: typedUser?.id
-        });
-      }
-      
       toast({
         title: "Stream Created!",
-        description: "Use the RTMP settings shown to start streaming from OBS.",
+        description: "WebRTC stream created successfully. Camera access will be requested next.",
       });
     },
     onError: (error) => {
@@ -491,16 +481,11 @@ export default function CreatorDashboard() {
           (window as any).currentStreamId = newStream.id;
         }
         
-        if (useWebRTC) {
-          // Show WebRTC streaming modal
-          setShowWebRTCModal(true);
-          // Generate stream key for identification
-          if (!streamKey) {
-            setStreamKey(`${typedUser?.username || 'creator'}_${Date.now()}`);
-          }
-        } else {
-          // Show RTMP configuration modal
-          setShowStreamModal(true);
+        // Always use WebRTC - show WebRTC streaming modal
+        setShowWebRTCModal(true);
+        // Generate stream key for identification
+        if (!streamKey) {
+          setStreamKey(`${typedUser?.username || 'creator'}_${Date.now()}`);
         }
       }
     });
@@ -508,6 +493,7 @@ export default function CreatorDashboard() {
 
   const handleStopStream = () => {
     setShowStreamModal(false);
+    setShowWebRTCModal(false);
     stopStreamMutation.mutate();
   };
 
