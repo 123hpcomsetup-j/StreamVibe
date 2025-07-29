@@ -21,15 +21,16 @@ import {
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Simple session setup
+  // Simple session setup with extended persistence
   app.use(session({
     secret: process.env.SESSION_SECRET || 'dev-secret-key',
     resave: false,
     saveUninitialized: false,
+    rolling: true, // Reset session expiry on each request
     cookie: {
       httpOnly: true,
       secure: false, // Set to true in production with HTTPS
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 1 week
+      maxAge: 365 * 24 * 60 * 60 * 1000 // 1 year - persist until manual logout
     }
   }));
 
