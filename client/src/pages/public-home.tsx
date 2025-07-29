@@ -28,7 +28,7 @@ export default function PublicHome() {
     if (liveStreams && Array.isArray(liveStreams)) {
       setRealTimeStreams(liveStreams);
     }
-  }, [liveStreams]); // Fixed dependency
+  }, [JSON.stringify(liveStreams)]); // Stringify to prevent re-render loops
 
   // Use the global socket connection from App.tsx
   useEffect(() => {
