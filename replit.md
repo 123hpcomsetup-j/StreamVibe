@@ -91,6 +91,13 @@ Preferred communication style: Simple, everyday language.
   - Guest users can now see live streams on the public home page
   - WebSocket notifications properly update all connected clients when streams go live
   - Real-time synchronization between creator dashboard and public home page
+✓ **NEW**: Unified stream viewing system for all user types (January 29, 2025):
+  - Created single stream-view.tsx component replacing guest-stream.tsx
+  - Guest users get auto-generated names (Guest_ABC123 format)
+  - Newly signed-up users see their chosen username in chat
+  - Existing authenticated users see their usernames
+  - All user types can watch streams and participate in chat
+  - Seamless upgrade path: guests can sign up without losing stream access
 
 ## System Architecture
 
