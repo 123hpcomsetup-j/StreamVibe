@@ -64,6 +64,12 @@ export default function AgoraStreamCreator({
 
   const startStreaming = async () => {
     if (!clientRef.current) return;
+    
+    // Prevent multiple connection attempts
+    if (isConnected || isStreaming) {
+      console.log("Already connected or streaming");
+      return;
+    }
 
     try {
       // Check if we have Agora App ID
@@ -77,8 +83,16 @@ export default function AgoraStreamCreator({
         return;
       }
 
+      // Convert string userId to number (Agora recommends numeric IDs)
+      const numericUserId = Math.abs(userId.split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+      }, 0));
+      
+      console.log('Joining Agora channel:', streamId, 'with user ID:', numericUserId);
+      
       // Join the channel
-      await clientRef.current.join(appId, streamId, null, userId);
+      await clientRef.current.join(appId, streamId, null, numericUserId);
       setIsConnected(true);
 
       // Create and publish video track
@@ -115,9 +129,24 @@ export default function AgoraStreamCreator({
 
     } catch (error: any) {
       console.error("Failed to start streaming:", error);
+      
+      let errorMessage = "Please check camera and microphone permissions.";
+      
+      if (error.code === "CAN_NOT_GET_GATEWAY_SERVER") {
+        errorMessage = "Agora service temporarily unavailable. This may be due to project configuration. Please try again.";
+      } else if (error.code === "INVALID_OPERATION") {
+        errorMessage = "Connection in progress. Please wait a moment and try again.";
+      } else if (error.message.includes("Permission denied")) {
+        errorMessage = "Camera/microphone access denied. Please allow permissions and refresh.";
+      }
+      
+      // Reset states on error
+      setIsConnected(false);
+      setIsStreaming(false);
+      
       toast({
         title: "Failed to Start Stream",
-        description: error.message || "Please check camera and microphone permissions.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
