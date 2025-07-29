@@ -26,9 +26,9 @@ export default function UserLogin() {
       if (user.role === 'viewer') {
         toast({
           title: "Welcome!",
-          description: "Explore live streams and chat with creators",
+          description: "Redirecting to your viewer dashboard...",
         });
-        setLocation("/");
+        setLocation("/user-dashboard");
       } else {
         toast({
           title: "Access Denied",

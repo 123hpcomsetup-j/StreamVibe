@@ -35,7 +35,7 @@ function Router() {
       
       {/* Protected routes - accessible when authenticated or during loading */}
       <Route path="/home" component={Home} />
-      <Route path="/dashboard/stream/:streamId" component={UserDashboard} />
+      <Route path="/user-dashboard" component={UserDashboard} />
       <Route path="/creator-dashboard" component={CreatorDashboard} />
       <Route path="/admin-panel" component={AdminPanel} />
       

@@ -1,507 +1,313 @@
-import { useEffect, useState, useRef } from "react";
-import { useLocation, useRoute } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
-import { apiRequest } from "@/lib/queryClient";
 import { 
   Video, 
-  Clock, 
-  Coins, 
   Users, 
-  Send, 
-  ArrowLeft,
+  Clock,
   Play,
-  Heart,
-  Settings,
-  LogOut
+  LogOut,
+  Home,
+  Wifi,
+  Coins
 } from "lucide-react";
-import { io, Socket } from 'socket.io-client';
-import type { ChatMessage, Stream, User } from "@shared/schema";
+import type { Stream, User } from "@shared/schema";
 
 export default function UserDashboard() {
-  const [, params] = useRoute("/dashboard/stream/:streamId");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user, isAuthenticated, isLoading } = useAuth();
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const chatEndRef = useRef<HTMLDivElement>(null);
-  
-  // WebRTC state for receiving live stream
-  const [socket, setSocket] = useState<Socket | null>(null);
-  const [peerConnection, setPeerConnection] = useState<RTCPeerConnection | null>(null);
-  const [isStreamConnected, setIsStreamConnected] = useState(false);
-  
-  const [message, setMessage] = useState("");
-  const streamId = params?.streamId;
+  const typedUser = user as User | undefined;
 
   // Redirect if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      setLocation("/user-login");
-    }
-  }, [isAuthenticated, isLoading, setLocation]);
-
-  // Fetch current stream data
-  const { data: currentStream, isLoading: streamLoading } = useQuery({
-    queryKey: ["/api/streams", streamId],
-    enabled: !!streamId,
-  });
-
-  // Fetch other live streams
-  const { data: otherStreams = [] } = useQuery({
-    queryKey: ["/api/streams/live"],
-    refetchInterval: 5000,
-  });
-
-  // Fetch chat messages for current stream
-  const { data: chatMessages = [], refetch: refetchMessages } = useQuery({
-    queryKey: ["/api/streams", streamId, "chat"],
-    enabled: !!streamId,
-    refetchInterval: 2000,
-  });
-
-  // Send chat message mutation
-  const sendMessageMutation = useMutation({
-    mutationFn: async (messageData: { message: string; tipAmount?: number }) => {
-      return await apiRequest("POST", `/api/streams/${streamId}/chat`, {
-        message: messageData.message,
-        tipAmount: messageData.tipAmount || 0,
-      });
-    },
-    onSuccess: (data, variables) => {
-      setMessage("");
-      refetchMessages();
-      const tipMessage = variables.tipAmount && variables.tipAmount > 0 
-        ? ` with ${variables.tipAmount} token tip!`
-        : "!";
       toast({
-        title: "Message sent" + tipMessage,
-        description: variables.tipAmount 
-          ? `You tipped ${variables.tipAmount} tokens to the creator.`
-          : "Your message was posted to the chat.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Message Failed",
-        description: error.message,
+        title: "Unauthorized",
+        description: "You are logged out. Logging in again...",
         variant: "destructive",
       });
-    },
+      setTimeout(() => {
+        setLocation("/user-login");
+      }, 500);
+    }
+  }, [isAuthenticated, isLoading, setLocation, toast]);
+
+  // Fetch live streams
+  const { data: liveStreams = [], isLoading: streamsLoading } = useQuery({
+    queryKey: ["/api/streams/live"],
+    refetchInterval: 5000, // Refresh every 5 seconds
   });
 
-  // Auto-scroll chat
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatMessages]);
+  // Fetch online users
+  const { data: onlineUsers = [] } = useQuery({
+    queryKey: ["/api/users/online"],
+    refetchInterval: 10000, // Refresh every 10 seconds
+  });
 
-  // Initialize WebRTC connection for live streaming
-  useEffect(() => {
-    if (!streamId || !currentStream?.isLive || !user) return;
+  const typedStreams = liveStreams as Stream[];
+  const typedOnlineUsers = onlineUsers as User[];
 
-    const newSocket = io(window.location.origin, {
-      transports: ['websocket', 'polling']
-    });
-
-    newSocket.on('connect', () => {
-      console.log('Connected to streaming server');
-      setSocket(newSocket);
-      
-      // Join stream as authenticated viewer
-      newSocket.emit('join-stream', {
-        streamId,
-        userId: user.id,
-        userType: 'user'
-      });
-    });
-
-    // Handle WebRTC offer from creator
-    newSocket.on('offer', async (data: { offer: RTCSessionDescriptionInit, streamId: string, creatorId: string }) => {
-      if (data.streamId === streamId) {
-        await handleWebRTCOffer(data.offer, newSocket, data.creatorId);
-      }
-    });
-
-    // Handle ICE candidates
-    newSocket.on('ice-candidate', async (data: { candidate: RTCIceCandidateInit }) => {
-      if (peerConnection && data.candidate) {
-        try {
-          await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-        } catch (error) {
-          console.error('Error adding ICE candidate:', error);
-        }
-      }
-    });
-
-    return () => {
-      newSocket.close();
-      if (peerConnection) {
-        peerConnection.close();
-      }
-    };
-  }, [streamId, currentStream?.isLive, user]);
-
-  // Handle WebRTC offer from creator
-  const handleWebRTCOffer = async (offer: RTCSessionDescriptionInit, socket: Socket, creatorId: string) => {
-    try {
-      const pc = new RTCPeerConnection({
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
-        ]
-      });
-
-      setPeerConnection(pc);
-
-      // Handle incoming video stream
-      pc.ontrack = (event) => {
-        console.log('Received remote stream');
-        if (videoRef.current && event.streams[0]) {
-          videoRef.current.srcObject = event.streams[0];
-          setIsStreamConnected(true);
-        }
-      };
-
-      // Handle connection state changes
-      pc.onconnectionstatechange = () => {
-        console.log('Connection state:', pc.connectionState);
-        if (pc.connectionState === 'connected') {
-          setIsStreamConnected(true);
-        } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-          setIsStreamConnected(false);
-        }
-      };
-
-      // Handle ICE candidates
-      pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          socket.emit('ice-candidate', {
-            candidate: event.candidate,
-            targetId: creatorId,
-            streamId
-          });
-        }
-      };
-
-      await pc.setRemoteDescription(offer);
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-
-      socket.emit('answer', {
-        answer,
-        streamId,
-        targetId: creatorId,
-        userId: user?.id
-      });
-
-    } catch (error) {
-      console.error('Error handling WebRTC offer:', error);
-    }
-  };
-
-  const [tipAmount, setTipAmount] = useState(0);
-  const [showTipInput, setShowTipInput] = useState(false);
-
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!message.trim()) return;
-    sendMessageMutation.mutate({ message, tipAmount });
-    setTipAmount(0);
-    setShowTipInput(false);
-  };
-
-  const handleWatchStream = (newStreamId: string) => {
-    setLocation(`/dashboard/stream/${newStreamId}`);
+  const handleWatchStream = (streamId: string) => {
+    setLocation(`/stream/${streamId}`);
   };
 
   const handleLogout = () => {
     window.location.href = "/api/auth/logout";
   };
 
-  // Filter out current stream from other streams
-  const otherLiveStreams = Array.isArray(otherStreams) 
-    ? otherStreams.filter((stream: Stream) => stream.id !== streamId)
-    : [];
+  const handleGoHome = () => {
+    setLocation("/");
+  };
 
-  if (isLoading || streamLoading) {
+  const formatDuration = (createdAt: string) => {
+    const now = new Date();
+    const streamStart = new Date(createdAt);
+    const diffMs = now.getTime() - streamStart.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const hours = Math.floor(diffMins / 60);
+    const minutes = diffMins % 60;
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
+  };
+
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="animate-pulse text-white">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!currentStream) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl text-white mb-4">Stream not found</h2>
-          <Button onClick={() => setLocation("/home")}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Home
-          </Button>
-        </div>
+        <div className="text-white">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen bg-slate-900 text-white">
       {/* Header */}
-      <div className="border-b border-slate-700 bg-slate-800/50 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3">
+      <header className="border-b border-slate-700 bg-slate-800">
+        <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Button 
-                variant="ghost" 
-                onClick={() => setLocation("/home")}
-                className="text-slate-300 hover:text-white"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Home
-              </Button>
-              <h1 className="text-xl font-bold text-white">User Dashboard</h1>
+              <h1 className="text-2xl font-bold text-blue-400">StreamVibe</h1>
+              <Badge variant="secondary" className="bg-blue-600 text-white">
+                Viewer Dashboard
+              </Badge>
             </div>
             
-            <div className="flex items-center space-x-3">
-              <span className="text-slate-300">Welcome, {user?.username}</span>
-              <Button variant="ghost" onClick={handleLogout}>
-                <LogOut className="h-4 w-4" />
+            <div className="flex items-center space-x-4">
+              {typedUser && (
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-semibold">
+                      {typedUser.username?.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <span className="text-sm">{typedUser.username}</span>
+                  <Badge variant="outline" className="text-xs">
+                    <Coins className="w-3 h-3 mr-1" />
+                    {typedUser.walletBalance || 0} tokens
+                  </Badge>
+                </div>
+              )}
+              
+              <Button 
+                onClick={handleGoHome}
+                variant="outline"
+                size="sm"
+                className="border-slate-600 hover:bg-slate-700"
+              >
+                <Home className="w-4 h-4 mr-2" />
+                Home
+              </Button>
+              
+              <Button 
+                onClick={handleLogout}
+                variant="outline"
+                size="sm"
+                className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
               </Button>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Current Stream Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Video Player */}
-          <div className="lg:col-span-2">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardContent className="p-0">
-                <div className="relative aspect-video bg-black rounded-t-lg overflow-hidden">
-                  {currentStream.isLive ? (
-                    <>
-                      <video
-                        ref={videoRef}
-                        className="w-full h-full object-cover"
-                        autoPlay
-                        muted
-                        playsInline
-                      />
-                      <div className="absolute top-4 left-4">
-                        <Badge className="bg-red-500 text-white">
-                          <div className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse" />
-                          LIVE
-                        </Badge>
+      <div className="container mx-auto px-4 py-8">
+        {/* Welcome Section */}
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold mb-2">
+            Welcome back, {typedUser?.firstName || typedUser?.username}!
+          </h2>
+          <p className="text-slate-400">
+            Discover amazing live streams and connect with creators
+          </p>
+        </div>
+
+        {/* Live Streams Section */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-2xl font-semibold flex items-center">
+              <Wifi className="w-6 h-6 mr-2 text-red-500" />
+              Live Streams
+              <Badge variant="secondary" className="ml-2 bg-red-600">
+                {typedStreams.length} Live
+              </Badge>
+            </h3>
+          </div>
+
+          {streamsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="bg-slate-800 border-slate-700 animate-pulse">
+                  <CardContent className="p-6">
+                    <div className="h-40 bg-slate-700 rounded mb-4"></div>
+                    <div className="h-4 bg-slate-700 rounded mb-2"></div>
+                    <div className="h-3 bg-slate-700 rounded w-2/3"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : typedStreams.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {typedStreams.map((stream: any) => (
+                <Card key={stream.id} className="bg-slate-800 border-slate-700 hover:border-blue-500 transition-colors group">
+                  <CardContent className="p-0">
+                    {/* Stream Thumbnail */}
+                    <div className="relative">
+                      <div className="h-48 bg-gradient-to-br from-blue-600 to-purple-600 rounded-t-lg flex items-center justify-center">
+                        <Video className="w-16 h-16 text-white opacity-80" />
                       </div>
-                      <div className="absolute top-4 right-4">
-                        <Badge variant="secondary">
-                          <Users className="mr-1 h-3 w-3" />
-                          {currentStream.viewerCount || 0}
+                      
+                      {/* Live Badge */}
+                      <div className="absolute top-3 left-3">
+                        <Badge className="bg-red-600 text-white animate-pulse">
+                          <div className="w-2 h-2 bg-white rounded-full mr-1"></div>
+                          LIVE
                         </Badge>
                       </div>
                       
-                      {!videoRef.current?.srcObject && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80">
-                          <div className="text-center">
-                            <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                              <Video className="w-8 h-8 text-slate-400 animate-pulse" />
-                            </div>
-                            <p className="text-white text-lg">Connecting to live stream...</p>
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-slate-800">
-                      <div className="text-center">
-                        <div className="w-20 h-20 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-6">
-                          <Video className="w-10 h-10 text-slate-400" />
-                        </div>
-                        <h3 className="text-2xl font-semibold text-white mb-3">Stream Ended</h3>
-                        <p className="text-slate-400 mb-4">This stream has finished, but you can still chat and tip the creator!</p>
-                        <Badge variant="outline" className="text-slate-300">
-                          <Users className="mr-1 h-3 w-3" />
-                          {currentStream.viewerCount || 0} viewers still here
-                        </Badge>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="p-6">
-                  <h2 className="text-xl font-bold text-white mb-2">{currentStream.title}</h2>
-                  <div className="flex items-center space-x-4 text-sm text-slate-400">
-                    <span>Category: {currentStream.category}</span>
-                    <span>•</span>
-                    <span>Streamer: {currentStream.creatorName || 'Unknown'}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Chat Section */}
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Heart className="h-5 w-5" />
-                Live Chat
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <ScrollArea className="h-80 p-4">
-                <div className="space-y-3">
-                  {Array.isArray(chatMessages) && chatMessages.map((msg: ChatMessage) => (
-                    <div key={msg.id} className="flex flex-col space-y-1">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-slate-400 text-xs">{msg.senderName}</span>
-                        {msg.tipAmount > 0 && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Coins className="mr-1 h-3 w-3" />
-                            {msg.tipAmount}
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-white text-sm">{msg.message}</p>
-                    </div>
-                  ))}
-                  <div ref={chatEndRef} />
-                </div>
-              </ScrollArea>
-
-              <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-700">
-                {showTipInput && (
-                  <div className="mb-3 p-3 bg-slate-700/50 rounded-lg">
-                    <Label className="text-white text-sm mb-2 block">
-                      <Coins className="inline mr-1 h-3 w-3" />
-                      Add Tip (tokens)
-                    </Label>
-                    <div className="flex space-x-2">
-                      <Input
-                        type="number"
-                        min="0"
-                        value={tipAmount}
-                        onChange={(e) => setTipAmount(parseInt(e.target.value) || 0)}
-                        placeholder="0"
-                        className="bg-slate-700 border-slate-600 text-white"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setShowTipInput(false)}
-                        className="px-3"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                    <p className="text-xs text-slate-400 mt-1">
-                      ${(currentStream.tokenPrice || 1) * tipAmount} total
-                    </p>
-                  </div>
-                )}
-                
-                <div className="flex space-x-2">
-                  <Input
-                    placeholder="Type a message..."
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    disabled={sendMessageMutation.isPending}
-                    className="bg-slate-700 border-slate-600 text-white flex-1"
-                  />
-                  {!showTipInput && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setShowTipInput(true)}
-                      className="px-3"
-                    >
-                      <Coins className="h-4 w-4" />
-                    </Button>
-                  )}
-                  <Button 
-                    type="submit" 
-                    disabled={!message.trim() || sendMessageMutation.isPending}
-                    className="px-3"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
-                
-                {tipAmount > 0 && (
-                  <p className="text-xs text-green-400 mt-2">
-                    <Coins className="inline mr-1 h-3 w-3" />
-                    Will tip {tipAmount} tokens (${(currentStream.tokenPrice || 1) * tipAmount})
-                  </p>
-                )}
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Other Live Streams */}
-        {otherLiveStreams.length > 0 && (
-          <div>
-            <h3 className="text-2xl font-bold text-white mb-6">Other Live Streams</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {otherLiveStreams.map((stream: Stream) => (
-                <Card 
-                  key={stream.id} 
-                  className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-colors cursor-pointer"
-                  onClick={() => handleWatchStream(stream.id)}
-                >
-                  <CardContent className="p-0">
-                    <div className="relative aspect-video bg-black rounded-t-lg overflow-hidden">
-                      <img
-                        src="/api/placeholder/400/225"
-                        alt={stream.title}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute top-2 left-2">
-                        <Badge className="bg-red-500 text-white text-xs">
-                          <div className="w-1.5 h-1.5 bg-white rounded-full mr-1 animate-pulse" />
-                          LIVE
-                        </Badge>
-                      </div>
-                      <div className="absolute top-2 right-2">
-                        <Badge variant="secondary" className="text-xs">
-                          <Users className="mr-1 h-2 w-2" />
+                      {/* Viewer Count */}
+                      <div className="absolute top-3 right-3">
+                        <Badge variant="secondary" className="bg-black/50 text-white">
+                          <Users className="w-3 h-3 mr-1" />
                           {stream.viewerCount || 0}
                         </Badge>
                       </div>
-                      <div className="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Button size="sm" className="bg-white/20 hover:bg-white/30">
-                          <Play className="mr-2 h-4 w-4" />
-                          Watch
-                        </Button>
+                      
+                      {/* Duration */}
+                      <div className="absolute bottom-3 right-3">
+                        <Badge variant="secondary" className="bg-black/50 text-white">
+                          <Clock className="w-3 h-3 mr-1" />
+                          {formatDuration(stream.createdAt)}
+                        </Badge>
                       </div>
                     </div>
+                    
+                    {/* Stream Info */}
                     <div className="p-4">
-                      <h4 className="font-semibold text-white truncate">{stream.title}</h4>
-                      <p className="text-sm text-slate-400 truncate">{stream.creatorName || 'Unknown'}</p>
-                      <div className="flex items-center justify-between mt-2">
+                      <h4 className="font-semibold text-lg mb-2 line-clamp-1">
+                        {stream.title}
+                      </h4>
+                      
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm text-slate-400">
+                          by <span className="text-blue-400">{stream.creator?.username}</span>
+                        </span>
                         <Badge variant="outline" className="text-xs">
                           {stream.category}
                         </Badge>
-                        <div className="flex items-center text-xs text-slate-400">
-                          <Coins className="mr-1 h-3 w-3" />
-                          ${stream.tokenPrice || 1}/token
-                        </div>
                       </div>
+                      
+                      {/* Token Info */}
+                      <div className="flex items-center justify-between mb-4 text-xs text-slate-400">
+                        <span>₹{stream.tokenPrice}/token</span>
+                        <span>Min tip: {stream.minTip} tokens</span>
+                      </div>
+                      
+                      <Button 
+                        onClick={() => handleWatchStream(stream.id)}
+                        className="w-full bg-blue-600 hover:bg-blue-700 group-hover:bg-blue-500"
+                      >
+                        <Play className="w-4 h-4 mr-2" />
+                        Watch Stream
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
+          ) : (
+            <Card className="bg-slate-800 border-slate-700">
+              <CardContent className="p-8 text-center">
+                <Video className="w-16 h-16 mx-auto text-slate-500 mb-4" />
+                <h4 className="text-xl font-semibold mb-2">No Live Streams</h4>
+                <p className="text-slate-400">
+                  No creators are currently streaming. Check back later!
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Online Users Section */}
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-2xl font-semibold flex items-center">
+              <Users className="w-6 h-6 mr-2 text-green-500" />
+              Online Users
+              <Badge variant="secondary" className="ml-2 bg-green-600">
+                {typedOnlineUsers.length} Online
+              </Badge>
+            </h3>
           </div>
-        )}
+
+          {typedOnlineUsers.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {typedOnlineUsers.map((user: any) => (
+                <Card key={user.id} className="bg-slate-800 border-slate-700">
+                  <CardContent className="p-4 text-center">
+                    <div className={`w-12 h-12 mx-auto rounded-full flex items-center justify-center mb-2 ${
+                      user.role === 'creator' ? 'bg-purple-600' : 
+                      user.role === 'admin' ? 'bg-red-600' : 'bg-blue-600'
+                    }`}>
+                      <span className="text-sm font-semibold">
+                        {user.username?.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <p className="text-sm font-medium truncate">{user.username}</p>
+                    <Badge 
+                      variant="outline" 
+                      className={`text-xs mt-1 ${
+                        user.role === 'creator' ? 'border-purple-500 text-purple-400' : 
+                        user.role === 'admin' ? 'border-red-500 text-red-400' : 'border-blue-500 text-blue-400'
+                      }`}
+                    >
+                      {user.role}
+                    </Badge>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="bg-slate-800 border-slate-700">
+              <CardContent className="p-8 text-center">
+                <Users className="w-16 h-16 mx-auto text-slate-500 mb-4" />
+                <h4 className="text-xl font-semibold mb-2">No Users Online</h4>
+                <p className="text-slate-400">
+                  You're the only one here right now.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     </div>
   );
