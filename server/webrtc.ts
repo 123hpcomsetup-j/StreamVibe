@@ -30,15 +30,32 @@ export function setupWebRTC(server: Server) {
   io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id}`);
     
+    // Auto-identify from query params
+    const userId = socket.handshake.query.userId as string;
+    const role = socket.handshake.query.role as string;
+    
+    if (userId) {
+      socket.data = { userId, role };
+      console.log(`Socket ${socket.id} auto-identified as ${role} ${userId}`);
+      
+      // For creators, restore their active stream if any
+      if (role === 'creator') {
+        for (const [streamId, stream] of activeStreams.entries()) {
+          if ((stream as any).creatorUserId === userId) {
+            // Update socket ID for existing stream
+            stream.creatorSocketId = socket.id;
+            socket.join(`stream-${streamId}`);
+            console.log(`Creator ${userId} reconnected to stream ${streamId}`);
+            break;
+          }
+        }
+      }
+    }
+    
     // Store user ID in socket data for later reference
     socket.on('identify', (data: { userId: string }) => {
       socket.data = { userId: data.userId };
       console.log(`Socket ${socket.id} identified as user ${data.userId}`);
-    });
-
-    // Auto-identify users when they connect
-    socket.on('connect', () => {
-      console.log(`User connected: ${socket.id}`);
     });
 
     // Creator starts streaming

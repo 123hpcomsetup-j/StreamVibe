@@ -38,7 +38,7 @@ export default function CreatorDashboard() {
 
   const typedUser = user as User | undefined;
 
-  // Setup WebSocket connection
+  // Setup WebSocket connection with auto-reconnect
   useEffect(() => {
     if (typedUser?.id) {
       // Check if socket already exists to prevent duplicates
@@ -49,7 +49,14 @@ export default function CreatorDashboard() {
       
       const socket = io(window.location.origin, {
         path: '/socket.io',
-        transports: ['websocket', 'polling']
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionAttempts: 10,
+        query: {
+          userId: typedUser.id,
+          role: 'creator'
+        }
       });
 
       // Store socket globally for access in mutations
