@@ -6,7 +6,6 @@ import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
 import type { User } from "@shared/schema";
-import LiveStreamControls from "@/components/live-stream-controls";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +41,12 @@ export default function CreatorDashboard() {
   // Setup WebSocket connection
   useEffect(() => {
     if (typedUser?.id) {
+      // Check if socket already exists to prevent duplicates
+      if ((window as any).streamSocket) {
+        console.log('Reusing existing WebSocket connection');
+        return;
+      }
+      
       const socket = io(window.location.origin, {
         path: '/socket.io',
         transports: ['websocket', 'polling']
@@ -611,11 +616,51 @@ export default function CreatorDashboard() {
                       <span className="text-white text-sm font-medium">LIVE</span>
                     </div>
                   </div>
-                  <LiveStreamControls 
-                    streamId={(currentStream as any).id}
-                    onStreamStart={handleStartStream}
-                    onStreamStop={handleStopStream}
-                  />
+                  {/* Live stream controls integrated - viewer count and chat */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+                    {/* Stream Stats */}
+                    <div className="lg:col-span-2">
+                      <Card className="bg-slate-700 border-slate-600">
+                        <CardHeader>
+                          <CardTitle className="text-white flex items-center justify-between">
+                            Stream Statistics
+                            <Badge className="bg-green-500">
+                              <Users className="w-4 h-4 mr-1" />
+                              {(currentStream as any).viewerCount || 0} Viewers
+                            </Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="text-center">
+                              <p className="text-2xl font-bold text-white">{(currentStream as any).viewerCount || 0}</p>
+                              <p className="text-sm text-slate-400">Current Viewers</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-2xl font-bold text-white">{streamData.minTip}</p>
+                              <p className="text-sm text-slate-400">Min Tip (tokens)</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-2xl font-bold text-white">{streamData.tokenPrice}</p>
+                              <p className="text-sm text-slate-400">Token Price</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                    
+                    {/* Live Chat */}
+                    <div className="lg:col-span-1">
+                      <Card className="bg-slate-700 border-slate-600">
+                        <CardHeader>
+                          <CardTitle className="text-white">Live Chat</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-slate-400 text-sm">Chat messages will appear here when viewers interact</p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
                 </div>
               ) : null}
               {!isStreaming && (
