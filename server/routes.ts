@@ -172,6 +172,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete('/api/streams/:id', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const streamId = req.params.id;
+      
+      const stream = await storage.getStreamById(streamId);
+      if (!stream || stream.creatorId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      // Properly stop the stream by setting isLive to false instead of deleting
+      await storage.updateStreamStatus(streamId, false);
+      
+      // Set user offline when stopping stream
+      await storage.updateUserOnlineStatus(userId, false);
+      
+      // Notify WebSocket clients about stream status change
+      // This will be handled by the WebSocket server
+      
+      res.json({ message: "Stream stopped successfully", streamId });
+    } catch (error) {
+      console.error("Error stopping stream:", error);
+      res.status(500).json({ message: "Failed to stop stream" });
+    }
+  });
+
   // Transaction routes
   app.post('/api/transactions', requireAuth, async (req: any, res) => {
     try {

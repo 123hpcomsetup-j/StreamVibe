@@ -327,6 +327,24 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId));
   }
 
+  // Stream cleanup operations
+  async cleanupStaleStreams(): Promise<void> {
+    // Mark streams older than 2 hours as offline to prevent stale live status
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    await db
+      .update(streams)
+      .set({ isLive: false })
+      .where(and(eq(streams.isLive, true), sql`${streams.createdAt} < ${twoHoursAgo}`));
+  }
+
+  async stopAllUserStreams(userId: string): Promise<void> {
+    // Stop all active streams for a specific user - useful for cleanup
+    await db
+      .update(streams)
+      .set({ isLive: false })
+      .where(and(eq(streams.creatorId, userId), eq(streams.isLive, true)));
+  }
+
   // Guest session methods
   async createGuestSession(session: InsertGuestSession): Promise<GuestSession> {
     const [newSession] = await db.insert(guestSessions).values(session).returning();

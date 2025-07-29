@@ -86,9 +86,20 @@ export default function CreatorDashboard() {
         privateRate: streamData.privateRate,
       });
     },
-    onSuccess: () => {
+    onSuccess: (newStream) => {
       setIsStreaming(true);
       queryClient.invalidateQueries({ queryKey: ["/api/streams/current"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/streams/live"] });
+      
+      // Emit WebSocket event to properly start stream
+      const socket = (window as any).streamSocket;
+      if (socket && newStream) {
+        socket.emit('start-stream', {
+          streamId: newStream.id,
+          userId: typedUser?.id
+        });
+      }
+      
       toast({
         title: "Success",
         description: "Stream started successfully!",
@@ -117,11 +128,22 @@ export default function CreatorDashboard() {
   const stopStreamMutation = useMutation({
     mutationFn: async () => {
       if (!currentStream) return;
+      
+      // Emit WebSocket event to properly stop stream
+      const socket = (window as any).streamSocket;
+      if (socket) {
+        socket.emit('stop-stream', {
+          streamId: (currentStream as any).id,
+          userId: typedUser?.id
+        });
+      }
+      
       return await apiRequest(`/api/streams/${(currentStream as any).id}`, "DELETE");
     },
     onSuccess: () => {
       setIsStreaming(false);
       queryClient.invalidateQueries({ queryKey: ["/api/streams/current"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/streams/live"] });
       toast({
         title: "Success",
         description: "Stream stopped successfully!",
