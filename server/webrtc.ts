@@ -40,7 +40,7 @@ export function setupWebRTC(server: Server) {
       
       // For creators, restore their active stream if any
       if (role === 'creator') {
-        for (const [streamId, stream] of activeStreams.entries()) {
+        for (const [streamId, stream] of Array.from(activeStreams.entries())) {
           if ((stream as any).creatorUserId === userId) {
             // Update socket ID for existing stream
             stream.creatorSocketId = socket.id;

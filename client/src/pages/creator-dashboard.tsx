@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, Users, Clock, Heart, Play, Square, Settings } from "lucide-react";
 import { io } from "socket.io-client";
+import StreamModal from "@/components/stream-modal";
 
 export default function CreatorDashboard() {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -34,6 +35,8 @@ export default function CreatorDashboard() {
   });
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [peerConnections, setPeerConnections] = useState<Map<string, RTCPeerConnection>>(new Map());
+  const [showStreamModal, setShowStreamModal] = useState(false);
+  const [streamKey, setStreamKey] = useState<string>("");
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const typedUser = user as User | undefined;
@@ -248,14 +251,13 @@ export default function CreatorDashboard() {
       return await response.json();
     },
     onSuccess: (newStream: any) => {
-      setIsStreaming(true);
       queryClient.invalidateQueries({ queryKey: ["/api/streams/current"] });
       queryClient.invalidateQueries({ queryKey: ["/api/streams/live"] });
       
-      // Store stream ID globally for WebRTC
+      // Store stream ID globally
       (window as any).currentStreamId = newStream.id;
       
-      // Emit WebSocket event to properly start stream
+      // Emit WebSocket event to notify about new stream
       const socket = (window as any).streamSocket;
       if (socket && newStream?.id) {
         console.log('Emitting start-stream event:', { streamId: newStream.id, userId: typedUser?.id });
@@ -263,28 +265,11 @@ export default function CreatorDashboard() {
           streamId: newStream.id,
           userId: typedUser?.id
         });
-        
-        // Listen for stream start confirmation
-        socket.once('stream-started', (data: any) => {
-          console.log('Stream started confirmation received:', data);
-          queryClient.invalidateQueries({ queryKey: ["/api/streams/live"] });
-        });
-        
-        socket.once('stream-error', (error: any) => {
-          console.error('Stream start error:', error);
-          toast({
-            title: "Stream Error",
-            description: error.message || "Failed to start live stream",
-            variant: "destructive",
-          });
-        });
-      } else {
-        console.warn('WebSocket not available or stream ID missing');
       }
       
       toast({
-        title: "Success",
-        description: "Stream started successfully!",
+        title: "Stream Created!",
+        description: "Use the RTMP settings shown to start streaming from OBS.",
       });
     },
     onError: (error) => {
@@ -477,46 +462,30 @@ export default function CreatorDashboard() {
   };
 
   const handleStartStream = async () => {
+    // Generate a unique stream key for the creator
+    const generatedStreamKey = `${typedUser?.username || 'creator'}_${Date.now()}`;
+    setStreamKey(generatedStreamKey);
+    
     // Use creator's name as default title if no title provided
     const defaultTitle = typedUser?.username ? `${typedUser.username}'s Live Stream` : "Live Stream";
     const finalStreamData = {
       ...streamData,
-      title: streamData.title.trim() || defaultTitle
+      title: streamData.title.trim() || defaultTitle,
+      streamKey: generatedStreamKey
     };
 
-    // Check camera and microphone access first
-    try {
-      toast({
-        title: "Starting Stream",
-        description: "Requesting camera access...",
-        variant: "default",
-      });
-
-      // Get camera and microphone access
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true
-      });
-      
-      setLocalStream(stream);
-      
-      // Show video preview if ref exists
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+    // Create the stream in database
+    createStreamMutation.mutate(finalStreamData, {
+      onSuccess: () => {
+        // Show the RTMP configuration modal after stream is created
+        setShowStreamModal(true);
+        setIsStreaming(true);
       }
-
-      createStreamMutation.mutate(finalStreamData);
-    } catch (error) {
-      console.error('Stream start error:', error);
-      toast({
-        title: "Stream Start Failed",
-        description: "Failed to start stream. Please try again.",
-        variant: "destructive",
-      });
-    }
+    });
   };
 
   const handleStopStream = () => {
+    setShowStreamModal(false);
     stopStreamMutation.mutate();
   };
 
@@ -968,6 +937,13 @@ export default function CreatorDashboard() {
           </CardContent>
         </Card>
       </main>
+
+      {/* RTMP Stream Configuration Modal */}
+      <StreamModal 
+        isOpen={showStreamModal}
+        onClose={() => setShowStreamModal(false)}
+        streamKey={streamKey}
+      />
     </div>
   );
 }

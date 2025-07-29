@@ -28,6 +28,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { io, Socket } from 'socket.io-client';
 import type { ChatMessage, User } from "@shared/schema";
+import NodeMediaPlayer from "@/components/node-media-player";
 
 export default function StreamView() {
   const [, params] = useRoute("/stream/:streamId");
@@ -523,39 +524,13 @@ export default function StreamView() {
             </CardHeader>
             <CardContent>
               <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  className="w-full h-full object-cover"
-                />
-                
-                {!isStreamConnected && !streamEnded && connectionStatus === 'connecting' && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-slate-900 bg-opacity-75">
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                      <p className="text-slate-400">Connecting to stream...</p>
-                    </div>
-                  </div>
-                )}
-
-                {!isStreamConnected && !streamEnded && connectionStatus === 'disconnected' && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-slate-900 bg-opacity-90">
-                    <div className="text-center">
-                      <Wifi className="h-16 w-16 text-slate-500 mx-auto mb-4" />
-                      <h3 className="text-xl font-bold text-white mb-2">Stream Not Broadcasting</h3>
-                      <p className="text-slate-400 mb-4">
-                        {typedStream.creator?.username || 'The creator'} is not currently streaming.
-                      </p>
-                      <Button onClick={() => setLocation("/")} className="bg-primary hover:bg-primary/80">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Find Other Streams
-                      </Button>
-                    </div>
-                  </div>
-                )}
-                
-                {streamEnded && (
+                {/* Use Node Media Player for FLV streaming */}
+                {typedStream.streamKey && !streamEnded ? (
+                  <NodeMediaPlayer 
+                    streamKey={typedStream.streamKey}
+                    className="w-full h-full"
+                  />
+                ) : streamEnded ? (
                   <div className="absolute inset-0 flex items-center justify-center bg-slate-900 bg-opacity-90">
                     <div className="text-center">
                       <AlertTriangle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
@@ -566,19 +541,35 @@ export default function StreamView() {
                       </Button>
                     </div>
                   </div>
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-900 bg-opacity-90">
+                    <div className="text-center">
+                      <Wifi className="h-16 w-16 text-slate-500 mx-auto mb-4" />
+                      <h3 className="text-xl font-bold text-white mb-2">Stream Not Yet Started</h3>
+                      <p className="text-slate-400 mb-4">
+                        {typedStream.creator?.username || 'The creator'} needs to configure their streaming software.
+                      </p>
+                      <Button onClick={() => setLocation("/")} className="bg-primary hover:bg-primary/80">
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Find Other Streams
+                      </Button>
+                    </div>
+                  </div>
                 )}
                 
-                {/* Stream Stats Overlay */}
-                <div className="absolute top-4 left-4 flex items-center space-x-2">
-                  <Badge className="bg-red-500 text-white">
-                    <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse"></div>
-                    LIVE
-                  </Badge>
-                  <Badge className="bg-black/50 text-white">
-                    <Users className="mr-1 h-3 w-3" />
-                    {typedStream.viewerCount || 0} watching
-                  </Badge>
-                </div>
+                {/* Stream Stats Overlay - only show when streaming */}
+                {typedStream.streamKey && !streamEnded && (
+                  <div className="absolute top-4 left-4 flex items-center space-x-2">
+                    <Badge className="bg-red-500 text-white">
+                      <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse"></div>
+                      LIVE
+                    </Badge>
+                    <Badge className="bg-black/50 text-white">
+                      <Users className="mr-1 h-3 w-3" />
+                      {typedStream.viewerCount || 0} watching
+                    </Badge>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

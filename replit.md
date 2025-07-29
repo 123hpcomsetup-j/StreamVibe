@@ -74,13 +74,14 @@ Preferred communication style: Simple, everyday language.
   - Fixed database constraints - guest messages use guestSessionId instead of fake userId
   - Removed manual name input UI since guest names are automatically generated
   - Backend automatically provides correct sender names for both guest and authenticated users
-✓ **MAJOR UPGRADE**: Migrating to Ant Media Server for reliable streaming (January 29, 2025):
-  - Current WebRTC implementation has socket persistence issues affecting viewer connectivity
-  - Ant Media Server provides battle-tested WebRTC streaming used by 10,000+ companies
-  - Ultra-low latency (~0.5 seconds) with OBS Studio compatibility via RTMP
-  - Installation script created for direct server deployment in Replit environment
-  - Backward compatible with existing user interface and database structure
+✓ **MAJOR UPGRADE**: Implemented Node Media Server for reliable streaming (January 29, 2025):
+  - Replaced problematic WebRTC peer-to-peer with Node Media Server (RTMP/HTTP-FLV streaming)
+  - Node Media Server running on ports 1935 (RTMP) and 8000 (HTTP) within Replit constraints
+  - Creators now use OBS Studio with RTMP settings displayed in modal after clicking "Go Live"
+  - Created NodeMediaPlayer component using flv.js for browser-based stream playback
+  - Stream keys automatically generated in format: username_timestamp
   - Eliminates "Creator not connected" errors and socket disconnection problems
+  - Professional streaming solution compatible with standard broadcasting software
 ✓ **NEW**: Enhanced creator login system with signup and password reset (January 28, 2025):
   - Added "Create Creator Account" signup button with comprehensive registration form
   - Implemented "Forgot Password?" functionality for password reset
