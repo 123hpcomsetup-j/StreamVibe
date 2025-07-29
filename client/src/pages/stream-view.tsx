@@ -53,6 +53,7 @@ export default function StreamView() {
   // Chat state
   const [message, setMessage] = useState("");
   const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [showChat, setShowChat] = useState(true); // Mobile chat toggle
   const [showSignupDialog, setShowSignupDialog] = useState(false);
   const [tipAmount, setTipAmount] = useState(0);
   const [showTipDialog, setShowTipDialog] = useState(false);
@@ -508,71 +509,83 @@ export default function StreamView() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-4">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Video Stream - Full width and responsive */}
+      {/* Main Content - Mobile First Responsive Design */}
+      <div className="mx-auto px-2 sm:px-4 lg:px-6">
+        {/* Mobile/Tablet Layout: Video 80% height, Chat below */}
+        <div className="flex flex-col lg:grid lg:grid-cols-3 lg:gap-6 lg:max-w-7xl lg:mx-auto">
+          
+          {/* Video Stream - 80% of viewport height on mobile/tablet */}
           <div className="lg:col-span-2">
-            {!streamEnded && typedStream ? (
-              <AgoraStreamViewer
-                streamId={typedStream.id}
-                userId={typedUser?.id || guestSessionId || ''}
-                username={displayName}
-                creatorName={typedStream.creatorName}
-                title={typedStream.title}
-              />
-            ) : (
-              <Card className="bg-slate-800 border-slate-700">
-                <CardContent className="p-8">
-                  <div className="text-center">
-                    <AlertTriangle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-white mb-2">Stream Ended</h3>
-                    <p className="text-slate-400 mb-4">This live stream has ended.</p>
-                    <Button 
-                      onClick={() => setLocation(isAuthenticated ? "/user-dashboard" : "/")} 
-                      className="bg-primary hover:bg-primary/80"
-                    >
-                      Find More Streams
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <div className="w-full h-[80vh] lg:h-auto">
+              {!streamEnded && typedStream ? (
+                <AgoraStreamViewer
+                  streamId={typedStream.id}
+                  userId={typedUser?.id || guestSessionId || ''}
+                  username={displayName}
+                  creatorName={typedStream.creatorName}
+                  title={typedStream.title}
+                />
+              ) : (
+                <Card className="bg-slate-800 border-slate-700 h-full flex items-center justify-center">
+                  <CardContent className="p-4 sm:p-8">
+                    <div className="text-center">
+                      <AlertTriangle className="h-12 w-12 sm:h-16 sm:w-16 text-yellow-500 mx-auto mb-4" />
+                      <h3 className="text-lg sm:text-xl font-bold text-white mb-2">Stream Ended</h3>
+                      <p className="text-slate-400 mb-4 text-sm sm:text-base">This live stream has ended.</p>
+                      <Button 
+                        onClick={() => setLocation(isAuthenticated ? "/user-dashboard" : "/")} 
+                        className="bg-primary hover:bg-primary/80"
+                      >
+                        Find More Streams
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </div>
 
-          {/* Chat - Integrated with Agora viewer on mobile */}
-          <div className="lg:col-span-1 lg:block hidden">
-            <Card className="bg-slate-800 border-slate-700 h-[600px] flex flex-col">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center">
-                  <MessageCircle className="mr-2 h-5 w-5" />
+          {/* Chat - Below video on mobile/tablet, side panel on desktop */}
+          <div className="lg:col-span-1 mt-2 lg:mt-0">
+            <Card className="bg-slate-800 border-slate-700 h-[20vh] lg:h-[600px] flex flex-col">
+              <CardHeader className="py-2 lg:py-4">
+                <CardTitle className="text-white flex items-center text-sm lg:text-base">
+                  <MessageCircle className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />
                   Live Chat
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="ml-auto lg:hidden text-slate-400 hover:text-white"
+                    onClick={() => setShowChat(!showChat)}
+                  >
+                    {showChat ? 'Hide' : 'Show'}
+                  </Button>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="flex-1 flex flex-col overflow-hidden">
-              <ScrollArea className="flex-1 pr-4">
-                <div className="space-y-3">
-                  {chatMessages.length === 0 ? (
-                    <div className="text-center py-8">
-                      <MessageCircle className="h-8 w-8 text-slate-500 mx-auto mb-2" />
-                      <p className="text-slate-400">No messages yet</p>
-                      <p className="text-slate-500 text-sm">Be the first to say hi!</p>
-                    </div>
-                  ) : (
-                    chatMessages.map((msg, index) => (
-                      <div key={index} className={`rounded-lg p-3 ${msg.tipAmount > 0 ? 'bg-green-900/20 border border-green-500/30' : 'bg-slate-700/50'}`}>
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <span className={`font-medium ${msg.tipAmount > 0 ? 'font-bold text-green-400' : 'text-primary'}`}>
-                              {msg.senderName || 'Anonymous'}:
-                            </span>
-                            {msg.tipAmount > 0 && (
-                              <span className="text-green-300 text-sm ml-2 font-bold">
-                                💰 tipped {msg.tipAmount} tokens!
+              <CardContent className={`flex-1 flex flex-col overflow-hidden px-2 lg:px-6 ${showChat ? 'block' : 'hidden lg:block'}`}>
+                <ScrollArea className="flex-1 pr-2 lg:pr-4">
+                  <div className="space-y-2 lg:space-y-3">
+                    {chatMessages.length === 0 ? (
+                      <div className="text-center py-4 lg:py-8">
+                        <MessageCircle className="h-6 w-6 lg:h-8 lg:w-8 text-slate-500 mx-auto mb-2" />
+                        <p className="text-slate-400 text-sm lg:text-base">No messages yet</p>
+                        <p className="text-slate-500 text-xs lg:text-sm">Be the first to say hi!</p>
+                      </div>
+                    ) : (
+                      chatMessages.map((msg, index) => (
+                        <div key={index} className={`rounded-lg p-2 lg:p-3 ${msg.tipAmount > 0 ? 'bg-green-900/20 border border-green-500/30' : 'bg-slate-700/50'}`}>
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <span className={`font-medium text-xs lg:text-sm ${msg.tipAmount > 0 ? 'font-bold text-green-400' : 'text-primary'}`}>
+                                {msg.senderName || 'Anonymous'}:
                               </span>
-                            )}
-                            <p className="text-slate-300 mt-1">{msg.message}</p>
-                          </div>
+                              {msg.tipAmount > 0 && (
+                                <span className="text-green-300 text-xs lg:text-sm ml-2 font-bold">
+                                  💰 tipped {msg.tipAmount} tokens!
+                                </span>
+                              )}
+                              <p className="text-slate-300 mt-1 text-xs lg:text-sm">{msg.message}</p>
+                            </div>
                           {msg.tipAmount > 0 && (
                             <Badge className="bg-green-500 text-white ml-2">
                               <Coins className="mr-1 h-3 w-3" />

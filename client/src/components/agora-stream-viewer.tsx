@@ -389,22 +389,27 @@ export default function AgoraStreamViewer({
   }
 
   return (
-    <div className="w-full">
-      {/* Responsive Video Container */}
-      <div className="relative w-full bg-black rounded-lg overflow-hidden" style={{ aspectRatio: '16/9' }}>
+    <div className="w-full h-full flex flex-col">
+      {/* Responsive Video Container - Adapts to parent height */}
+      <div className="relative w-full bg-black rounded-lg overflow-hidden flex-1 min-h-0">
         {/* Video Stream Container */}
         <div 
           ref={videoContainerRef}
           className="absolute inset-0 w-full h-full bg-slate-900 flex items-center justify-center"
           style={{ 
-            maxWidth: '100%', 
-            maxHeight: '100%',
-            // Ensure Agora video fills container properly
+            width: '100%', 
+            height: '100%',
+            // Ensure Agora video fills container properly with device resolution
             objectFit: 'cover',
-            // Mobile-specific optimizations
+            objectPosition: 'center',
+            // Mobile-specific optimizations for smooth video playback
             WebkitBackfaceVisibility: 'hidden',
             WebkitTransform: 'translate3d(0, 0, 0)',
-            transform: 'translate3d(0, 0, 0)'
+            transform: 'translate3d(0, 0, 0)',
+            // Hardware acceleration for mobile devices
+            willChange: 'transform',
+            // Proper scaling for different device resolutions
+            imageRendering: 'optimizeQuality'
           }}
         >
           {!hasVideo && (
@@ -426,53 +431,54 @@ export default function AgoraStreamViewer({
           )}
         </div>
         
-        {/* Stream Status Overlay */}
-        <div className="absolute top-4 left-4 flex items-center space-x-2 z-20">
-          <Badge className="bg-red-600 text-white shadow-lg">
-            <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse"></div>
+        {/* Stream Status Overlay - Mobile responsive */}
+        <div className="absolute top-2 left-2 sm:top-4 sm:left-4 flex items-center space-x-1 sm:space-x-2 z-20">
+          <Badge className="bg-red-600 text-white shadow-lg text-xs">
+            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full mr-1 animate-pulse"></div>
             LIVE
           </Badge>
-          <Badge className="bg-black/70 backdrop-blur-sm text-white">
-            <Users className="mr-1 h-3 w-3" />
-            {viewerCount} watching
+          <Badge className="bg-black/70 backdrop-blur-sm text-white text-xs">
+            <Users className="mr-1 h-2.5 w-2.5 sm:h-3 sm:w-3" />
+            {viewerCount}
           </Badge>
         </div>
         
-        {/* Video Controls */}
+        {/* Video Controls - Mobile optimized */}
         {hasVideo && (
-          <div className="absolute bottom-4 right-4 z-20">
+          <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 z-20">
             <Button
               size="sm"
               variant={isMuted ? "destructive" : "secondary"}
-              className="bg-black/70 hover:bg-black/90 backdrop-blur-sm border-none shadow-lg"
+              className="bg-black/70 hover:bg-black/90 backdrop-blur-sm border-none shadow-lg w-8 h-8 sm:w-auto sm:h-auto p-1 sm:p-2"
               onClick={toggleMute}
             >
-              {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              {isMuted ? <VolumeX className="h-3 w-3 sm:h-4 sm:w-4" /> : <Volume2 className="h-3 w-3 sm:h-4 sm:w-4" />}
             </Button>
           </div>
         )}
         
-        {/* Connection Status */}
+        {/* Connection Status - Mobile responsive */}
         {isConnected && (
-          <div className="absolute bottom-4 left-4 z-20">
-            <Badge className="bg-green-600/80 backdrop-blur-sm text-white">
-              <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse"></div>
-              Connected
+          <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 z-20">
+            <Badge className="bg-green-600/80 backdrop-blur-sm text-white text-xs">
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full mr-1 animate-pulse"></div>
+              <span className="hidden sm:inline">Connected</span>
+              <span className="sm:hidden">●</span>
             </Badge>
           </div>
         )}
       </div>
 
-      {/* Mobile-Friendly Stream Info */}
-      <div className="mt-4 p-4 bg-slate-800 rounded-lg">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h3 className="text-lg font-semibold text-white">{title}</h3>
-            <p className="text-sm text-slate-400">by {creatorName}</p>
+      {/* Mobile-Optimized Stream Info - Only show on mobile/tablet */}
+      <div className="lg:hidden mt-2 p-3 bg-slate-800 rounded-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm sm:text-base font-semibold text-white truncate">{title}</h3>
+            <p className="text-xs sm:text-sm text-slate-400">by {creatorName}</p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
             {isConnected && (
-              <Badge className="bg-green-600 text-white">
+              <Badge className="bg-green-600 text-white text-xs">
                 <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse"></div>
                 Connected
               </Badge>
