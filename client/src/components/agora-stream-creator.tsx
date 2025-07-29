@@ -3,7 +3,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Play, Square, Video, VideoOff, Mic, MicOff, Users } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Play, Square, Video, VideoOff, Mic, MicOff, Users, Send, MessageCircle } from "lucide-react";
+import { io, Socket } from 'socket.io-client';
 import AgoraRTC, {
   IAgoraRTCClient,
   ICameraVideoTrack,
@@ -32,11 +35,15 @@ export default function AgoraStreamCreator({
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [isAudioOn, setIsAudioOn] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [message, setMessage] = useState("");
+  const [socket, setSocket] = useState<Socket | null>(null);
   
   const clientRef = useRef<IAgoraRTCClient | null>(null);
   const videoTrackRef = useRef<ICameraVideoTrack | null>(null);
   const audioTrackRef = useRef<IMicrophoneAudioTrack | null>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Initialize Agora client
   useEffect(() => {
@@ -61,6 +68,64 @@ export default function AgoraStreamCreator({
       stopStreaming();
     };
   }, []);
+
+  // Setup chat WebSocket connection
+  useEffect(() => {
+    if (isStreaming) {
+      const newSocket = io({
+        path: '/socket.io',
+        transports: ['websocket']
+      });
+
+      newSocket.emit('join-stream', { streamId, userId, userType: 'creator' });
+
+      newSocket.on('chat-message', (data) => {
+        setChatMessages(prev => [...prev, data]);
+      });
+
+      newSocket.on('stream-update', (data) => {
+        if (data.viewerCount !== undefined) {
+          setViewerCount(data.viewerCount);
+        }
+      });
+
+      setSocket(newSocket);
+
+      return () => {
+        newSocket.emit('leave-stream', { streamId });
+        newSocket.disconnect();
+      };
+    }
+  }, [isStreaming, streamId, userId]);
+
+  // Auto-scroll chat to bottom
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages]);
+
+  const sendMessage = () => {
+    if (message.trim() && socket) {
+      const messageData = {
+        streamId,
+        userId,
+        username,
+        message: message.trim(),
+        timestamp: new Date().toISOString(),
+        userType: 'creator'
+      };
+
+      socket.emit('chat-message', messageData);
+      setMessage("");
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      sendMessage();
+    }
+  };
 
   const startStreaming = async () => {
     if (!clientRef.current) return;
@@ -270,9 +335,10 @@ export default function AgoraStreamCreator({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Stream Controls */}
-      <Card className="bg-slate-800 border-slate-700">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2 space-y-6">
+        {/* Stream Controls */}
+        <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
           <CardTitle className="text-white flex items-center justify-between">
             <span>Live Stream Controls</span>
