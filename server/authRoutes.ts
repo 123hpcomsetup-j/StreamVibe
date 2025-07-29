@@ -98,7 +98,7 @@ router.get('/logout', async (req, res) => {
   if (userId) {
     try {
       const user = await storage.getUser(userId);
-      if (user) {
+      if (user && user.role) {
         userRole = user.role;
       }
     } catch (error) {

@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Play, MessageCircle, Heart } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Play, MessageCircle, Heart, UserPlus } from "lucide-react";
 
 export default function UserLogin() {
   const [, setLocation] = useLocation();
@@ -17,6 +18,14 @@ export default function UserLogin() {
     username: "",
     password: "",
   });
+  const [signupData, setSignupData] = useState({
+    username: "",
+    password: "",
+    confirmPassword: "",
+    firstName: "",
+    lastName: "",
+  });
+  const [showSignup, setShowSignup] = useState(false);
 
   const loginMutation = useMutation({
     mutationFn: async (data: { username: string; password: string }) => {
@@ -46,6 +55,36 @@ export default function UserLogin() {
     },
   });
 
+  const signupMutation = useMutation({
+    mutationFn: async (data: typeof signupData) => {
+      if (data.password !== data.confirmPassword) {
+        throw new Error("Passwords do not match");
+      }
+      if (data.password.length < 6) {
+        throw new Error("Password must be at least 6 characters");
+      }
+      return await apiRequest("POST", "/api/auth/register", {
+        ...data,
+        role: "viewer"
+      });
+    },
+    onSuccess: (user: any) => {
+      toast({
+        title: "Account Created!",
+        description: "Welcome to StreamVibe! Redirecting to your dashboard...",
+      });
+      setShowSignup(false);
+      setLocation("/user-dashboard");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Registration Failed",
+        description: error.message || "Failed to create account",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.username || !formData.password) {
@@ -57,6 +96,19 @@ export default function UserLogin() {
       return;
     }
     loginMutation.mutate(formData);
+  };
+
+  const handleSignup = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!signupData.username || !signupData.password || !signupData.firstName) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+    signupMutation.mutate(signupData);
   };
 
   return (
@@ -137,10 +189,99 @@ export default function UserLogin() {
               </Button>
             </form>
 
+            {/* New User Registration */}
             <div className="text-center mt-6 pt-6 border-t border-slate-600">
               <p className="text-slate-400 text-sm mb-3">
-                Are you a content creator?
+                New to StreamVibe?
               </p>
+              <Dialog open={showSignup} onOpenChange={setShowSignup}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 mb-3"
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Create Viewer Account
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-slate-800 border-slate-700 text-white">
+                  <DialogHeader>
+                    <DialogTitle>Create Your Viewer Account</DialogTitle>
+                    <DialogDescription className="text-slate-400">
+                      Join StreamVibe to watch live streams and connect with creators
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleSignup} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="firstName" className="text-slate-300">First Name</Label>
+                        <Input
+                          id="firstName"
+                          placeholder="John"
+                          value={signupData.firstName}
+                          onChange={(e) => setSignupData({ ...signupData, firstName: e.target.value })}
+                          className="bg-slate-700 border-slate-600 text-white"
+                          disabled={signupMutation.isPending}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="lastName" className="text-slate-300">Last Name</Label>
+                        <Input
+                          id="lastName"
+                          placeholder="Doe"
+                          value={signupData.lastName}
+                          onChange={(e) => setSignupData({ ...signupData, lastName: e.target.value })}
+                          className="bg-slate-700 border-slate-600 text-white"
+                          disabled={signupMutation.isPending}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signupUsername" className="text-slate-300">Username</Label>
+                      <Input
+                        id="signupUsername"
+                        placeholder="Choose a unique username"
+                        value={signupData.username}
+                        onChange={(e) => setSignupData({ ...signupData, username: e.target.value })}
+                        className="bg-slate-700 border-slate-600 text-white"
+                        disabled={signupMutation.isPending}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signupPassword" className="text-slate-300">Password</Label>
+                      <Input
+                        id="signupPassword"
+                        type="password"
+                        placeholder="Minimum 6 characters"
+                        value={signupData.password}
+                        onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                        className="bg-slate-700 border-slate-600 text-white"
+                        disabled={signupMutation.isPending}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword" className="text-slate-300">Confirm Password</Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        placeholder="Confirm your password"
+                        value={signupData.confirmPassword}
+                        onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
+                        className="bg-slate-700 border-slate-600 text-white"
+                        disabled={signupMutation.isPending}
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      disabled={signupMutation.isPending}
+                    >
+                      {signupMutation.isPending ? "Creating Account..." : "Create Viewer Account"}
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+              
               <Button
                 variant="outline"
                 className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
@@ -155,9 +296,9 @@ export default function UserLogin() {
                 Test Viewer Accounts:
               </p>
               <div className="text-xs text-slate-500 space-y-1">
-                <div>👤 <strong>alex_viewer</strong> / viewer123</div>
-                <div>💫 <strong>jenny_fan</strong> / viewer123</div>
-                <div>📺 <strong>david_watch</strong> / viewer123</div>
+                <div>👤 <strong>test_viewer</strong> / password123</div>
+                <div>💫 <strong>demo_user</strong> / password123</div>
+                <div>📺 <strong>stream_fan</strong> / password123</div>
               </div>
             </div>
           </CardContent>

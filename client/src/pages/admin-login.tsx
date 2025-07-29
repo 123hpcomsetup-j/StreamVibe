@@ -123,9 +123,9 @@ export default function AdminLogin() {
                 Test Admin Accounts:
               </p>
               <div className="text-xs text-slate-500 space-y-1">
-                <div>🔥 <strong>super_admin</strong> / admin123</div>
-                <div>🛡️ <strong>content_mod</strong> / admin123</div>
-                <div>⚙️ <strong>sys_admin</strong> / admin123</div>
+                <div>🔥 <strong>super_admin</strong> / password123</div>
+                <div>🛡️ <strong>content_mod</strong> / password123</div>
+                <div>⚙️ <strong>admin</strong> / password123</div>
               </div>
             </div>
             
