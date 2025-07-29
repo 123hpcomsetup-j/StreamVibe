@@ -43,6 +43,8 @@ export default function AgoraStreamViewer({
   const [isMuted, setIsMuted] = useState(false);
   const [hasVideo, setHasVideo] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [socket, setSocket] = useState<Socket | null>(null);
   
   const { user, isAuthenticated } = useAuth();
   const typedUser = user as any;
@@ -51,6 +53,7 @@ export default function AgoraStreamViewer({
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const remoteVideoRef = useRef<IRemoteVideoTrack | null>(null);
   const remoteAudioRef = useRef<IRemoteAudioTrack | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Device compatibility check
   useEffect(() => {

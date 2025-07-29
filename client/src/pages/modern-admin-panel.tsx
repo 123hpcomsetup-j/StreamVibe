@@ -42,6 +42,13 @@ export default function ModernAdminPanel() {
   // Get active tab from URL parameters  
   const urlParams = new URLSearchParams(location.split('?')[1] || '');
   const [activeTab, setActiveTab] = useState(urlParams.get('tab') || 'dashboard');
+  
+  // Update active tab when URL changes
+  useEffect(() => {
+    const currentParams = new URLSearchParams(location.split('?')[1] || '');
+    const tabFromUrl = currentParams.get('tab') || 'dashboard';
+    setActiveTab(tabFromUrl);
+  }, [location]);
 
   const typedUser = user as User | undefined;
 
