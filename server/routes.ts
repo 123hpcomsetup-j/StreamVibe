@@ -256,18 +256,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const streamId = req.params.id;
-      const { minTip, tokenPrice, privateRate } = req.body;
+      const { minTip, tokenPrice, privateRate, customActions } = req.body;
       
       const stream = await storage.getStreamById(streamId);
       if (!stream || stream.creatorId !== userId) {
         return res.status(403).json({ message: "Unauthorized" });
       }
 
-      // Update stream settings
+      // Update stream settings including custom actions
       const updatedStream = await storage.updateStream(streamId, {
         minTip: parseInt(minTip) || 5,
         tokenPrice: parseFloat(tokenPrice) || 1,
         privateRate: parseInt(privateRate) || 20,
+        customActions: customActions || [],
+      });
+      
+      res.json(updatedStream);
+    } catch (error) {
+      console.error("Error updating stream settings:", error);
+      res.status(400).json({ message: "Failed to update stream settings" });
+    }
+  });
+
+  // PATCH version for the frontend
+  app.patch('/api/streams/:id/settings', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const streamId = req.params.id;
+      const { minTip, tokenPrice, privateRate, customActions } = req.body;
+      
+      const stream = await storage.getStreamById(streamId);
+      if (!stream || stream.creatorId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      // Update stream settings including custom actions
+      const updatedStream = await storage.updateStream(streamId, {
+        minTip: parseInt(minTip) || 5,
+        tokenPrice: parseFloat(tokenPrice) || 1,
+        privateRate: parseInt(privateRate) || 20,
+        customActions: customActions || [],
       });
       
       res.json(updatedStream);

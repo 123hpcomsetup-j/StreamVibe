@@ -253,6 +253,47 @@ export default function StreamView() {
     ? typedUser?.username || 'User' 
     : guestName || 'Guest';
 
+  // Handle custom action usage
+  const handleCustomAction = (action: any) => {
+    const tokenCost = action.tokenCost || 1;
+    
+    if (!isAuthenticated && tokensLeft < tokenCost) {
+      toast({
+        title: "Not Enough Tokens",
+        description: `You need ${tokenCost} tokens for this action. Sign up for unlimited chat!`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Deduct tokens for guests
+    if (!isAuthenticated) {
+      setTokensLeft(prev => Math.max(0, prev - tokenCost));
+    }
+
+    // Send action as a special chat message
+    const actionMessage = {
+      streamId,
+      message: `Used action: ${action.name}`,
+      senderName: displayName,
+      userId: isAuthenticated ? typedUser?.id : null,
+      isCustomAction: true,
+      actionName: action.name,
+      actionCost: tokenCost,
+      timestamp: new Date().toISOString(),
+      userType: isAuthenticated ? 'viewer' : 'guest',
+      guestSessionId: !isAuthenticated ? guestSessionId : undefined
+    };
+
+    console.log('Sending custom action via WebSocket:', actionMessage);
+    socket?.emit('chat-message', actionMessage);
+
+    toast({
+      title: "Action Used",
+      description: `"${action.name}" for ${tokenCost} tokens`,
+    });
+  };
+
   // Send chat message via WebSocket for real-time delivery
   const sendChatMessage = () => {
     if (!message.trim()) {
@@ -666,6 +707,34 @@ export default function StreamView() {
                   </form>
                 )}
                 
+                {/* Custom Chat Actions */}
+                {typedStream?.customActions && typedStream.customActions.length > 0 && (
+                  <div className="mt-3 p-3 bg-slate-700/30 rounded-lg">
+                    <h4 className="text-xs font-medium text-slate-300 mb-2">Quick Actions</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {typedStream.customActions
+                        .filter((action: any) => action.enabled)
+                        .map((action: any) => (
+                        <Button
+                          key={action.id}
+                          size="sm"
+                          onClick={() => handleCustomAction(action)}
+                          className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-2 py-1 h-6"
+                          disabled={!isAuthenticated && tokensLeft < action.tokenCost}
+                        >
+                          {action.name} ({action.tokenCost} 🪙)
+                        </Button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {isAuthenticated ? 
+                        `Actions cost tokens from your wallet` : 
+                        `${tokensLeft} free tokens left`
+                      }
+                    </p>
+                  </div>
+                )}
+
                 {/* Action Buttons */}
                 <div className="mt-2 flex justify-center gap-2">
                   {isAuthenticated && (

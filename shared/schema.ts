@@ -58,6 +58,7 @@ export const streams = pgTable("streams", {
   minTip: integer("min_tip").default(5),
   tokenPrice: integer("token_price").default(1), // Price per token in cents/currency units
   privateRate: integer("private_rate").default(20),
+  customActions: jsonb("custom_actions").default('[]'), // Array of {name: string, tokenCost: number, enabled: boolean}
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -210,6 +211,15 @@ export const insertGuestSessionSchema = createInsertSchema(guestSessions).omit({
   createdAt: true,
   updatedAt: true,
 });
+
+// Custom action interface
+export interface CustomAction {
+  id: string;
+  name: string;
+  tokenCost: number;
+  enabled: boolean;
+  message?: string; // Optional custom message to display
+}
 
 // Types
 export type UpsertUser = typeof users.$inferInsert;

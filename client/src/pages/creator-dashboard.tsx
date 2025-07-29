@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { DollarSign, Users, Clock, Heart, Play, Square, Settings, Phone, Mail, Camera, UserIcon } from "lucide-react";
+import { DollarSign, Users, Clock, Heart, Play, Square, Settings, Phone, Mail, Camera, UserIcon, Plus, Trash2, Edit } from "lucide-react";
 import StreamModal from "@/components/stream-modal";
 import AgoraStreamCreator from "@/components/agora-stream-creator";
 
@@ -27,7 +27,17 @@ export default function CreatorDashboard() {
     minTip: 5,
     tokenPrice: 1,
     privateRate: 20,
+    customActions: [] as Array<{
+      id: string;
+      name: string;
+      tokenCost: number;
+      enabled: boolean;
+    }>
   });
+  
+  // Add custom action management state
+  const [newAction, setNewAction] = useState({ name: "", tokenCost: 1 });
+  const [editingAction, setEditingAction] = useState<string | null>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileData, setProfileData] = useState({
     firstName: "",
@@ -143,11 +153,47 @@ export default function CreatorDashboard() {
         minTip: stream.minTip || 5,
         tokenPrice: stream.tokenPrice || 1,
         privateRate: stream.privateRate || 20,
+        customActions: stream.customActions || []
       });
     } else {
       setIsStreaming(false);
     }
   }, [currentStream]);
+
+  // Custom action management functions
+  const addCustomAction = () => {
+    if (!newAction.name.trim() || streamData.customActions.length >= 5) return;
+    
+    const action = {
+      id: Date.now().toString(),
+      name: newAction.name.trim(),
+      tokenCost: newAction.tokenCost,
+      enabled: true
+    };
+    
+    setStreamData(prev => ({
+      ...prev,
+      customActions: [...prev.customActions, action]
+    }));
+    
+    setNewAction({ name: "", tokenCost: 1 });
+  };
+
+  const removeCustomAction = (actionId: string) => {
+    setStreamData(prev => ({
+      ...prev,
+      customActions: prev.customActions.filter(action => action.id !== actionId)
+    }));
+  };
+
+  const updateCustomAction = (actionId: string, updates: Partial<{ name: string; tokenCost: number; enabled: boolean }>) => {
+    setStreamData(prev => ({
+      ...prev,
+      customActions: prev.customActions.map(action => 
+        action.id === actionId ? { ...action, ...updates } : action
+      )
+    }));
+  };
 
   const createStreamMutation = useMutation({
     mutationFn: async (streamData: any) => {
@@ -157,6 +203,7 @@ export default function CreatorDashboard() {
         minTip: streamData.minTip,
         tokenPrice: streamData.tokenPrice,
         privateRate: streamData.privateRate,
+        customActions: streamData.customActions,
       });
       return response.json();
     },
@@ -626,6 +673,89 @@ export default function CreatorDashboard() {
                   className="bg-slate-700 border-slate-600 text-white"
                 />
               </div>
+            </div>
+
+            {/* Custom Chat Actions Section */}
+            <div className="border-t border-slate-600 pt-4 mt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-white">Custom Chat Actions</h3>
+                <Badge variant="outline" className="text-slate-400">
+                  {streamData.customActions.length}/5 actions
+                </Badge>
+              </div>
+              <p className="text-slate-400 text-sm mb-4">
+                Set up custom chat actions that viewers can use to interact with you. Each action costs tokens.
+              </p>
+
+              {/* Existing Custom Actions */}
+              <div className="space-y-2 mb-4">
+                {streamData.customActions.map((action) => (
+                  <div key={action.id} className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-white font-medium">{action.name}</span>
+                      <Badge className="bg-green-600 text-white">
+                        {action.tokenCost} tokens
+                      </Badge>
+                      <Badge variant={action.enabled ? "default" : "secondary"}>
+                        {action.enabled ? "Enabled" : "Disabled"}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => updateCustomAction(action.id, { enabled: !action.enabled })}
+                        className="text-slate-300 hover:text-white"
+                      >
+                        {action.enabled ? "Disable" : "Enable"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => removeCustomAction(action.id)}
+                        className="text-red-400 hover:text-red-300"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add New Action */}
+              {streamData.customActions.length < 5 && (
+                <div className="flex space-x-2">
+                  <Input
+                    placeholder="Action name (e.g., 'say hi', 'wave', 'heart')"
+                    value={newAction.name}
+                    onChange={(e) => setNewAction({ ...newAction, name: e.target.value })}
+                    className="bg-slate-700 border-slate-600 text-white flex-1"
+                  />
+                  <Input
+                    type="number"
+                    min="1"
+                    max="100"
+                    placeholder="Tokens"
+                    value={newAction.tokenCost}
+                    onChange={(e) => setNewAction({ ...newAction, tokenCost: Number(e.target.value) })}
+                    className="bg-slate-700 border-slate-600 text-white w-24"
+                  />
+                  <Button
+                    onClick={addCustomAction}
+                    disabled={!newAction.name.trim()}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add
+                  </Button>
+                </div>
+              )}
+
+              {streamData.customActions.length >= 5 && (
+                <p className="text-yellow-500 text-sm">
+                  Maximum of 5 custom actions reached. Remove an action to add a new one.
+                </p>
+              )}
             </div>
 
             <div className="flex space-x-4">
