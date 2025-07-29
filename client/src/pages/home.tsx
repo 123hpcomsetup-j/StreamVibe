@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import type { User, Stream } from "@shared/schema";
 import Navbar from "@/components/navbar";
-import Sidebar from "@/components/sidebar";
+
 import StreamModalWebRTC from "@/components/stream-modal-webrtc";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -86,10 +86,7 @@ export default function Home() {
     <div className="min-h-screen bg-slate-900 text-slate-50">
       <Navbar user={user as User} />
       
-      <div className="flex">
-        <Sidebar />
-        
-        <main className="flex-1 overflow-y-auto p-6">
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
           {/* Welcome Section */}
           <div className="mb-8">
             <h2 className="text-3xl font-bold mb-2">
@@ -332,7 +329,6 @@ export default function Home() {
             </div>
           </div>
         </main>
-      </div>
 
       {selectedStreamId && (
         <StreamModalWebRTC

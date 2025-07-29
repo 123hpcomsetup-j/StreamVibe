@@ -7,7 +7,7 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
 import type { User } from "@shared/schema";
 import Navbar from "@/components/navbar";
-import Sidebar from "@/components/sidebar";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -133,10 +133,7 @@ export default function AdminPanel() {
     <div className="min-h-screen bg-slate-900 text-slate-50">
       <Navbar user={typedUser} />
       
-      <div className="flex">
-        <Sidebar />
-        
-        <main className="flex-1 overflow-y-auto p-6">
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="mb-8">
             <h2 className="text-3xl font-bold mb-2">Admin Dashboard</h2>
             <p className="text-slate-400">Platform management and oversight</p>
@@ -408,7 +405,6 @@ export default function AdminPanel() {
             </Tabs>
           </Card>
         </main>
-      </div>
     </div>
   );
 }

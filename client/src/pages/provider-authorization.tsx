@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import Navbar from "@/components/navbar";
-import Sidebar from "@/components/sidebar";
+
 import ProviderStreamMonitor from "@/components/provider-stream-monitor";
 import type { User } from "@shared/schema";
 
@@ -24,10 +24,7 @@ export default function ProviderAuthorization() {
     <div className="min-h-screen bg-slate-900 text-slate-50">
       <Navbar user={typedUser} />
       
-      <div className="flex">
-        <Sidebar />
-        
-        <main className="flex-1 overflow-y-auto p-6">
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="mb-8">
             <h2 className="text-3xl font-bold mb-2">Provider Authorization Center</h2>
             <p className="text-slate-400">Monitor and authorize creator streams and payment flows</p>
@@ -35,7 +32,6 @@ export default function ProviderAuthorization() {
 
           <ProviderStreamMonitor />
         </main>
-      </div>
     </div>
   );
 }
