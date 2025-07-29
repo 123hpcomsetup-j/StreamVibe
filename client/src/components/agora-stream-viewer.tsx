@@ -200,11 +200,34 @@ export default function AgoraStreamViewer({
       
       if (mediaType === "video") {
         setHasVideo(false);
-        remoteVideoRef.current = null;
+        // Clean up video track and container safely
+        if (remoteVideoRef.current) {
+          try {
+            remoteVideoRef.current.stop();
+          } catch (error) {
+            console.log("Note: Video track stop skipped");
+          }
+          remoteVideoRef.current = null;
+        }
+        
+        if (videoContainerRef.current) {
+          try {
+            videoContainerRef.current.innerHTML = '';
+          } catch (error) {
+            console.log("Note: Video container clear skipped");
+          }
+        }
       }
       
       if (mediaType === "audio") {
-        remoteAudioRef.current = null;
+        if (remoteAudioRef.current) {
+          try {
+            remoteAudioRef.current.stop();
+          } catch (error) {
+            console.log("Note: Audio track stop skipped");
+          }
+          remoteAudioRef.current = null;
+        }
       }
     });
 
@@ -370,9 +393,42 @@ export default function AgoraStreamViewer({
 
   const disconnect = async () => {
     try {
-      if (clientRef.current) {
-        await clientRef.current.leave();
+      console.log("🔌 Disconnecting from stream...");
+      
+      // Stop and cleanup video/audio tracks first
+      if (remoteVideoRef.current) {
+        try {
+          remoteVideoRef.current.stop();
+          remoteVideoRef.current = null;
+        } catch (trackError) {
+          console.log("Note: Video track cleanup skipped");
+        }
       }
+      
+      if (remoteAudioRef.current) {
+        try {
+          remoteAudioRef.current.stop();
+          remoteAudioRef.current = null;
+        } catch (trackError) {
+          console.log("Note: Audio track cleanup skipped");
+        }
+      }
+      
+      // Clear video container safely
+      if (videoContainerRef.current) {
+        try {
+          videoContainerRef.current.innerHTML = '';
+        } catch (domError) {
+          console.log("Note: Video container cleanup skipped");
+        }
+      }
+      
+      // Leave Agora channel
+      if (clientRef.current && clientRef.current.connectionState === "CONNECTED") {
+        await clientRef.current.leave();
+        console.log("✅ Successfully left Agora channel");
+      }
+      
       setIsConnected(false);
       setHasVideo(false);
       setViewerCount(0);
