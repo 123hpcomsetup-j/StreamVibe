@@ -1,7 +1,8 @@
-import { Search, Coins, LogOut } from "lucide-react";
+import { Search, Coins, LogOut, Menu, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
 import type { User } from "@shared/schema";
 
 interface NavbarProps {
@@ -9,19 +10,27 @@ interface NavbarProps {
 }
 
 export default function Navbar({ user }: NavbarProps) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   const handleLogout = () => {
     if (user?.role === 'admin') {
       // For admin users, logout and redirect to admin login
       fetch('/api/auth/logout', { method: 'POST' })
         .then(() => {
-          window.location.href = "/admin";
+          window.location.href = "/";
         })
         .catch(() => {
-          window.location.href = "/admin";
+          window.location.href = "/";
         });
     } else {
-      // For regular users, logout and redirect to main login
-      window.location.href = "/api/logout";
+      // For regular users, logout and redirect to homepage
+      fetch('/api/auth/logout', { method: 'POST' })
+        .then(() => {
+          window.location.href = "/";
+        })
+        .catch(() => {
+          window.location.href = "/";
+        });
     }
   };
 
@@ -35,14 +44,11 @@ export default function Navbar({ user }: NavbarProps) {
             </div>
             <div className="hidden md:block ml-10">
               <div className="flex items-baseline space-x-4">
-                <a href="#" className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                <a href="/" className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">
                   Home
                 </a>
-                <a href="#" className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                <a href="/user-dashboard" className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">
                   Browse
-                </a>
-                <a href="#" className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                  Categories
                 </a>
                 {user?.role === 'admin' && (
                   <a href="/admin-panel" className="text-red-400 hover:text-red-300 px-3 py-2 rounded-md text-sm font-medium transition-colors">
@@ -56,9 +62,21 @@ export default function Navbar({ user }: NavbarProps) {
                 )}
               </div>
             </div>
+            
+            {/* Mobile menu button */}
+            <div className="md:hidden ml-auto">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="text-slate-400 hover:text-white"
+              >
+                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
+            </div>
           </div>
           
-          <div className="flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-4">
             <div className="relative">
               <Input 
                 type="text" 
@@ -76,7 +94,7 @@ export default function Navbar({ user }: NavbarProps) {
             
             <div className="flex items-center space-x-2">
               <Badge variant="secondary" className="bg-primary/20 text-primary">
-                {user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1)}
+                {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User'}
               </Badge>
               
               <div className="relative">
@@ -101,6 +119,51 @@ export default function Navbar({ user }: NavbarProps) {
             </div>
           </div>
         </div>
+        
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-slate-700">
+            <div className="px-2 pt-2 pb-3 space-y-1">
+              <a href="/" className="text-slate-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+                Home
+              </a>
+              <a href="/user-dashboard" className="text-slate-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+                Browse
+              </a>
+              {user?.role === 'admin' && (
+                <a href="/admin-panel" className="text-red-400 hover:text-red-300 block px-3 py-2 rounded-md text-base font-medium">
+                  Admin Panel
+                </a>
+              )}
+              {user?.role === 'creator' && (
+                <a href="/creator-dashboard" className="text-green-400 hover:text-green-300 block px-3 py-2 rounded-md text-base font-medium">
+                  Creator Dashboard
+                </a>
+              )}
+              
+              <div className="pt-4 pb-2 border-t border-slate-700">
+                <div className="flex items-center px-3 py-2">
+                  <Badge variant="secondary" className="bg-primary/20 text-primary mr-3">
+                    {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User'}
+                  </Badge>
+                  <div className="flex items-center space-x-2 bg-slate-700 rounded-lg px-3 py-2">
+                    <Coins className="h-4 w-4 text-accent" />
+                    <span className="font-medium text-white">{user?.walletBalance || 0}</span>
+                    <span className="text-slate-400">tokens</span>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  onClick={handleLogout}
+                  className="w-full text-left justify-start text-slate-400 hover:text-white mt-2"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );

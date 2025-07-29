@@ -733,13 +733,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Guest session routes
-  app.post("/api/guest-session", async (req, res) => {
+  // Guest session routes with IP-based limiting
+  app.post("/api/guest-session", async (req: any, res) => {
     try {
       const { streamId, sessionId } = req.body;
       
       if (!streamId || !sessionId) {
         return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Get client IP address
+      const clientIP = req.ip || req.connection?.remoteAddress || req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
+      console.log(`Guest session request from IP: ${clientIP}`);
+
+      // Check existing guest sessions for this IP (limit to 2 per IP)
+      const existingSessions = await storage.getGuestSessionsByIP(clientIP);
+      
+      if (existingSessions.length >= 2) {
+        return res.status(429).json({ 
+          message: "Maximum guest sessions reached for this IP address. Please wait or create an account for unlimited access." 
+        });
       }
 
       // Check if stream exists (allow both live and ended streams for guest sessions)
@@ -758,6 +771,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tokensRemaining: 100,
         viewTimeRemaining: 300, // 5 minutes
         guestName, // Store the generated name
+        ipAddress: clientIP, // Track IP for limiting
       });
 
       res.json(guestSession);

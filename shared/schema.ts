@@ -122,6 +122,7 @@ export const guestSessions = pgTable("guest_sessions", {
   guestName: varchar("guest_name").notNull(), // Auto-generated guest name
   tokensRemaining: integer("tokens_remaining").default(100),
   viewTimeRemaining: integer("view_time_remaining").default(300), // 5 minutes in seconds
+  ipAddress: varchar("ip_address"), // Track IP for rate limiting
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

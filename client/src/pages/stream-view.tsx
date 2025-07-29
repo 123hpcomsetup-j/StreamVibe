@@ -20,6 +20,7 @@ import {
   Play,
   Heart,
   UserPlus,
+  LogIn,
   MessageCircle,
   Wifi
 } from "lucide-react";
@@ -55,6 +56,14 @@ export default function StreamView() {
   const [showSignupDialog, setShowSignupDialog] = useState(false);
   const [tipAmount, setTipAmount] = useState(0);
   const [showTipDialog, setShowTipDialog] = useState(false);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [loginData, setLoginData] = useState({ username: '', password: '' });
+  
+  // For other live streams section
+  const { data: otherStreams } = useQuery({
+    queryKey: ['/api/streams/live'],
+    refetchInterval: 10000 // Refresh every 10 seconds
+  });
   const [signupData, setSignupData] = useState({
     username: "",
     password: "",
@@ -333,6 +342,41 @@ export default function StreamView() {
     }
   });
 
+  // Login mutation for existing users
+  const loginMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(loginData)
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Login failed');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Login Successful!",
+        description: "Welcome back! You now have unlimited access.",
+      });
+      setShowLoginDialog(false);
+      // Refresh the page to get authenticated user data
+      window.location.reload();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Login Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -588,9 +632,9 @@ export default function StreamView() {
                   </form>
                 )}
                 
-                {/* Tip Button - only for authenticated users */}
-                {isAuthenticated && (
-                  <div className="mt-2 flex justify-center">
+                {/* Action Buttons */}
+                <div className="mt-2 flex justify-center gap-2">
+                  {isAuthenticated && (
                     <Button 
                       size="sm"
                       onClick={() => setShowTipDialog(true)}
@@ -599,13 +643,143 @@ export default function StreamView() {
                       <Coins className="mr-1 h-4 w-4" />
                       Send Tip
                     </Button>
-                  </div>
-                )}
+                  )}
+                  
+                  {!isAuthenticated && (
+                    <>
+                      <Button 
+                        size="sm"
+                        onClick={() => setShowLoginDialog(true)}
+                        variant="outline"
+                        className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white"
+                      >
+                        <LogIn className="mr-1 h-4 w-4" />
+                        Login
+                      </Button>
+                      <Button 
+                        size="sm"
+                        onClick={() => setShowSignupDialog(true)}
+                        className="bg-primary hover:bg-primary/80"
+                      >
+                        <UserPlus className="mr-1 h-4 w-4" />
+                        Sign Up
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
+      
+      {/* Other Live Streams Section - Show for guests and users */}
+      {otherStreams && Array.isArray(otherStreams) && otherStreams.length > 0 && (
+        <div className="mt-8">
+          <div className="max-w-7xl mx-auto px-4">
+            <h2 className="text-2xl font-bold text-white mb-6">Other Live Streams</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {otherStreams
+                .filter(stream => stream.id !== streamId) // Don't show current stream
+                .slice(0, 6) // Show max 6 other streams
+                .map((stream: any) => (
+                <Card key={stream.id} className="bg-slate-800 border-slate-700 hover:border-primary/50 transition-colors">
+                  <CardContent className="p-0">
+                    <div className="relative aspect-video bg-slate-700 rounded-t-lg">
+                      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-t-lg" />
+                      <div className="absolute top-2 left-2">
+                        <Badge className="bg-red-500 text-white">
+                          <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse"></div>
+                          LIVE
+                        </Badge>
+                      </div>
+                      <div className="absolute bottom-2 right-2">
+                        <Badge className="bg-black/50 text-white">
+                          <Users className="mr-1 h-3 w-3" />
+                          {stream.viewerCount?.toString() || '0'}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-semibold text-white mb-2">{stream.title}</h3>
+                      <p className="text-slate-400 text-sm mb-3">{stream.category}</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-green-400 text-sm">
+                          <Coins className="mr-1 h-3 w-3 inline" />
+                          Min: {stream.minTip || 5} tokens
+                        </span>
+                        <Button 
+                          size="sm"
+                          onClick={() => window.location.href = `/stream/${stream.id}`}
+                          className="bg-primary hover:bg-primary/80"
+                        >
+                          Watch
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Login Dialog */}
+      <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+        <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Login to Your Account</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Welcome back! Please enter your credentials.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            loginMutation.mutate();
+          }} className="space-y-4">
+            <div>
+              <Label className="text-slate-300">Username</Label>
+              <Input
+                value={loginData.username}
+                onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
+                className="bg-slate-700 border-slate-600 text-white"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label className="text-slate-300">Password</Label>
+              <Input
+                type="password"
+                value={loginData.password}
+                onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                className="bg-slate-700 border-slate-600 text-white"
+                required
+              />
+            </div>
+            
+            <div className="flex space-x-2">
+              <Button 
+                type="button"
+                variant="outline" 
+                onClick={() => setShowLoginDialog(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                disabled={loginMutation.isPending}
+              >
+                {loginMutation.isPending ? "Logging in..." : "Login"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Tip Dialog */}
       <Dialog open={showTipDialog} onOpenChange={setShowTipDialog}>

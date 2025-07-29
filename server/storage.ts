@@ -73,6 +73,7 @@ export interface IStorage {
   createGuestSession(session: InsertGuestSession): Promise<GuestSession>;
   getGuestSession(streamId: string, sessionId: string): Promise<GuestSession | undefined>;
   getGuestSessionById(id: string): Promise<GuestSession | undefined>;
+  getGuestSessionsByIP(ipAddress: string): Promise<GuestSession[]>;
   updateGuestSession(id: string, updates: Partial<GuestSession>): Promise<GuestSession>;
   
   // Admin operations
@@ -375,6 +376,13 @@ export class DatabaseStorage implements IStorage {
       .where(eq(guestSessions.id, id))
       .returning();
     return updatedSession;
+  }
+
+  async getGuestSessionsByIP(ipAddress: string): Promise<GuestSession[]> {
+    // Get guest sessions for a specific IP address (for rate limiting)
+    const sessions = await db.select().from(guestSessions)
+      .where(eq(guestSessions.ipAddress, ipAddress));
+    return sessions;
   }
 
   async cleanupStaleStreams(): Promise<number> {
