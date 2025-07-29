@@ -45,42 +45,7 @@ function Router() {
 }
 
 function App() {
-  useEffect(() => {
-    // Initialize WebSocket connection for real-time updates
-    const socket = io(window.location.origin, {
-      path: "/socket.io",
-      transports: ["websocket", "polling"],
-      reconnection: true,
-      reconnectionAttempts: 3,
-      reconnectionDelay: 1000
-    });
-
-    socket.on('connect', () => {
-      console.log('Connected to streaming server for real-time updates');
-    });
-
-    socket.on('disconnect', () => {
-      console.log('Disconnected from streaming server');
-    });
-
-    socket.on('connect_error', (error) => {
-      console.warn('Socket connection error:', error);
-    });
-
-    socket.on('stream-status-changed', (data: any) => {
-      console.log('Stream status changed:', data);
-      // Invalidate queries to refresh live streams
-      queryClient.invalidateQueries({ queryKey: ["/api/streams/live"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/users/online"] });
-    });
-
-    // Make socket globally available for components
-    (window as any).streamSocket = socket;
-
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
+  // Remove the duplicate WebSocket connection - let components handle their own connections
 
   return (
     <QueryClientProvider client={queryClient}>

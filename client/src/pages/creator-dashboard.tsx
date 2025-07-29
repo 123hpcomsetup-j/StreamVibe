@@ -47,10 +47,10 @@ export default function CreatorDashboard() {
   // Setup WebSocket connection with auto-reconnect
   useEffect(() => {
     if (typedUser?.id) {
-      // Check if socket already exists to prevent duplicates
+      // Clean up existing socket before creating new one
       if ((window as any).streamSocket) {
-        console.log('Reusing existing WebSocket connection');
-        return;
+        (window as any).streamSocket.disconnect();
+        delete (window as any).streamSocket;
       }
       
       const socket = io(window.location.origin, {

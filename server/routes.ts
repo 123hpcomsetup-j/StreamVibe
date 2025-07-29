@@ -479,7 +479,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId,
         message,
         tipAmount,
-        senderName: realSenderName,
+        senderName: realSenderName || 'Anonymous',
       });
       
       // Broadcast message to WebSocket for real-time delivery

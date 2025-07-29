@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,6 @@ import { Play, Users, Video, Heart, Coins, ChevronRight } from "lucide-react";
 
 export default function PublicHome() {
   const [, setLocation] = useLocation();
-  const [realTimeStreams, setRealTimeStreams] = useState<any[]>([]);
 
   const { data: liveStreams = [], isLoading: streamsLoading, refetch: refetchStreams } = useQuery({
     queryKey: ["/api/streams/live"],
@@ -23,54 +22,8 @@ export default function PublicHome() {
   // Filter only creators who are online
   const onlineCreators = Array.isArray(onlineUsers) ? onlineUsers.filter((user: any) => user.role === 'creator') : [];
 
-  // Initialize real-time updates with existing global socket
-  useEffect(() => {
-    if (liveStreams && Array.isArray(liveStreams)) {
-      setRealTimeStreams(liveStreams);
-    }
-  }, [JSON.stringify(liveStreams)]); // Stringify to prevent re-render loops
-
-  // Use the global socket connection from App.tsx
-  useEffect(() => {
-    const globalSocket = (window as any).streamSocket;
-    if (globalSocket) {
-
-      // Listen for real-time stream status changes
-      const handleStreamStatusChange = (data: { streamId: string, isLive: boolean, viewerCount: number }) => {
-        if (data.isLive) {
-          // Stream went live - refetch streams data
-          refetchStreams();
-        } else {
-          // Stream went offline - update state
-          setRealTimeStreams(prevStreams => 
-            prevStreams.filter(stream => stream.id !== data.streamId)
-          );
-        }
-      };
-
-      // Listen for viewer count updates
-      const handleViewerCountUpdate = (data: { streamId: string, count: number }) => {
-        setRealTimeStreams(prevStreams => 
-          prevStreams.map(stream => 
-            stream.id === data.streamId 
-              ? { ...stream, viewerCount: data.count }
-              : stream
-          )
-        );
-      };
-
-      globalSocket.on('stream-status-changed', handleStreamStatusChange);
-      globalSocket.on('viewer-count-update', handleViewerCountUpdate);
-
-      return () => {
-        globalSocket.off('stream-status-changed', handleStreamStatusChange);
-        globalSocket.off('viewer-count-update', handleViewerCountUpdate);
-      };
-    }
-  }, []);
-
-  // Use real-time streams data instead of static query data
-  const displayStreams = realTimeStreams.filter((stream: any) => stream.isLive);
+  // Simply use the live streams data from React Query without socket complications
+  const displayStreams = Array.isArray(liveStreams) ? liveStreams.filter((stream: any) => stream.isLive) : [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
