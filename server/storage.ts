@@ -7,6 +7,7 @@ import {
   payouts,
   chatMessages,
   guestSessions,
+  creatorActionPresets,
   type User,
   type UpsertUser,
   type Stream,
@@ -98,6 +99,13 @@ export interface IStorage {
   // Creator analytics
   getCreatorStats(creatorId: string): Promise<any>;
   getCreatorTips(creatorId: string): Promise<any[]>;
+  
+  // Creator action presets
+  getCreatorActionPresets(creatorId: string): Promise<any[]>;
+  createCreatorActionPreset(preset: any): Promise<any>;
+  updateCreatorActionPreset(id: string, updates: any): Promise<any>;
+  deleteCreatorActionPreset(id: string): Promise<void>;
+  getCreatorActionPresetById(id: string): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -636,6 +644,47 @@ export class DatabaseStorage implements IStorage {
       console.error("Error changing password:", error);
       return false;
     }
+  }
+
+  // Creator action presets
+  async getCreatorActionPresets(creatorId: string): Promise<any[]> {
+    const presets = await db
+      .select()
+      .from(creatorActionPresets)
+      .where(eq(creatorActionPresets.creatorId, creatorId))
+      .orderBy(creatorActionPresets.order);
+    return presets;
+  }
+
+  async createCreatorActionPreset(preset: any): Promise<any> {
+    const [created] = await db
+      .insert(creatorActionPresets)
+      .values(preset)
+      .returning();
+    return created;
+  }
+
+  async updateCreatorActionPreset(id: string, updates: any): Promise<any> {
+    const [updated] = await db
+      .update(creatorActionPresets)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(creatorActionPresets.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteCreatorActionPreset(id: string): Promise<void> {
+    await db
+      .delete(creatorActionPresets)
+      .where(eq(creatorActionPresets.id, id));
+  }
+
+  async getCreatorActionPresetById(id: string): Promise<any> {
+    const [preset] = await db
+      .select()
+      .from(creatorActionPresets)
+      .where(eq(creatorActionPresets.id, id));
+    return preset;
   }
 }
 

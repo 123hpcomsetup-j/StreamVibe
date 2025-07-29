@@ -20,9 +20,11 @@ import {
   insertChatMessageSchema,
   insertCreatorActionPresetSchema,
   insertPrivateCallRequestSchema,
+  insertAdminTipMenuSchema,
   creatorActionPresets,
   privateCallRequests,
-  guestSessions 
+  guestSessions,
+  adminTipMenu
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -920,25 +922,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Creator action presets endpoints
+  // Creator Action Presets Routes
   app.get('/api/creator/action-presets', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
       
-      if (!user || user.role !== 'creator') {
-        return res.status(403).json({ message: "Creator access required" });
+      if (user?.role !== 'creator') {
+        return res.status(403).json({ message: "Only creators can access action presets" });
       }
 
-      const presets = await db.select()
-        .from(creatorActionPresets)
-        .where(eq(creatorActionPresets.creatorId, userId))
-        .orderBy(creatorActionPresets.order);
-
+      const presets = await storage.getCreatorActionPresets(userId);
       res.json(presets);
     } catch (error) {
-      console.error("Error fetching action presets:", error);
-      res.status(500).json({ message: "Failed to fetch action presets" });
+      console.error("Error fetching creator action presets:", error);
+      res.status(500).json({ message: "Failed to fetch creator action presets" });
     }
   });
 
@@ -947,22 +945,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
       
-      if (!user || user.role !== 'creator') {
-        return res.status(403).json({ message: "Creator access required" });
+      if (user?.role !== 'creator') {
+        return res.status(403).json({ message: "Only creators can create action presets" });
       }
 
-      const data = insertCreatorActionPresetSchema.parse({
+      // Check if creator already has 5 action presets (limit)
+      const existingPresets = await storage.getCreatorActionPresets(userId);
+      if (existingPresets.length >= 5) {
+        return res.status(400).json({ message: "Maximum 5 action presets allowed per creator" });
+      }
+
+      const validatedData = insertCreatorActionPresetSchema.parse({
         ...req.body,
-        creatorId: userId
+        creatorId: userId,
+        isEnabled: true
       });
 
-      const [preset] = await db.insert(creatorActionPresets)
-        .values(data)
-        .returning();
-
+      const preset = await storage.createCreatorActionPreset(validatedData);
       res.json(preset);
     } catch (error) {
-      console.error("Error creating action preset:", error);
+      console.error("Error creating creator action preset:", error);
       res.status(400).json({ message: "Failed to create action preset" });
     }
   });
@@ -970,30 +972,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/creator/action-presets/:id', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
+      const { id } = req.params;
       const user = await storage.getUser(userId);
       
-      if (!user || user.role !== 'creator') {
-        return res.status(403).json({ message: "Creator access required" });
+      if (user?.role !== 'creator') {
+        return res.status(403).json({ message: "Only creators can update action presets" });
       }
 
-      const { id } = req.params;
-      const data = insertCreatorActionPresetSchema.parse({
+      // Verify the preset belongs to this creator
+      const preset = await storage.getCreatorActionPresetById(id);
+      if (!preset || preset.creatorId !== userId) {
+        return res.status(404).json({ message: "Action preset not found" });
+      }
+
+      const validatedData = insertCreatorActionPresetSchema.parse({
         ...req.body,
         creatorId: userId
       });
 
-      const [preset] = await db.update(creatorActionPresets)
-        .set({ ...data, updatedAt: new Date() })
-        .where(eq(creatorActionPresets.id, id))
-        .returning();
-
-      if (!preset) {
-        return res.status(404).json({ message: "Action preset not found" });
-      }
-
-      res.json(preset);
+      const updatedPreset = await storage.updateCreatorActionPreset(id, validatedData);
+      res.json(updatedPreset);
     } catch (error) {
-      console.error("Error updating action preset:", error);
+      console.error("Error updating creator action preset:", error);
       res.status(400).json({ message: "Failed to update action preset" });
     }
   });
@@ -1001,25 +1001,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/creator/action-presets/:id', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
+      const { id } = req.params;
       const user = await storage.getUser(userId);
       
-      if (!user || user.role !== 'creator') {
-        return res.status(403).json({ message: "Creator access required" });
+      if (user?.role !== 'creator') {
+        return res.status(403).json({ message: "Only creators can delete action presets" });
       }
 
-      const { id } = req.params;
-
-      const [deleted] = await db.delete(creatorActionPresets)
-        .where(eq(creatorActionPresets.id, id))
-        .returning();
-
-      if (!deleted) {
+      // Verify the preset belongs to this creator
+      const preset = await storage.getCreatorActionPresetById(id);
+      if (!preset || preset.creatorId !== userId) {
         return res.status(404).json({ message: "Action preset not found" });
       }
 
+      await storage.deleteCreatorActionPreset(id);
       res.json({ message: "Action preset deleted successfully" });
     } catch (error) {
-      console.error("Error deleting action preset:", error);
+      console.error("Error deleting creator action preset:", error);
       res.status(400).json({ message: "Failed to delete action preset" });
     }
   });
@@ -1276,6 +1274,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error changing admin password:", error);
       res.status(400).json({ message: "Failed to change password" });
+    }
+  });
+
+  // Admin tip menu management endpoints
+  app.get('/api/admin/tip-menu', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const tipMenuItems = await db.select()
+        .from(adminTipMenu)
+        .orderBy(adminTipMenu.order);
+
+      res.json(tipMenuItems);
+    } catch (error) {
+      console.error("Error fetching tip menu:", error);
+      res.status(500).json({ message: "Failed to fetch tip menu" });
+    }
+  });
+
+  app.post('/api/admin/tip-menu', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const data = insertAdminTipMenuSchema.parse(req.body);
+
+      const [tipMenuItem] = await db.insert(adminTipMenu)
+        .values(data)
+        .returning();
+
+      res.json(tipMenuItem);
+    } catch (error) {
+      console.error("Error creating tip menu item:", error);
+      res.status(400).json({ message: "Failed to create tip menu item" });
+    }
+  });
+
+  app.put('/api/admin/tip-menu/:id', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const data = insertAdminTipMenuSchema.parse(req.body);
+
+      const [tipMenuItem] = await db.update(adminTipMenu)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(adminTipMenu.id, id))
+        .returning();
+
+      if (!tipMenuItem) {
+        return res.status(404).json({ message: "Tip menu item not found" });
+      }
+
+      res.json(tipMenuItem);
+    } catch (error) {
+      console.error("Error updating tip menu item:", error);
+      res.status(400).json({ message: "Failed to update tip menu item" });
+    }
+  });
+
+  app.delete('/api/admin/tip-menu/:id', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+
+      const [deleted] = await db.delete(adminTipMenu)
+        .where(eq(adminTipMenu.id, id))
+        .returning();
+
+      if (!deleted) {
+        return res.status(404).json({ message: "Tip menu item not found" });
+      }
+
+      res.json({ message: "Tip menu item deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting tip menu item:", error);
+      res.status(400).json({ message: "Failed to delete tip menu item" });
     }
   });
 

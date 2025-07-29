@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { DollarSign, Users, Clock, Heart, Play, Settings, Phone, Mail, UserIcon, Video } from "lucide-react";
+import { DollarSign, Users, Clock, Heart, Play, Settings, Phone, Mail, UserIcon, Video, Plus, Trash2, Edit, CheckCircle, XCircle } from "lucide-react";
 import PrivateCallRequests from "@/components/private-call-requests";
 import StreamModal from "@/components/stream-modal";
 import AgoraStreamCreator from "@/components/agora-stream-creator";
@@ -44,6 +44,11 @@ export default function CreatorDashboard() {
   const [showAgoraModal, setShowAgoraModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [streamKey, setStreamKey] = useState<string>("");
+  
+  // Custom tips state
+  const [customTips, setCustomTips] = useState<Array<{id?: string, name: string, tokenCost: number}>>([]);
+  const [newTip, setNewTip] = useState({ name: "", tokenCost: 2 });
+  const [editingTip, setEditingTip] = useState<{id: string, name: string, tokenCost: number} | null>(null);
 
 
   const typedUser = user as User | undefined;
@@ -159,7 +164,82 @@ export default function CreatorDashboard() {
     }
   }, [currentStream]);
 
+  // Fetch creator's custom tip actions
+  const { data: creatorTips = [] } = useQuery({
+    queryKey: ["/api/creator/action-presets"],
+    retry: false,
+    enabled: !!typedUser,
+  });
 
+  // Update local state when creator tips are loaded
+  useEffect(() => {
+    if (creatorTips && Array.isArray(creatorTips)) {
+      setCustomTips(creatorTips);
+    }
+  }, [creatorTips]);
+
+  // Custom tip mutations
+  const createTipMutation = useMutation({
+    mutationFn: async (data: { name: string; tokenCost: number; order: number }) => {
+      return await apiRequest("POST", "/api/creator/action-presets", data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Custom Tip Added",
+        description: "Your custom tip action has been saved.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/creator/action-presets"] });
+      setNewTip({ name: "", tokenCost: 2 });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Add Tip",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const updateTipMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: { name: string; tokenCost: number } }) => {
+      return await apiRequest("PUT", `/api/creator/action-presets/${id}`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Tip Updated",
+        description: "Your custom tip action has been updated.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/creator/action-presets"] });
+      setEditingTip(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Update Tip",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteTipMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("DELETE", `/api/creator/action-presets/${id}`, {});
+    },
+    onSuccess: () => {
+      toast({
+        title: "Tip Deleted",
+        description: "Your custom tip action has been removed.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/creator/action-presets"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Delete Tip",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
 
   const createStreamMutation = useMutation({
     mutationFn: async (streamData: any) => {
@@ -798,6 +878,183 @@ export default function CreatorDashboard() {
                 </div>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Custom Tips Management */}
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center">
+              <Heart className="mr-2 h-5 w-5 text-pink-500" />
+              Custom Tip Actions
+            </CardTitle>
+            <p className="text-slate-400 text-sm">
+              Create custom tip actions for your viewers. These will be automatically promoted in your chat every 10 seconds when you're live.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Add New Tip Action */}
+            <Card className="bg-slate-700 border-slate-600">
+              <CardContent className="p-4">
+                <h3 className="text-white font-medium mb-4">Add New Tip Action</h3>
+                <div className="flex space-x-4">
+                  <div className="flex-1">
+                    <Label className="text-slate-300">Action Name</Label>
+                    <Input
+                      value={newTip.name}
+                      onChange={(e) => setNewTip(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="e.g., Say Hello, Wave, Dance"
+                      className="bg-slate-600 border-slate-500 text-white"
+                    />
+                  </div>
+                  <div className="w-32">
+                    <Label className="text-slate-300">Token Cost</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={newTip.tokenCost}
+                      onChange={(e) => setNewTip(prev => ({ ...prev, tokenCost: parseInt(e.target.value) || 2 }))}
+                      className="bg-slate-600 border-slate-500 text-white"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      onClick={() => {
+                        if (newTip.name.trim()) {
+                          createTipMutation.mutate({
+                            name: newTip.name.trim(),
+                            tokenCost: newTip.tokenCost,
+                            order: customTips.length
+                          });
+                        }
+                      }}
+                      disabled={createTipMutation.isPending || !newTip.name.trim()}
+                      className="bg-pink-600 hover:bg-pink-700"
+                    >
+                      <Plus className="mr-1 h-4 w-4" />
+                      Add Action
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Existing Custom Tips */}
+            {customTips.length === 0 ? (
+              <div className="text-center py-8">
+                <Heart className="h-12 w-12 text-slate-500 mx-auto mb-4" />
+                <p className="text-slate-400">No custom tip actions yet</p>
+                <p className="text-slate-500 text-sm">Add your first custom tip action above</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {customTips.map((tip: any, index: number) => (
+                  <Card key={tip.id} className="bg-slate-700 border-slate-600">
+                    <CardContent className="p-4">
+                      {editingTip?.id === tip.id ? (
+                        // Edit Mode
+                        <div className="flex items-center space-x-4">
+                          <div className="flex-1">
+                            <Input
+                              value={editingTip.name}
+                              onChange={(e) => setEditingTip(prev => ({ ...prev!, name: e.target.value }))}
+                              className="bg-slate-600 border-slate-500 text-white"
+                            />
+                          </div>
+                          <div className="w-24">
+                            <Input
+                              type="number"
+                              min="1"
+                              value={editingTip.tokenCost}
+                              onChange={(e) => setEditingTip(prev => ({ ...prev!, tokenCost: parseInt(e.target.value) || 2 }))}
+                              className="bg-slate-600 border-slate-500 text-white"
+                            />
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                updateTipMutation.mutate({
+                                  id: tip.id,
+                                  data: {
+                                    name: editingTip.name,
+                                    tokenCost: editingTip.tokenCost
+                                  }
+                                });
+                              }}
+                              disabled={updateTipMutation.isPending}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setEditingTip(null)}
+                              className="border-slate-500"
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        // Display Mode
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <span className="text-slate-400 text-sm">#{index + 1}</span>
+                            <span className="text-white font-medium">{tip.name}</span>
+                            <Badge variant="outline" className="text-pink-400 border-pink-400">
+                              {tip.tokenCost} tokens
+                            </Badge>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setEditingTip({
+                                id: tip.id,
+                                name: tip.name,
+                                tokenCost: tip.tokenCost
+                              })}
+                              className="border-slate-500 text-slate-300 hover:bg-slate-600"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => {
+                                if (confirm(`Delete "${tip.name}" tip action?`)) {
+                                  deleteTipMutation.mutate(tip.id);
+                                }
+                              }}
+                              disabled={deleteTipMutation.isPending}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {/* Information Box */}
+            <div className="bg-pink-900/20 border border-pink-600/30 rounded-lg p-4">
+              <h4 className="text-pink-300 font-medium mb-2 flex items-center">
+                <Heart className="mr-2 h-4 w-4" />
+                Auto-Promotion Feature
+              </h4>
+              <ul className="text-pink-200 text-sm space-y-1">
+                <li>• Your custom tip actions will be automatically promoted in chat every 10 seconds while you're live</li>
+                <li>• Example: "💖 Tip Actions: Say Hello (2 tokens), Wave (2 tokens) - Show some love!"</li>
+                <li>• Maximum 5 custom tip actions can be created per creator</li>
+                <li>• Viewers can tip you using these predefined actions for easier interaction</li>
+              </ul>
+            </div>
           </CardContent>
         </Card>
 

@@ -120,6 +120,17 @@ export const chatMessages = pgTable("chat_messages", {
 });
 
 // Creator action presets table - save custom actions for reuse
+// Admin tip menu - global tip actions managed by admins
+export const adminTipMenu = pgTable("admin_tip_menu", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  tokenCost: integer("token_cost").notNull(),
+  isEnabled: boolean("is_enabled").default(true),
+  order: integer("order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const creatorActionPresets = pgTable("creator_action_presets", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   creatorId: varchar("creator_id").references(() => users.id).notNull(),
@@ -263,18 +274,24 @@ export const insertPayoutSchema = createInsertSchema(payouts).omit({
   createdAt: true,
 });
 
+export const insertCreatorActionPresetSchema = createInsertSchema(creatorActionPresets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAdminTipMenuSchema = createInsertSchema(adminTipMenu).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
   id: true,
   createdAt: true,
 });
 
 export const insertGuestSessionSchema = createInsertSchema(guestSessions).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertCreatorActionPresetSchema = createInsertSchema(creatorActionPresets).omit({
   id: true,
   createdAt: true,
   updatedAt: true,

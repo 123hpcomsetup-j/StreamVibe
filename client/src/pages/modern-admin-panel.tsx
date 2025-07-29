@@ -29,7 +29,11 @@ import {
   Ban,
   AlertTriangle,
   Play,
-  Home
+  Home,
+  Heart,
+  Plus,
+  Trash2,
+  Edit
 } from "lucide-react";
 
 export default function ModernAdminPanel() {
@@ -39,6 +43,10 @@ export default function ModernAdminPanel() {
   const [selectedPayout, setSelectedPayout] = useState<any>(null);
   const [utrNumber, setUtrNumber] = useState("");
   const [showReleaseDialog, setShowReleaseDialog] = useState(false);
+  
+  // Tip menu management state
+  const [newTipItem, setNewTipItem] = useState({ name: "", tokenCost: 1 });
+  const [editingTipItem, setEditingTipItem] = useState<any>(null);
   // Get active tab from URL parameters  
   const urlParams = new URLSearchParams(location.split('?')[1] || '');
   const [activeTab, setActiveTab] = useState(urlParams.get('tab') || 'dashboard');
@@ -100,6 +108,12 @@ export default function ModernAdminPanel() {
   // Fetch all users for banning
   const { data: allUsers = [] } = useQuery({
     queryKey: ["/api/admin/users"],
+    retry: false,
+  }) as { data: any[] };
+
+  // Fetch tip menu items
+  const { data: tipMenuItems = [] } = useQuery({
+    queryKey: ["/api/admin/tip-menu"],
     retry: false,
   }) as { data: any[] };
 
@@ -259,6 +273,69 @@ export default function ModernAdminPanel() {
     releasePayoutMutation.mutate({ payoutId: selectedPayout.id, utrNumber });
   };
 
+  // Tip menu mutations
+  const createTipMenuItemMutation = useMutation({
+    mutationFn: async (data: { name: string; tokenCost: number; order: number }) => {
+      return await apiRequest("POST", "/api/admin/tip-menu", data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Tip Menu Item Created",
+        description: "New tip action has been added to the menu.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tip-menu"] });
+      setNewTipItem({ name: "", tokenCost: 1 });
+    },
+    onError: (error) => {
+      toast({
+        title: "Creation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const updateTipMenuItemMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: { name: string; tokenCost: number; isEnabled: boolean } }) => {
+      return await apiRequest("PUT", `/api/admin/tip-menu/${id}`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Tip Menu Item Updated",
+        description: "The tip action has been updated.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tip-menu"] });
+      setEditingTipItem(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteTipMenuItemMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("DELETE", `/api/admin/tip-menu/${id}`, {});
+    },
+    onSuccess: () => {
+      toast({
+        title: "Tip Menu Item Deleted",
+        description: "The tip action has been removed.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tip-menu"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Delete Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 flex items-center justify-center">
@@ -394,6 +471,14 @@ export default function ModernAdminPanel() {
           >
             <Users className="mr-2 h-4 w-4" />
             All Users
+          </Button>
+          <Button
+            onClick={() => setActiveTab('tip-menu')}
+            variant={activeTab === 'tip-menu' ? 'default' : 'outline'}
+            className={activeTab === 'tip-menu' ? 'bg-pink-600 hover:bg-pink-700' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}
+          >
+            <Heart className="mr-2 h-4 w-4" />
+            Tip Menu ({tipMenuItems.length})
           </Button>
           <Button
             onClick={() => setActiveTab('creators')}
@@ -785,6 +870,219 @@ export default function ModernAdminPanel() {
                     ))}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Tip Menu Tab */}
+          {activeTab === 'tip-menu' && (
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center">
+                  <Heart className="mr-2 h-5 w-5" />
+                  Global Tip Menu Management
+                </CardTitle>
+                <p className="text-slate-400 text-sm">
+                  Configure tip actions that all creators can use in their streams
+                </p>
+              </CardHeader>
+              <CardContent>
+                {/* Add New Tip Item */}
+                <Card className="bg-slate-700 border-slate-600 mb-6">
+                  <CardContent className="p-4">
+                    <h3 className="text-white font-medium mb-4">Add New Tip Action</h3>
+                    <div className="flex space-x-4">
+                      <div className="flex-1">
+                        <Label className="text-slate-300">Action Name</Label>
+                        <Input
+                          value={newTipItem.name}
+                          onChange={(e) => setNewTipItem(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="e.g., Say Hi, Wave, Dance"
+                          className="bg-slate-600 border-slate-500 text-white"
+                        />
+                      </div>
+                      <div className="w-32">
+                        <Label className="text-slate-300">Token Cost</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={newTipItem.tokenCost}
+                          onChange={(e) => setNewTipItem(prev => ({ ...prev, tokenCost: parseInt(e.target.value) || 1 }))}
+                          className="bg-slate-600 border-slate-500 text-white"
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        <Button
+                          onClick={() => {
+                            if (newTipItem.name.trim()) {
+                              createTipMenuItemMutation.mutate({
+                                name: newTipItem.name.trim(),
+                                tokenCost: newTipItem.tokenCost,
+                                order: tipMenuItems.length
+                              });
+                            }
+                          }}
+                          disabled={createTipMenuItemMutation.isPending || !newTipItem.name.trim()}
+                          className="bg-pink-600 hover:bg-pink-700"
+                        >
+                          <Plus className="mr-1 h-4 w-4" />
+                          Add Action
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Existing Tip Menu Items */}
+                {tipMenuItems.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Heart className="h-12 w-12 text-slate-500 mx-auto mb-4" />
+                    <p className="text-slate-400">No tip actions configured yet</p>
+                    <p className="text-slate-500 text-sm">Add your first tip action above</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {tipMenuItems.map((item: any, index: number) => (
+                      <Card key={item.id} className="bg-slate-700 border-slate-600">
+                        <CardContent className="p-4">
+                          {editingTipItem?.id === item.id ? (
+                            // Edit Mode
+                            <div className="flex items-center space-x-4">
+                              <div className="flex-1">
+                                <Input
+                                  value={editingTipItem.name}
+                                  onChange={(e) => setEditingTipItem(prev => ({ ...prev, name: e.target.value }))}
+                                  className="bg-slate-600 border-slate-500 text-white"
+                                />
+                              </div>
+                              <div className="w-24">
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={editingTipItem.tokenCost}
+                                  onChange={(e) => setEditingTipItem(prev => ({ ...prev, tokenCost: parseInt(e.target.value) || 1 }))}
+                                  className="bg-slate-600 border-slate-500 text-white"
+                                />
+                              </div>
+                              <div className="flex space-x-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    updateTipMenuItemMutation.mutate({
+                                      id: item.id,
+                                      data: {
+                                        name: editingTipItem.name,
+                                        tokenCost: editingTipItem.tokenCost,
+                                        isEnabled: editingTipItem.isEnabled
+                                      }
+                                    });
+                                  }}
+                                  disabled={updateTipMenuItemMutation.isPending}
+                                  className="bg-green-600 hover:bg-green-700"
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setEditingTipItem(null)}
+                                  className="border-slate-500"
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            // Display Mode
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-4">
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-slate-400 text-sm">#{index + 1}</span>
+                                  <span className="text-white font-medium">{item.name}</span>
+                                  <Badge variant="outline" className="text-pink-400 border-pink-400">
+                                    {item.tokenCost} tokens
+                                  </Badge>
+                                  {item.isEnabled ? (
+                                    <Badge variant="outline" className="text-green-400 border-green-400">
+                                      Active
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-gray-400 border-gray-400">
+                                      Disabled
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex space-x-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setEditingTipItem({
+                                    id: item.id,
+                                    name: item.name,
+                                    tokenCost: item.tokenCost,
+                                    isEnabled: item.isEnabled
+                                  })}
+                                  className="border-slate-500 text-slate-300 hover:bg-slate-600"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    updateTipMenuItemMutation.mutate({
+                                      id: item.id,
+                                      data: {
+                                        name: item.name,
+                                        tokenCost: item.tokenCost,
+                                        isEnabled: !item.isEnabled
+                                      }
+                                    });
+                                  }}
+                                  disabled={updateTipMenuItemMutation.isPending}
+                                  className={item.isEnabled 
+                                    ? "border-gray-600 text-gray-400 hover:bg-gray-600" 
+                                    : "border-green-600 text-green-400 hover:bg-green-600"
+                                  }
+                                >
+                                  {item.isEnabled ? "Disable" : "Enable"}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => {
+                                    if (confirm(`Delete tip action "${item.name}"?`)) {
+                                      deleteTipMenuItemMutation.mutate(item.id);
+                                    }
+                                  }}
+                                  disabled={deleteTipMenuItemMutation.isPending}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+
+                {/* Information Box */}
+                <div className="mt-6 bg-pink-900/20 border border-pink-600/30 rounded-lg p-4">
+                  <h4 className="text-pink-300 font-medium mb-2 flex items-center">
+                    <Heart className="mr-2 h-4 w-4" />
+                    How Tip Menu Works
+                  </h4>
+                  <ul className="text-pink-200 text-sm space-y-1">
+                    <li>• These tip actions appear in all live stream chats</li>
+                    <li>• Viewers can click buttons to tip creators with these amounts</li>
+                    <li>• Enable/disable actions to control what's available</li>
+                    <li>• Order changes by dragging (coming soon)</li>
+                  </ul>
+                </div>
               </CardContent>
             </Card>
           )}
