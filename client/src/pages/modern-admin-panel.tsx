@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -33,11 +34,16 @@ import {
 export default function ModernAdminPanel() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const [location] = useLocation();
   const [selectedPayout, setSelectedPayout] = useState<any>(null);
   const [utrNumber, setUtrNumber] = useState("");
   const [showReleaseDialog, setShowReleaseDialog] = useState(false);
 
   const typedUser = user as User | undefined;
+  
+  // Get active tab from URL parameters
+  const urlParams = new URLSearchParams(location.split('?')[1] || '');
+  const activeTab = urlParams.get('tab') || 'streams';
 
   // Redirect to home if not authenticated or not an admin
   useEffect(() => {
@@ -341,7 +347,7 @@ export default function ModernAdminPanel() {
         </div>
 
         {/* Main Content */}
-        <Tabs defaultValue="streams" className="space-y-6">
+        <Tabs value={activeTab} className="space-y-6">
           <TabsList className="bg-slate-800 border-slate-700">
             <TabsTrigger value="streams" className="data-[state=active]:bg-red-600">
               Stream Monitor

@@ -1,8 +1,11 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useState } from "react";
 import { 
   Home, 
@@ -17,7 +20,9 @@ import {
   X,
   Search,
   Bell,
-  AlertTriangle
+  AlertTriangle,
+  CheckCircle,
+  Clock
 } from "lucide-react";
 import type { User } from "@shared/schema";
 
@@ -25,7 +30,31 @@ export default function AdminNavbar() {
   const { user } = useAuth();
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const typedUser = user as User | undefined;
+
+  // Fetch pending approvals for notifications
+  const { data: pendingCreators = [] } = useQuery({
+    queryKey: ["/api/admin/pending-creators"],
+    enabled: typedUser?.role === 'admin',
+    retry: false,
+  }) as { data: any[] };
+
+  const { data: pendingTokenPurchases = [] } = useQuery({
+    queryKey: ["/api/admin/pending-token-purchases"],
+    enabled: typedUser?.role === 'admin',
+    retry: false,
+  }) as { data: any[] };
+
+  const { data: pendingPayouts = [] } = useQuery({
+    queryKey: ["/api/admin/pending-payouts"],
+    enabled: typedUser?.role === 'admin',
+    retry: false,
+  }) as { data: any[] };
+
+  const totalNotifications = (pendingCreators?.length || 0) + 
+                            (pendingTokenPurchases?.length || 0) + 
+                            (pendingPayouts?.length || 0);
 
   const handleLogout = async () => {
     try {
@@ -119,16 +148,118 @@ export default function AdminNavbar() {
             </div>
             
             {/* Notification Bell - Responsive */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-red-200 hover:text-white relative p-1.5 sm:p-2"
-            >
-              <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
-              <span className="absolute -top-1 -right-1 bg-yellow-500 text-black text-xs rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center">
-                3
-              </span>
-            </Button>
+            <Popover open={showNotifications} onOpenChange={setShowNotifications}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-red-200 hover:text-white relative p-1.5 sm:p-2"
+                >
+                  <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
+                  {totalNotifications > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-yellow-500 text-black text-xs rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center">
+                      {totalNotifications > 99 ? '99+' : totalNotifications}
+                    </span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0 bg-slate-800 border-slate-700" align="end">
+                <Card className="bg-slate-800 border-slate-700">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-white flex items-center text-sm">
+                      <Bell className="mr-2 h-4 w-4" />
+                      Pending Approvals ({totalNotifications})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0 max-h-96 overflow-y-auto">
+                    {totalNotifications === 0 ? (
+                      <div className="p-4 text-center text-slate-400">
+                        <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                        <p className="text-sm">All caught up!</p>
+                        <p className="text-xs">No pending approvals</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {/* Pending Creator Accounts */}
+                        {pendingCreators.map((creator: any) => (
+                          <div key={creator.id} className="p-3 hover:bg-slate-700/50 border-b border-slate-700 last:border-b-0">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-white">
+                                  New Creator Application
+                                </p>
+                                <p className="text-xs text-slate-400">
+                                  {creator.username} ({creator.email})
+                                </p>
+                                <div className="flex items-center mt-1">
+                                  <Clock className="h-3 w-3 text-orange-400 mr-1" />
+                                  <span className="text-xs text-orange-400">Awaiting approval</span>
+                                </div>
+                              </div>
+                              <Link href="/admin-panel?tab=creators">
+                                <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-xs">
+                                  Review
+                                </Button>
+                              </Link>
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* Pending Token Purchases */}
+                        {pendingTokenPurchases.map((purchase: any) => (
+                          <div key={purchase.id} className="p-3 hover:bg-slate-700/50 border-b border-slate-700 last:border-b-0">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-white">
+                                  Token Purchase Request
+                                </p>
+                                <p className="text-xs text-slate-400">
+                                  {purchase.tokens} tokens for ₹{purchase.amount}
+                                </p>
+                                <div className="flex items-center mt-1">
+                                  <Clock className="h-3 w-3 text-orange-400 mr-1" />
+                                  <span className="text-xs text-orange-400">Payment verification needed</span>
+                                </div>
+                              </div>
+                              <Link href="/admin-panel?tab=payments">
+                                <Button size="sm" className="bg-green-600 hover:bg-green-700 text-xs">
+                                  Review
+                                </Button>
+                              </Link>
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* Pending Payouts */}
+                        {pendingPayouts.map((payout: any) => (
+                          <div key={payout.id} className="p-3 hover:bg-slate-700/50 border-b border-slate-700 last:border-b-0">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-white">
+                                  Payout Request
+                                </p>
+                                <p className="text-xs text-slate-400">
+                                  ₹{payout.amount} to {payout.creatorName}
+                                </p>
+                                <div className="flex items-center mt-1">
+                                  <Clock className="h-3 w-3 text-orange-400 mr-1" />
+                                  <span className="text-xs text-orange-400">Awaiting payment</span>
+                                </div>
+                              </div>
+                              <Link href="/admin-panel?tab=payouts">
+                                <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-xs">
+                                  Review
+                                </Button>
+                              </Link>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </PopoverContent>
+            </Popover>
             
             {/* Profile and Controls */}
             <div className="flex items-center space-x-2">
@@ -217,16 +348,63 @@ export default function AdminNavbar() {
                     <span className="font-medium text-white">{typedUser?.username || 'Administrator'}</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-200 hover:text-white relative p-2"
-                    >
-                      <Bell className="h-4 w-4" />
-                      <span className="absolute -top-1 -right-1 bg-yellow-500 text-black text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                        3
-                      </span>
-                    </Button>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-200 hover:text-white relative p-2"
+                        >
+                          <Bell className="h-4 w-4" />
+                          {totalNotifications > 0 && (
+                            <span className="absolute -top-1 -right-1 bg-yellow-500 text-black text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                              {totalNotifications > 99 ? '99+' : totalNotifications}
+                            </span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 p-0 bg-slate-800 border-slate-700" align="end">
+                        <Card className="bg-slate-800 border-slate-700">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-white flex items-center text-sm">
+                              <Bell className="mr-2 h-4 w-4" />
+                              Pending Approvals ({totalNotifications})
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="p-0 max-h-64 overflow-y-auto">
+                            {totalNotifications === 0 ? (
+                              <div className="p-4 text-center text-slate-400">
+                                <CheckCircle className="h-6 w-6 mx-auto mb-2 text-green-500" />
+                                <p className="text-sm">All caught up!</p>
+                              </div>
+                            ) : (
+                              <div className="space-y-1">
+                                {pendingCreators.map((creator: any) => (
+                                  <div key={creator.id} className="p-2 hover:bg-slate-700/50 border-b border-slate-700 last:border-b-0">
+                                    <p className="text-xs font-medium text-white">Creator: {creator.username}</p>
+                                    <Link href="/admin-panel?tab=creators">
+                                      <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-xs mt-1">
+                                        Review
+                                      </Button>
+                                    </Link>
+                                  </div>
+                                ))}
+                                {pendingTokenPurchases.map((purchase: any) => (
+                                  <div key={purchase.id} className="p-2 hover:bg-slate-700/50 border-b border-slate-700 last:border-b-0">
+                                    <p className="text-xs font-medium text-white">Token Purchase: {purchase.tokens} tokens</p>
+                                    <Link href="/admin-panel?tab=payments">
+                                      <Button size="sm" className="bg-green-600 hover:bg-green-700 text-xs mt-1">
+                                        Review
+                                      </Button>
+                                    </Link>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
                 
