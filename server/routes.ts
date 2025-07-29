@@ -61,8 +61,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { channelName, uid, role } = req.body;
       
+      console.log('=== AGORA TOKEN REQUEST ===');
+      console.log('Request body:', JSON.stringify(req.body, null, 2));
+      console.log('Channel Name:', channelName);
+      console.log('UID:', uid, 'Type:', typeof uid);
+      console.log('Role:', role);
+      
       const appId = process.env.VITE_AGORA_APP_ID;
       const appCertificate = process.env.AGORA_APP_CERTIFICATE;
+      
+      console.log('App ID (first 6 chars):', appId?.substring(0, 6) + '...');
+      console.log('App Certificate configured:', !!appCertificate);
       
       if (!appId || !appCertificate) {
         return res.status(500).json({ message: "Agora credentials not configured" });
@@ -79,6 +88,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use proper Agora role constants
       const agoraRole = role === 'host' ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER;
       
+      console.log('Token generation params:');
+      console.log('- appId:', appId);
+      console.log('- channelName:', channelName);
+      console.log('- uid:', uid);
+      console.log('- agoraRole:', agoraRole, '(PUBLISHER=1, SUBSCRIBER=2)');
+      console.log('- privilegeExpiredTs:', privilegeExpiredTs);
+      
       // Generate token
       const token = RtcTokenBuilder.buildTokenWithUid(
         appId,
@@ -89,10 +105,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         privilegeExpiredTs
       );
       
-      console.log(`Generated Agora token for channel: ${channelName}, role: ${role}, uid: ${uid}`);
+      console.log('Generated token (first 20 chars):', token.substring(0, 20) + '...');
+      console.log('=== END TOKEN REQUEST ===');
+      
       res.json({ token });
     } catch (error: any) {
+      console.error("=== AGORA TOKEN ERROR ===");
       console.error("Error generating Agora token:", error);
+      console.error("Error stack:", error.stack);
       console.error("Environment check - VITE_AGORA_APP_ID:", !!process.env.VITE_AGORA_APP_ID);
       console.error("Environment check - AGORA_APP_CERTIFICATE:", !!process.env.AGORA_APP_CERTIFICATE);
       res.status(500).json({ message: "Failed to generate token", error: error?.message || 'Unknown error' });

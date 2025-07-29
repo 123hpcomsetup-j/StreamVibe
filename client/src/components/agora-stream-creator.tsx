@@ -105,30 +105,45 @@ export default function AgoraStreamCreator({
         channelName = `stream_${Date.now()}`;
       }
       
-      console.log('Joining Agora channel:', channelName, 'with user ID:', numericUserId);
+      console.log('=== CREATOR JOIN ATTEMPT ===');
+      console.log('Channel Name:', channelName);
+      console.log('Numeric User ID:', numericUserId);
+      console.log('App ID (first 6 chars):', appId.substring(0, 6) + '...');
       
       // Get Agora token from backend
+      const tokenRequestBody = {
+        channelName,
+        uid: numericUserId,
+        role: 'host'
+      };
+      
+      console.log('Token request body:', JSON.stringify(tokenRequestBody, null, 2));
+      
       const tokenResponse = await fetch('/api/agora/token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          channelName,
-          uid: numericUserId,
-          role: 'host'
-        }),
+        body: JSON.stringify(tokenRequestBody),
       });
       
       if (!tokenResponse.ok) {
+        const errorData = await tokenResponse.text();
+        console.error('Token request failed:', errorData);
         throw new Error('Failed to get Agora token');
       }
       
       const { token } = await tokenResponse.json();
-      console.log('Got Agora token, joining channel...');
+      console.log('Got Agora token (first 20 chars):', token.substring(0, 20) + '...');
+      console.log('Attempting to join channel with:');
+      console.log('- appId:', appId);
+      console.log('- channelName:', channelName);
+      console.log('- token (first 20):', token.substring(0, 20) + '...');
+      console.log('- uid:', numericUserId);
       
       // Join the channel with proper authentication token
       await clientRef.current.join(appId, channelName, token, numericUserId);
+      console.log('=== JOIN SUCCESSFUL ===');
       setIsConnected(true);
 
       // Create and publish video track
