@@ -957,8 +957,8 @@ export default function CreatorDashboard() {
       <StreamModalWebRTC
         isOpen={showWebRTCModal}
         onClose={() => setShowWebRTCModal(false)}
-        streamId={currentStreamQuery.data?.id || ''}
-        socket={socket}
+        streamId={streamKey}
+        socket={(window as any).streamSocket}
       />
     </div>
   );
