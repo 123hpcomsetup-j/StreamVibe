@@ -16,6 +16,7 @@ import ModernAdminPanel from "@/pages/modern-admin-panel";
 import AdminProfile from "@/pages/admin-profile";
 import StreamView from "@/pages/stream-view";
 import UserDashboard from "@/pages/user-dashboard";
+import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 import { io } from "socket.io-client";
@@ -27,7 +28,8 @@ function Router() {
   return (
     <Switch>
       {/* Public routes - always accessible */}
-      <Route path="/" component={PublicHome} />
+      <Route path="/" component={Landing} />
+      <Route path="/public-home" component={PublicHome} />
       <Route path="/stream/:streamId" component={StreamView} />
       <Route path="/login" component={Login} />
       <Route path="/creator-login" component={CreatorLogin} />

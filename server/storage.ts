@@ -40,10 +40,15 @@ export interface IStorage {
   createStream(stream: InsertStream): Promise<Stream>;
   getStreams(): Promise<Stream[]>;
   getLiveStreams(): Promise<Stream[]>;
+  getRecentStreams(): Promise<Stream[]>;
   getStreamById(id: string): Promise<Stream | undefined>;
   updateStream(id: string, updates: Partial<InsertStream>): Promise<Stream>;
   updateStreamStatus(streamId: string, isLive: boolean): Promise<void>;
   deleteStream(id: string): Promise<void>;
+  
+  // User status operations
+  updateUserOnlineStatus(userId: string, isOnline: boolean): Promise<void>;
+  getOnlineUsers(): Promise<User[]>;
   
   // Transaction operations
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
@@ -88,9 +93,7 @@ export interface IStorage {
   approveCreator(userId: string): Promise<User>;
   updateUserWallet(userId: string, amount: number): Promise<User>;
   
-  // User status operations
-  getOnlineUsers(): Promise<User[]>;
-  updateUserOnlineStatus(userId: string, isOnline: boolean): Promise<void>;
+
   
   // Creator analytics
   getCreatorStats(creatorId: string): Promise<any>;
@@ -220,6 +223,37 @@ export class DatabaseStorage implements IStorage {
 
   async deleteStream(id: string): Promise<void> {
     await db.delete(streams).where(eq(streams.id, id));
+  }
+
+  async getRecentStreams(): Promise<Stream[]> {
+    // Get streams that ended in the last 24 hours (use createdAt since updatedAt may not exist)
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    return await db
+      .select()
+      .from(streams)
+      .where(and(
+        eq(streams.isLive, false),
+        sql`${streams.createdAt} >= ${oneDayAgo}`
+      ))
+      .orderBy(desc(streams.createdAt));
+  }
+
+  async updateUserOnlineStatus(userId: string, isOnline: boolean): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        isOnline,
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async getOnlineUsers(): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .where(eq(users.isOnline, true))
+      .orderBy(desc(users.updatedAt));
   }
 
   // Transaction operations
@@ -376,17 +410,7 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  // User status operations
-  async getOnlineUsers(): Promise<User[]> {
-    return await db.select().from(users).where(eq(users.isOnline, true));
-  }
-
-  async updateUserOnlineStatus(userId: string, isOnline: boolean): Promise<void> {
-    await db
-      .update(users)
-      .set({ isOnline })
-      .where(eq(users.id, userId));
-  }
+  // User status operations (moved above to avoid duplicates)
 
   // Stream cleanup operations
   async stopAllUserStreams(userId: string): Promise<void> {
@@ -570,8 +594,7 @@ export class DatabaseStorage implements IStorage {
       await db
         .update(streams)
         .set({ 
-          isLive: false,
-          updatedAt: new Date()
+          isLive: false
         })
         .where(eq(streams.id, streamId));
       

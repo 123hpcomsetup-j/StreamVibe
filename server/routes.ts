@@ -303,6 +303,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get recent closed streams
+  app.get("/api/streams/recent", async (req, res) => {
+    try {
+      const recentStreams = await storage.getRecentStreams();
+      res.json(recentStreams);
+    } catch (error) {
+      console.error('Error fetching recent streams:', error);
+      res.status(500).json({ message: "Failed to fetch recent streams" });
+    }
+  });
+
+  // Get online users
+  app.get("/api/users/online", async (req, res) => {
+    try {
+      const onlineUsers = await storage.getOnlineUsers();
+      res.json(onlineUsers);
+    } catch (error) {
+      console.error('Error fetching online users:', error);
+      res.status(500).json({ message: "Failed to fetch online users" });
+    }
+  });
+
   // Transaction routes
   app.post('/api/transactions', requireAuth, async (req: any, res) => {
     try {
@@ -875,12 +897,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const { username, email, phone, profileImage } = req.body;
+      const { username, email, phoneNumber, profileImageUrl } = req.body;
       const updatedUser = await storage.updateUser(userId, {
         username,
         email,
-        phone,
-        profileImage
+        phoneNumber,
+        profileImageUrl
       });
       res.json(updatedUser);
     } catch (error) {
