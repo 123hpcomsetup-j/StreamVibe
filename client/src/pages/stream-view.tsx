@@ -178,6 +178,7 @@ export default function StreamView() {
     // Listen for stream ready signal
     newSocket.on('stream-ready', async (data: { streamId: string, creatorSocketId: string }) => {
       console.log('Stream ready, creating peer connection');
+      setConnectionStatus('connecting');
       
       // Create peer connection
       const pc = new RTCPeerConnection(rtcConfiguration);
@@ -187,6 +188,7 @@ export default function StreamView() {
         if (videoRef.current && event.streams[0]) {
           videoRef.current.srcObject = event.streams[0];
           setIsStreamConnected(true);
+          setConnectionStatus('connected');
         }
       };
 
@@ -200,7 +202,31 @@ export default function StreamView() {
         }
       };
 
+      // Set connection timeout
+      setTimeout(() => {
+        if (!isStreamConnected) {
+          setConnectionStatus('disconnected');
+          toast({
+            title: "Connection Failed",
+            description: "Unable to connect to stream. The creator may not be broadcasting.",
+            variant: "destructive"
+          });
+        }
+      }, 10000); // 10 second timeout
+
       setPeerConnection(pc);
+    });
+
+    // Listen for no active stream
+    newSocket.on('no-active-stream', () => {
+      console.log('No active stream found');
+      setConnectionStatus('disconnected');
+      setStreamEnded(false); // Don't set as ended, just not active
+      toast({
+        title: "Stream Not Broadcasting",
+        description: "The creator is not currently live.",
+        variant: "destructive"
+      });
     });
 
     // Handle WebRTC signaling
@@ -487,11 +513,27 @@ export default function StreamView() {
                   className="w-full h-full object-cover"
                 />
                 
-                {!isStreamConnected && !streamEnded && (
+                {!isStreamConnected && !streamEnded && connectionStatus === 'connecting' && (
                   <div className="absolute inset-0 flex items-center justify-center bg-slate-900 bg-opacity-75">
                     <div className="text-center">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
                       <p className="text-slate-400">Connecting to stream...</p>
+                    </div>
+                  </div>
+                )}
+
+                {!isStreamConnected && !streamEnded && connectionStatus === 'disconnected' && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-900 bg-opacity-90">
+                    <div className="text-center">
+                      <Wifi className="h-16 w-16 text-slate-500 mx-auto mb-4" />
+                      <h3 className="text-xl font-bold text-white mb-2">Stream Not Broadcasting</h3>
+                      <p className="text-slate-400 mb-4">
+                        {typedStream.creator?.username || 'The creator'} is not currently streaming.
+                      </p>
+                      <Button onClick={() => setLocation("/")} className="bg-primary hover:bg-primary/80">
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Find Other Streams
+                      </Button>
                     </div>
                   </div>
                 )}

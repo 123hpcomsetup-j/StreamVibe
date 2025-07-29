@@ -413,9 +413,9 @@ export default function CreatorLogin() {
                 Test Creator Accounts:
               </p>
               <div className="text-xs text-slate-500 space-y-1">
-                <div>🎨 <strong>bob_gamer</strong> / password123</div>
-                <div>🎭 <strong>charlie_art</strong> / password123</div>
-                <div>🎵 <strong>diana_music</strong> / password123</div>
+                <div>🎮 <strong>test_creator</strong> / password123</div>
+                <div>🎨 <strong>stream_bob</strong> / password123</div>
+                <div>🎵 <strong>live_charlie</strong> / password123</div>
               </div>
             </div>
           </CardContent>

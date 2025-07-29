@@ -93,6 +93,10 @@ export function setupWebRTC(server: Server) {
           streamId,
           count: stream.viewers.size 
         });
+      } else {
+        // No active stream found
+        console.log(`No active stream found for ${streamId}`);
+        socket.emit('no-active-stream', { streamId });
       }
     });
 
