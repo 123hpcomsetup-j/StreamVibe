@@ -23,7 +23,7 @@ router.post('/register', async (req, res) => {
     // Hash password
     const hashedPassword = await hashPassword(password);
 
-    // Create user
+    // Create user with approval logic
     const user = await storage.createUser({
       id: nanoid(),
       username,
@@ -31,7 +31,8 @@ router.post('/register', async (req, res) => {
       password: hashedPassword,
       firstName,
       lastName,
-      role: role as 'viewer' | 'creator' | 'admin'
+      role: role as 'viewer' | 'creator' | 'admin',
+      isApproved: role === 'creator' ? false : true // Creators need approval, others auto-approved
     });
 
     // Set session

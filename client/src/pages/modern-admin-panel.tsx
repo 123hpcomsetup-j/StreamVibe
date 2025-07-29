@@ -62,6 +62,12 @@ export default function ModernAdminPanel() {
     retry: false,
   }) as { data: any[] };
 
+  // Fetch pending creators
+  const { data: pendingCreators = [] } = useQuery({
+    queryKey: ["/api/admin/pending-creators"],
+    retry: false,
+  }) as { data: any[] };
+
   // Get platform stats
   const { data: platformStats } = useQuery({
     queryKey: ["/api/admin/stats"],
@@ -148,6 +154,27 @@ export default function ModernAdminPanel() {
     setShowReleaseDialog(true);
   };
 
+  // Approve creator mutation
+  const approveCreatorMutation = useMutation({
+    mutationFn: async (creatorId: string) => {
+      await apiRequest("POST", `/api/admin/approve-creator/${creatorId}`, {});
+    },
+    onSuccess: () => {
+      toast({
+        title: "Creator Approved",
+        description: "Creator can now access their dashboard.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pending-creators"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Approval Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleConfirmRelease = () => {
     if (!utrNumber.trim()) {
       toast({
@@ -183,8 +210,8 @@ export default function ModernAdminPanel() {
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Payment Management</h1>
-          <p className="text-slate-400">Manage token purchases and creator payouts</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
+          <p className="text-slate-400">Manage payments, approvals, and platform oversight</p>
         </div>
 
         {/* Stats Cards */}
@@ -209,6 +236,18 @@ export default function ModernAdminPanel() {
                   <p className="text-2xl font-bold text-white">{pendingPayouts.length}</p>
                 </div>
                 <Send className="h-8 w-8 text-green-500" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800 border-slate-700">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-400 text-sm">Pending Creators</p>
+                  <p className="text-2xl font-bold text-white">{pendingCreators.length}</p>
+                </div>
+                <Users className="h-8 w-8 text-purple-500" />
               </div>
             </CardContent>
           </Card>
@@ -250,6 +289,9 @@ export default function ModernAdminPanel() {
             </TabsTrigger>
             <TabsTrigger value="payouts" className="data-[state=active]:bg-green-600">
               Creator Payouts ({pendingPayouts.length})
+            </TabsTrigger>
+            <TabsTrigger value="creators" className="data-[state=active]:bg-purple-600">
+              Creator Approvals ({pendingCreators.length})
             </TabsTrigger>
           </TabsList>
 
@@ -355,6 +397,67 @@ export default function ModernAdminPanel() {
                               >
                                 <Send className="mr-1 h-4 w-4" />
                                 Release Payment
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Creator Approvals Tab */}
+          <TabsContent value="creators">
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center">
+                  <Users className="mr-2 h-5 w-5" />
+                  Pending Creator Approvals
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {pendingCreators.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-slate-400">No pending creator approvals</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {pendingCreators.map((creator: any) => (
+                      <Card key={creator.id} className="bg-slate-700 border-slate-600">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-white font-medium">
+                                {creator.firstName} {creator.lastName} (@{creator.username})
+                              </p>
+                              <p className="text-slate-400 text-sm">
+                                Email: {creator.email || 'Not provided'}
+                              </p>
+                              <div className="flex items-center space-x-2 mt-2">
+                                <Badge variant="outline" className="text-purple-400 border-purple-400">
+                                  Creator Account
+                                </Badge>
+                                <Badge variant="outline" className="text-yellow-400 border-yellow-400">
+                                  <Clock className="mr-1 h-3 w-3" />
+                                  Pending Approval
+                                </Badge>
+                              </div>
+                              <p className="text-slate-500 text-xs mt-1">
+                                Registered: {new Date(creator.createdAt).toLocaleString()}
+                              </p>
+                            </div>
+                            <div className="flex space-x-2">
+                              <Button
+                                size="sm"
+                                onClick={() => approveCreatorMutation.mutate(creator.id)}
+                                disabled={approveCreatorMutation.isPending}
+                                className="bg-purple-600 hover:bg-purple-700"
+                              >
+                                <CheckCircle className="mr-1 h-4 w-4" />
+                                Approve Creator
                               </Button>
                             </div>
                           </div>

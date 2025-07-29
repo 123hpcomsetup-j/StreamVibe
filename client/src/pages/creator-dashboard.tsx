@@ -74,6 +74,38 @@ export default function CreatorDashboard() {
     }
   }, [isAuthenticated, isLoading, typedUser, toast]);
 
+  // Show pending approval message if creator not approved
+  if (typedUser?.role === 'creator' && !typedUser?.isApproved) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full bg-slate-800 border-purple-500/20">
+          <CardHeader className="text-center">
+            <CardTitle className="text-white text-2xl">Account Pending Approval</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <div className="text-yellow-400 text-lg">⏳</div>
+            <p className="text-slate-300">
+              Your creator account is currently under review by our administrators.
+            </p>
+            <p className="text-slate-400 text-sm">
+              You'll receive access to your creator dashboard once your account is approved. 
+              This usually takes 24-48 hours.
+            </p>
+            <div className="pt-4">
+              <Button 
+                onClick={() => window.location.href = '/api/auth/logout'}
+                variant="outline"
+                className="text-purple-300 border-purple-500 hover:bg-purple-600"
+              >
+                Logout
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const { data: stats } = useQuery({
     queryKey: ["/api/creator/stats"],
     retry: false,
