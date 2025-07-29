@@ -29,6 +29,12 @@ export function setupWebRTC(server: Server) {
 
   io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id}`);
+    
+    // Store user ID in socket data for later reference
+    socket.on('identify', (data: { userId: string }) => {
+      socket.data = { userId: data.userId };
+      console.log(`Socket ${socket.id} identified as user ${data.userId}`);
+    });
 
     // Creator starts streaming
     socket.on('start-stream', async (data: { streamId: string, userId: string }) => {
@@ -73,9 +79,38 @@ export function setupWebRTC(server: Server) {
     });
 
     // Viewer joins stream
-    socket.on('join-stream', (data: { streamId: string, userId: string }) => {
+    socket.on('join-stream', async (data: { streamId: string, userId: string }) => {
       const { streamId, userId } = data;
-      const stream = activeStreams.get(streamId);
+      let stream = activeStreams.get(streamId);
+      
+      // If stream not in memory, check database
+      if (!stream) {
+        try {
+          const dbStream = await storage.getStreamById(streamId);
+          if (dbStream && dbStream.isLive) {
+            // Find creator's socket by checking all connected sockets
+            const creatorSocket = Array.from(io.sockets.sockets.values())
+              .find(s => s.data?.userId === dbStream.creatorId);
+            
+            if (creatorSocket) {
+              // Restore stream to activeStreams
+              activeStreams.set(streamId, {
+                streamId,
+                creatorSocketId: creatorSocket.id,
+                viewers: new Set()
+              });
+              stream = activeStreams.get(streamId);
+              console.log(`Restored stream ${streamId} from database`);
+            } else {
+              console.log(`Creator not connected for stream ${streamId}`);
+              socket.emit('no-active-stream', { streamId });
+              return;
+            }
+          }
+        } catch (error) {
+          console.error('Error checking stream status:', error);
+        }
+      }
       
       if (stream) {
         stream.viewers.add(socket.id);
