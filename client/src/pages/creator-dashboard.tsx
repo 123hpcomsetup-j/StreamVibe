@@ -158,10 +158,28 @@ export default function CreatorDashboard() {
       // Emit WebSocket event to properly start stream
       const socket = (window as any).streamSocket;
       if (socket && newStream?.id) {
+        console.log('Emitting start-stream event:', { streamId: newStream.id, userId: typedUser?.id });
         socket.emit('start-stream', {
           streamId: newStream.id,
           userId: typedUser?.id
         });
+        
+        // Listen for stream start confirmation
+        socket.once('stream-started', (data: any) => {
+          console.log('Stream started confirmation received:', data);
+          queryClient.invalidateQueries({ queryKey: ["/api/streams/live"] });
+        });
+        
+        socket.once('stream-error', (error: any) => {
+          console.error('Stream start error:', error);
+          toast({
+            title: "Stream Error",
+            description: error.message || "Failed to start live stream",
+            variant: "destructive",
+          });
+        });
+      } else {
+        console.warn('WebSocket not available or stream ID missing');
       }
       
       toast({

@@ -27,8 +27,11 @@ export function setupWebRTC(server: Server) {
       const { streamId, userId } = data;
       
       try {
+        console.log(`Attempting to start stream ${streamId} for user ${userId}`);
+        
         // Update stream status in database
         await storage.updateStreamStatus(streamId, true);
+        console.log(`Stream ${streamId} marked as live in database`);
         
         // Create stream room
         activeStreams.set(streamId, {
@@ -48,6 +51,13 @@ export function setupWebRTC(server: Server) {
           isLive: true,
           viewerCount: 0
         });
+        
+        // Send confirmation back to creator
+        socket.emit('stream-started', { 
+          streamId, 
+          success: true 
+        });
+        
       } catch (error) {
         console.error('Error starting stream:', error);
         socket.emit('stream-error', { message: 'Failed to start stream' });

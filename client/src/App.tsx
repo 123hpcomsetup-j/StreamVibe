@@ -16,6 +16,8 @@ import AdminPanel from "@/pages/admin-panel";
 import StreamView from "@/pages/stream-view";
 import UserDashboard from "@/pages/user-dashboard";
 import NotFound from "@/pages/not-found";
+import { useEffect } from "react";
+import { io } from "socket.io-client";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -43,6 +45,36 @@ function Router() {
 }
 
 function App() {
+  useEffect(() => {
+    // Initialize WebSocket connection for real-time updates
+    const socket = io("http://localhost:5000", {
+      path: "/socket.io",
+      transports: ["websocket", "polling"]
+    });
+
+    socket.on('connect', () => {
+      console.log('Connected to streaming server for real-time updates');
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Disconnected from streaming server');
+    });
+
+    socket.on('stream-status-changed', (data: any) => {
+      console.log('Stream status changed:', data);
+      // Invalidate queries to refresh live streams
+      queryClient.invalidateQueries({ queryKey: ["/api/streams/live"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/online"] });
+    });
+
+    // Make socket globally available for components
+    (window as any).streamSocket = socket;
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

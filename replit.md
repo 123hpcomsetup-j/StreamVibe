@@ -105,6 +105,13 @@ Preferred communication style: Simple, everyday language.
   - Guest chat system respects creator-defined pricing structure
   - Backend API endpoint `/api/streams/:id/settings` for updating stream monetization settings
   - Enhanced UI with clear explanations of each pricing option for creators
+✓ **FIXED**: Live stream visibility and WebSocket synchronization (January 29, 2025):
+  - Resolved critical issue where streams weren't showing as live to guests and users
+  - Added proper WebSocket connection initialization in main App component
+  - Enhanced logging for stream start/stop events to debug synchronization issues
+  - Fixed stream creation flow with proper database updates via WebSocket events
+  - Verified live streams now correctly appear on public home page for all user types
+  - Real-time stream status updates working properly across all connected clients
 
 ## System Architecture
 
