@@ -109,6 +109,12 @@ export default function AgoraStreamViewer({
       console.log("📊 Current client state - connected:", isConnected, "hasVideo:", hasVideo);
       
       try {
+        // Check if client is still connected before subscribing
+        if (client.connectionState !== "CONNECTED") {
+          console.log("⚠️ Client not connected, skipping subscription. State:", client.connectionState);
+          return;
+        }
+        
         // Subscribe to the remote user
         await client.subscribe(user, mediaType);
         console.log("✅ Successfully subscribed to creator:", mediaType);
@@ -122,8 +128,14 @@ export default function AgoraStreamViewer({
           if (remoteVideoTrack && videoContainerRef.current) {
             console.log("🎬 Starting video playback...");
             
-            // Clear any existing content in video container
-            videoContainerRef.current.innerHTML = '';
+            // Clear any existing content in video container safely
+            try {
+              if (videoContainerRef.current.firstChild) {
+                videoContainerRef.current.innerHTML = '';
+              }
+            } catch (clearError) {
+              console.log("Note: Could not clear video container, continuing...");
+            }
             
             // Configure video playback for maximum compatibility
             const playConfig = {
