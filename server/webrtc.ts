@@ -10,6 +10,11 @@ interface StreamRoom {
 
 const activeStreams = new Map<string, StreamRoom>();
 
+// Make io globally available for chat broadcasting
+declare global {
+  var io: any;
+}
+
 export function setupWebRTC(server: Server) {
   const io = new SocketIOServer(server, {
     cors: {
@@ -18,6 +23,9 @@ export function setupWebRTC(server: Server) {
     },
     path: '/socket.io'
   });
+
+  // Set global io for use in routes
+  global.io = io;
 
   io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id}`);

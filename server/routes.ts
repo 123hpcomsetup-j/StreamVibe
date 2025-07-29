@@ -431,6 +431,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           tokensRemaining: newTokensRemaining
         };
         
+        // Broadcast message to WebSocket for real-time delivery
+        global.io?.to(`stream-${streamId}`).emit('chat-message', responseMessage);
+        
         return res.json(responseMessage);
       }
       
@@ -478,6 +481,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tipAmount,
         senderName: realSenderName,
       });
+      
+      // Broadcast message to WebSocket for real-time delivery
+      global.io?.to(`stream-${streamId}`).emit('chat-message', chatMessage);
       
       res.json(chatMessage);
     } catch (error) {
@@ -534,6 +540,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const message = await storage.createChatMessage(validatedData);
+      
+      // Broadcast message to WebSocket for real-time delivery
+      global.io?.to(`stream-${validatedData.streamId}`).emit('chat-message', message);
+      
       res.json(message);
     } catch (error) {
       console.error("Error creating chat message:", error);

@@ -30,7 +30,7 @@ export default function PublicHome() {
     if (liveStreams && Array.isArray(liveStreams)) {
       setRealTimeStreams(liveStreams);
     }
-  }, [liveStreams?.length]); // Only depend on length to prevent infinite loop
+  }, [Array.isArray(liveStreams) ? liveStreams.length : 0]); // Only depend on length to prevent infinite loop
 
   // Prevent infinite re-renders by memoizing the dependency
   const [socketInitialized, setSocketInitialized] = useState(false);

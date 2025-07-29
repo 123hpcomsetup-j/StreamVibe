@@ -350,12 +350,9 @@ export default function StreamView() {
     },
     onSuccess: (chatMessage) => {
       setMessage("");
-      setChatMessages(prev => [...prev, chatMessage]);
       
-      // Broadcast via socket
-      if (socket) {
-        socket.emit('chat-message', chatMessage);
-      }
+      // Don't add message to local state - let WebSocket handle it for real-time sync
+      // The server will broadcast the message back to all connected clients
       
       // Update tokens for guests
       if (!isAuthenticated) {
