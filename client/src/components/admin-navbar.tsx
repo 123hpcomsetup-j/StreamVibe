@@ -196,11 +196,16 @@ export default function AdminNavbar() {
                                   <span className="text-xs text-orange-400">Awaiting approval</span>
                                 </div>
                               </div>
-                              <Link href="/admin-panel?tab=creators">
-                                <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-xs">
-                                  Review
-                                </Button>
-                              </Link>
+                              <Button 
+                                size="sm" 
+                                className="bg-blue-600 hover:bg-blue-700 text-xs"
+                                onClick={() => {
+                                  setShowNotifications(false);
+                                  window.location.href = "/admin-panel?tab=creators";
+                                }}
+                              >
+                                Review
+                              </Button>
                             </div>
                           </div>
                         ))}
@@ -221,11 +226,16 @@ export default function AdminNavbar() {
                                   <span className="text-xs text-orange-400">Payment verification needed</span>
                                 </div>
                               </div>
-                              <Link href="/admin-panel?tab=payments">
-                                <Button size="sm" className="bg-green-600 hover:bg-green-700 text-xs">
-                                  Review
-                                </Button>
-                              </Link>
+                              <Button 
+                                size="sm" 
+                                className="bg-green-600 hover:bg-green-700 text-xs"
+                                onClick={() => {
+                                  setShowNotifications(false);
+                                  window.location.href = "/admin-panel?tab=payments";
+                                }}
+                              >
+                                Approve
+                              </Button>
                             </div>
                           </div>
                         ))}
@@ -246,11 +256,16 @@ export default function AdminNavbar() {
                                   <span className="text-xs text-orange-400">Awaiting payment</span>
                                 </div>
                               </div>
-                              <Link href="/admin-panel?tab=payouts">
-                                <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-xs">
-                                  Review
-                                </Button>
-                              </Link>
+                              <Button 
+                                size="sm" 
+                                className="bg-purple-600 hover:bg-purple-700 text-xs"
+                                onClick={() => {
+                                  setShowNotifications(false);
+                                  window.location.href = "/admin-panel?tab=payouts";
+                                }}
+                              >
+                                Review
+                              </Button>
                             </div>
                           </div>
                         ))}

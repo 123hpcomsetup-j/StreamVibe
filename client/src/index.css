@@ -67,6 +67,16 @@
 }
 
 @layer components {
+  /* Hide scrollbar for mobile tabs */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   /* StreamVibe specific component styles */
   .stream-card {
     @apply bg-surface border border-slate-700 rounded-xl overflow-hidden hover:bg-surface-light transition-all duration-300 cursor-pointer;
