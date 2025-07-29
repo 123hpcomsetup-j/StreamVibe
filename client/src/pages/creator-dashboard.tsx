@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { DollarSign, Users, Clock, Heart, Play, Square, Settings } from "lucide-react";
 import { io } from "socket.io-client";
 import StreamModal from "@/components/stream-modal";
+import StreamModalWebRTC from "@/components/stream-modal-webrtc";
 
 export default function CreatorDashboard() {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -36,7 +37,9 @@ export default function CreatorDashboard() {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [peerConnections, setPeerConnections] = useState<Map<string, RTCPeerConnection>>(new Map());
   const [showStreamModal, setShowStreamModal] = useState(false);
+  const [showWebRTCModal, setShowWebRTCModal] = useState(false);
   const [streamKey, setStreamKey] = useState<string>("");
+  const [useWebRTC, setUseWebRTC] = useState(true); // Default to WebRTC
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const typedUser = user as User | undefined;
@@ -462,24 +465,29 @@ export default function CreatorDashboard() {
   };
 
   const handleStartStream = async () => {
-    // Generate a unique stream key for the creator
-    const generatedStreamKey = `${typedUser?.username || 'creator'}_${Date.now()}`;
-    setStreamKey(generatedStreamKey);
-    
     // Use creator's name as default title if no title provided
     const defaultTitle = typedUser?.username ? `${typedUser.username}'s Live Stream` : "Live Stream";
     const finalStreamData = {
       ...streamData,
       title: streamData.title.trim() || defaultTitle,
-      streamKey: generatedStreamKey
+      streamKey: useWebRTC ? null : `${typedUser?.username || 'creator'}_${Date.now()}`
     };
 
     // Create the stream in database
     createStreamMutation.mutate(finalStreamData, {
-      onSuccess: () => {
-        // Show the RTMP configuration modal after stream is created
-        setShowStreamModal(true);
+      onSuccess: (newStream) => {
         setIsStreaming(true);
+        if (useWebRTC) {
+          // Show WebRTC streaming modal
+          setShowWebRTCModal(true);
+          // Generate stream key for identification
+          if (!streamKey) {
+            setStreamKey(`${typedUser?.username || 'creator'}_${Date.now()}`);
+          }
+        } else {
+          // Show RTMP configuration modal
+          setShowStreamModal(true);
+        }
       }
     });
   };
@@ -943,6 +951,14 @@ export default function CreatorDashboard() {
         isOpen={showStreamModal}
         onClose={() => setShowStreamModal(false)}
         streamKey={streamKey}
+      />
+      
+      {/* WebRTC Stream Modal */}
+      <StreamModalWebRTC
+        isOpen={showWebRTCModal}
+        onClose={() => setShowWebRTCModal(false)}
+        streamId={currentStreamQuery.data?.id || ''}
+        socket={socket}
       />
     </div>
   );

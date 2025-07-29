@@ -1,276 +1,265 @@
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-import { isUnauthorizedError } from "@/lib/authUtils";
-import { apiRequest } from "@/lib/queryClient";
+import { useEffect, useRef, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { X, Gift, Send, Coins } from "lucide-react";
-import WebRTCStreamPlayer from "./webrtc-stream-player";
-import { useWebRTC } from "@/hooks/useWebRTC";
+import { Video, VideoOff, Mic, MicOff, Wifi, WifiOff } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
-interface StreamModalProps {
-  streamId: string;
-  streamData?: any;
+interface StreamModalWebRTCProps {
+  isOpen: boolean;
   onClose: () => void;
+  streamId: string;
+  socket: any;
 }
 
-export default function StreamModalWebRTC({ streamId, streamData, onClose }: StreamModalProps) {
-  const { user } = useAuth();
+export default function StreamModalWebRTC({ isOpen, onClose, streamId, socket }: StreamModalWebRTCProps) {
   const { toast } = useToast();
-  const [chatMessage, setChatMessage] = useState("");
-  const [tipAmount, setTipAmount] = useState("");
-  const [realViewerCount, setRealViewerCount] = useState(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [isVideoOn, setIsVideoOn] = useState(true);
+  const [isAudioOn, setIsAudioOn] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
+  const [peerConnections, setPeerConnections] = useState<Map<string, RTCPeerConnection>>(new Map());
 
-  // WebRTC integration
-  const {
-    chatMessages,
-    sendChatMessage: sendWebRTCMessage,
-    sendTip: sendWebRTCTip
-  } = useWebRTC({
-    streamId,
-    userId: user?.id || '',
-    username: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Anonymous',
-    isCreator: false
-  });
+  // Start camera when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+  }, [isOpen]);
 
-  // API tip mutation as backup
-  const sendTipMutation = useMutation({
-    mutationFn: async (tipData: { toUserId: string; tokenAmount: number; streamId: string; purpose: string }) => {
-      await apiRequest("POST", "/api/transactions", tipData);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Tip Sent!",
-        description: "Your tip has been sent to the creator.",
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: "user"
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
+
+      setLocalStream(stream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
       }
+
+      // Notify server we're ready to receive viewers
+      if (socket) {
+        socket.emit('creator-ready', { streamId });
+        setConnectionStatus('connected');
+      }
+    } catch (error) {
+      console.error('Failed to access camera:', error);
       toast({
-        title: "Error",
-        description: "Failed to send tip. Please try again.",
-        variant: "destructive",
+        title: "Camera Access Failed",
+        description: "Please allow camera and microphone access to stream.",
+        variant: "destructive"
       });
-    },
-  });
-
-  const handleSendMessage = () => {
-    if (chatMessage.trim()) {
-      sendWebRTCMessage(chatMessage);
-      setChatMessage("");
     }
   };
 
-  const handleSendTip = () => {
-    const amount = parseInt(tipAmount);
-    if (amount > 0) {
-      // Send via WebRTC for real-time display
-      sendWebRTCTip(amount, `Sent ${amount} tokens!`);
-      
-      // Also send via API for database recording
-      sendTipMutation.mutate({
-        toUserId: streamData?.creatorId || '',
-        tokenAmount: amount,
-        streamId,
-        purpose: 'tip'
-      });
-      
-      setTipAmount("");
+  const stopCamera = () => {
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+      setLocalStream(null);
+    }
+    
+    // Close all peer connections
+    peerConnections.forEach(pc => pc.close());
+    setPeerConnections(new Map());
+    
+    if (socket) {
+      socket.emit('creator-stopped', { streamId });
     }
   };
+
+  const toggleVideo = () => {
+    if (localStream) {
+      const videoTrack = localStream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        setIsVideoOn(videoTrack.enabled);
+      }
+    }
+  };
+
+  const toggleAudio = () => {
+    if (localStream) {
+      const audioTrack = localStream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setIsAudioOn(audioTrack.enabled);
+      }
+    }
+  };
+
+  // Handle WebRTC signaling
+  useEffect(() => {
+    if (!socket || !localStream || !isOpen) return;
+
+    // Handle new viewer joining
+    socket.on(`viewer-wants-to-join-${streamId}`, async ({ viewerId }: { viewerId: string }) => {
+      console.log('Viewer wants to join:', viewerId);
+      
+      const configuration = {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+      };
+
+      const peerConnection = new RTCPeerConnection(configuration);
+      
+      // Add local stream tracks
+      localStream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, localStream);
+      });
+
+      // Handle ICE candidates
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+          socket.emit('ice-candidate', {
+            candidate: event.candidate,
+            targetId: viewerId,
+            streamId
+          });
+        }
+      };
+
+      // Create and send offer
+      try {
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        
+        socket.emit('offer', {
+          offer,
+          targetId: viewerId,
+          streamId
+        });
+
+        // Store peer connection
+        setPeerConnections(prev => new Map(prev).set(viewerId, peerConnection));
+      } catch (error) {
+        console.error('Failed to create offer:', error);
+      }
+    });
+
+    // Handle answer from viewer
+    socket.on('answer', async ({ answer, senderId }: { answer: RTCSessionDescriptionInit, senderId: string }) => {
+      const pc = peerConnections.get(senderId);
+      if (pc) {
+        try {
+          await pc.setRemoteDescription(answer);
+          console.log('Set remote description for viewer:', senderId);
+        } catch (error) {
+          console.error('Failed to set remote description:', error);
+        }
+      }
+    });
+
+    // Handle ICE candidates from viewers
+    socket.on('ice-candidate', async ({ candidate, senderId }: { candidate: RTCIceCandidateInit, senderId: string }) => {
+      const pc = peerConnections.get(senderId);
+      if (pc) {
+        try {
+          await pc.addIceCandidate(candidate);
+        } catch (error) {
+          console.error('Failed to add ICE candidate:', error);
+        }
+      }
+    });
+
+    // Handle viewer disconnect
+    socket.on(`viewer-left-${streamId}`, ({ viewerId }: { viewerId: string }) => {
+      const pc = peerConnections.get(viewerId);
+      if (pc) {
+        pc.close();
+        setPeerConnections(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(viewerId);
+          return newMap;
+        });
+      }
+    });
+
+    return () => {
+      socket.off(`viewer-wants-to-join-${streamId}`);
+      socket.off('answer');
+      socket.off('ice-candidate');
+      socket.off(`viewer-left-${streamId}`);
+    };
+  }, [socket, localStream, streamId, peerConnections]);
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-800 rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b border-slate-700">
-          <div>
-            <h2 className="text-xl font-bold text-white">{streamData?.title || 'Live Stream'}</h2>
-            <p className="text-slate-400">{streamData?.category}</p>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="text-slate-400 hover:text-white"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <div className="flex flex-col lg:flex-row h-[calc(90vh-80px)]">
-          {/* Video Section */}
-          <div className="flex-1 p-4">
-            <WebRTCStreamPlayer
-              streamId={streamId}
-              userId={user?.id || ''}
-              username={`${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Anonymous'}
-              isCreator={false}
-              title={streamData?.title}
-              creatorName={streamData?.creatorName}
-              onViewerCountChange={setRealViewerCount}
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Live Stream Preview</DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          {/* Video Preview */}
+          <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full h-full object-cover"
             />
-
-            {/* Stream Info */}
-            <div className="mt-4 bg-slate-700 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <img 
-                    src={streamData?.creatorImage || "https://images.unsplash.com/photo-1494790108755-2616b332c3b0?w=64"} 
-                    alt="Creator" 
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                  <div>
-                    <h3 className="font-semibold text-white">{streamData?.creatorName || 'Creator'}</h3>
-                    <p className="text-slate-400 text-sm">{realViewerCount} watching</p>
-                  </div>
-                </div>
-                <Badge className="bg-red-500 text-white">
-                  <div className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></div>
-                  LIVE
-                </Badge>
-              </div>
+            
+            {/* Connection Status */}
+            <div className="absolute top-4 right-4">
+              <Badge 
+                className={connectionStatus === 'connected' ? 'bg-green-500' : 'bg-yellow-500'}
+              >
+                {connectionStatus === 'connected' ? (
+                  <><Wifi className="w-3 h-3 mr-1" /> Live</>
+                ) : (
+                  <><WifiOff className="w-3 h-3 mr-1" /> Connecting...</>
+                )}
+              </Badge>
+            </div>
+            
+            {/* Viewer Count */}
+            <div className="absolute top-4 left-4">
+              <Badge className="bg-black/50">
+                {peerConnections.size} viewer{peerConnections.size !== 1 ? 's' : ''}
+              </Badge>
             </div>
           </div>
 
-          {/* Chat Section */}
-          <div className="w-full lg:w-80 bg-slate-900 flex flex-col">
-            <div className="p-4 border-b border-slate-700">
-              <h3 className="font-semibold text-white">Live Chat</h3>
-            </div>
+          {/* Stream Controls */}
+          <div className="flex justify-center space-x-4">
+            <Button
+              variant={isVideoOn ? "default" : "destructive"}
+              size="sm"
+              onClick={toggleVideo}
+            >
+              {isVideoOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+            </Button>
+            <Button
+              variant={isAudioOn ? "default" : "destructive"}
+              size="sm"
+              onClick={toggleAudio}
+            >
+              {isAudioOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+            </Button>
+          </div>
 
-            {/* Chat Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {chatMessages.map((message: any, index: number) => (
-                <div key={message.id || index} className="space-y-1">
-                  {message.type === 'tip' ? (
-                    <div className="bg-yellow-900/30 border border-yellow-700 rounded-lg p-3">
-                      <div className="flex items-center space-x-2 text-yellow-400">
-                        <Coins className="h-4 w-4" />
-                        <span className="font-semibold">{message.username}</span>
-                        <span>tipped {message.amount} tokens</span>
-                      </div>
-                      {message.message && (
-                        <p className="text-yellow-200 text-sm mt-1">{message.message}</p>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-semibold text-white text-sm">{message.username}</span>
-                        <span className="text-xs text-slate-400">
-                          {new Date(message.timestamp).toLocaleTimeString()}
-                        </span>
-                      </div>
-                      <p className="text-slate-300 text-sm">{message.message}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Chat Input */}
-            <div className="p-4 border-t border-slate-700 space-y-3">
-              {/* Quick Tip Buttons */}
-              <div className="flex space-x-2">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => {
-                    sendWebRTCTip(5, "Thanks for streaming!");
-                    sendTipMutation.mutate({
-                      toUserId: streamData?.creatorId || '',
-                      tokenAmount: 5,
-                      streamId,
-                      purpose: 'tip'
-                    });
-                  }}
-                  className="flex-1"
-                >
-                  <Gift className="h-3 w-3 mr-1" />
-                  5
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => {
-                    sendWebRTCTip(10, "Awesome content!");
-                    sendTipMutation.mutate({
-                      toUserId: streamData?.creatorId || '',
-                      tokenAmount: 10,
-                      streamId,
-                      purpose: 'tip'
-                    });
-                  }}
-                  className="flex-1"
-                >
-                  <Gift className="h-3 w-3 mr-1" />
-                  10
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => {
-                    sendWebRTCTip(25, "Keep it up!");
-                    sendTipMutation.mutate({
-                      toUserId: streamData?.creatorId || '',
-                      tokenAmount: 25,
-                      streamId,
-                      purpose: 'tip'
-                    });
-                  }}
-                  className="flex-1"
-                >
-                  <Gift className="h-3 w-3 mr-1" />
-                  25
-                </Button>
-              </div>
-
-              {/* Custom Tip */}
-              <div className="flex space-x-2">
-                <Input
-                  placeholder="Tip amount..."
-                  value={tipAmount}
-                  onChange={(e) => setTipAmount(e.target.value)}
-                  type="number"
-                  className="flex-1 bg-slate-700 border-slate-600"
-                />
-                <Button onClick={handleSendTip} disabled={!tipAmount || parseInt(tipAmount) <= 0}>
-                  <Gift className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {/* Chat Message */}
-              <div className="flex space-x-2">
-                <Input
-                  placeholder="Type a message..."
-                  value={chatMessage}
-                  onChange={(e) => setChatMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  className="flex-1 bg-slate-700 border-slate-600"
-                />
-                <Button onClick={handleSendMessage} disabled={!chatMessage.trim()}>
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+          <div className="text-center text-sm text-muted-foreground">
+            <p>You're broadcasting live! Viewers can watch your stream in real-time.</p>
+            <p>Keep this window open while streaming.</p>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

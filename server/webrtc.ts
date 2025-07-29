@@ -26,6 +26,9 @@ export function setupWebRTC(server: Server) {
 
   // Set global io for use in routes
   global.io = io;
+  
+  // Store active viewers for each stream
+  const activeViewers = new Map<string, Set<string>>();
 
   io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id}`);
@@ -100,7 +103,138 @@ export function setupWebRTC(server: Server) {
       }
     });
 
-    // Viewer joins stream
+    // Viewer joins stream (WebRTC)
+    socket.on('viewer-join-stream', async (data: { streamId: string }) => {
+      const { streamId } = data;
+      const viewerId = socket.id;
+      
+      console.log(`Viewer ${viewerId} wants to join stream ${streamId}`);
+      
+      // Find the creator's socket for this stream  
+      const stream = activeStreams.get(streamId);
+      if (stream) {
+        const creatorSocket = io.sockets.sockets.get(stream.creatorSocketId);
+        if (creatorSocket) {
+          // Notify creator that a viewer wants to join
+          creatorSocket.emit(`viewer-wants-to-join-${streamId}`, { viewerId });
+          
+          // Add viewer to stream
+          stream.viewers.add(viewerId);
+          socket.join(`stream-${streamId}`);
+          
+          // Update viewer count
+          io.emit('stream-status-changed', {
+            streamId,
+            viewerCount: stream.viewers.size
+          });
+        } else {
+          socket.emit('stream-error', { message: 'Creator not connected' });
+        }
+      } else {
+        socket.emit('stream-error', { message: 'Stream not found' });
+      }
+    });
+
+    // Viewer leaves stream
+    socket.on('viewer-leave-stream', (data: { streamId: string }) => {
+      const { streamId } = data;
+      const viewerId = socket.id;
+      
+      const stream = activeStreams.get(streamId);
+      if (stream) {
+        stream.viewers.delete(viewerId);
+        socket.leave(`stream-${streamId}`);
+        
+        // Notify creator
+        const creatorSocket = io.sockets.sockets.get(stream.creatorSocketId);
+        if (creatorSocket) {
+          creatorSocket.emit(`viewer-left-${streamId}`, { viewerId });
+        }
+        
+        // Update viewer count
+        io.emit('stream-status-changed', {
+          streamId,
+          viewerCount: stream.viewers.size
+        });
+      }
+    });
+
+    // Handle WebRTC offers
+    socket.on('offer', (data: { offer: any, targetId: string, streamId: string }) => {
+      const targetSocket = io.sockets.sockets.get(data.targetId);
+      if (targetSocket) {
+        targetSocket.emit('offer', { 
+          offer: data.offer, 
+          senderId: socket.id,
+          streamId: data.streamId
+        });
+      }
+    });
+
+    // Handle WebRTC answers
+    socket.on('answer', (data: { answer: any, targetId: string, streamId: string }) => {
+      const stream = activeStreams.get(data.streamId);
+      if (stream) {
+        const creatorSocket = io.sockets.sockets.get(stream.creatorSocketId);
+        if (creatorSocket) {
+          creatorSocket.emit('answer', { 
+            answer: data.answer, 
+            senderId: socket.id 
+          });
+        }
+      }
+    });
+
+    // Handle ICE candidates
+    socket.on('ice-candidate', (data: { candidate: any, targetId: string, streamId: string }) => {
+      if (data.targetId === 'creator') {
+        const stream = activeStreams.get(data.streamId);
+        if (stream) {
+          const creatorSocket = io.sockets.sockets.get(stream.creatorSocketId);
+          if (creatorSocket) {
+            creatorSocket.emit('ice-candidate', { 
+              candidate: data.candidate, 
+              senderId: socket.id 
+            });
+          }
+        }
+      } else {
+        const targetSocket = io.sockets.sockets.get(data.targetId);
+        if (targetSocket) {
+          targetSocket.emit('ice-candidate', { 
+            candidate: data.candidate, 
+            senderId: socket.id 
+          });
+        }
+      }
+    });
+
+    // Creator ready to receive viewers
+    socket.on('creator-ready', (data: { streamId: string }) => {
+      const { streamId } = data;
+      console.log(`Creator ready for stream ${streamId}`);
+      
+      const stream = activeStreams.get(streamId);
+      if (stream) {
+        stream.creatorSocketId = socket.id;
+      }
+    });
+
+    // Creator stopped streaming
+    socket.on('creator-stopped', (data: { streamId: string }) => {
+      const { streamId } = data;
+      const stream = activeStreams.get(streamId);
+      
+      if (stream) {
+        // Notify all viewers
+        io.to(`stream-${streamId}`).emit(`creator-stopped-${streamId}`);
+        
+        // Clean up
+        activeStreams.delete(streamId);
+      }
+    });
+
+    // Legacy join-stream handler
     socket.on('join-stream', async (data: { streamId: string, userId: string }) => {
       const { streamId, userId } = data;
       let stream = activeStreams.get(streamId);

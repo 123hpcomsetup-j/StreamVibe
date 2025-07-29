@@ -29,6 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { io, Socket } from 'socket.io-client';
 import type { ChatMessage, User } from "@shared/schema";
 import NodeMediaPlayer from "@/components/node-media-player";
+import WebRTCStreamViewer from "@/components/webrtc-stream-viewer";
 
 export default function StreamView() {
   const [, params] = useRoute("/stream/:streamId");
@@ -524,13 +525,16 @@ export default function StreamView() {
             </CardHeader>
             <CardContent>
               <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
-                {/* Use Node Media Player for FLV streaming */}
-                {typedStream.streamKey && !streamEnded ? (
-                  <NodeMediaPlayer 
-                    streamKey={typedStream.streamKey}
-                    className="w-full h-full"
+                {/* Use WebRTC for browser streaming */}
+                {!streamEnded && typedStream && (
+                  <WebRTCStreamViewer
+                    streamId={typedStream.id}
+                    socket={socket}
+                    creatorUsername={typedStream.creator?.username}
                   />
-                ) : streamEnded ? (
+                )}
+                
+                {streamEnded && (
                   <div className="absolute inset-0 flex items-center justify-center bg-slate-900 bg-opacity-90">
                     <div className="text-center">
                       <AlertTriangle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
@@ -538,20 +542,6 @@ export default function StreamView() {
                       <p className="text-slate-400 mb-4">This live stream has ended.</p>
                       <Button onClick={() => setLocation("/")} className="bg-primary hover:bg-primary/80">
                         Find More Streams
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center bg-slate-900 bg-opacity-90">
-                    <div className="text-center">
-                      <Wifi className="h-16 w-16 text-slate-500 mx-auto mb-4" />
-                      <h3 className="text-xl font-bold text-white mb-2">Stream Not Yet Started</h3>
-                      <p className="text-slate-400 mb-4">
-                        {typedStream.creator?.username || 'The creator'} needs to configure their streaming software.
-                      </p>
-                      <Button onClick={() => setLocation("/")} className="bg-primary hover:bg-primary/80">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Find Other Streams
                       </Button>
                     </div>
                   </div>
