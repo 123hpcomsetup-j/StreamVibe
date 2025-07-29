@@ -163,10 +163,15 @@ export class DatabaseStorage implements IStorage {
     return updatedStream;
   }
 
-  async updateStreamStatus(streamId: string, isLive: boolean): Promise<void> {
+  async updateStreamStatus(streamId: string, isLive: boolean, viewerCount?: number): Promise<void> {
+    const updateData: any = { isLive };
+    if (viewerCount !== undefined) {
+      updateData.viewerCount = viewerCount;
+    }
+    
     await db
       .update(streams)
-      .set({ isLive })
+      .set(updateData)
       .where(eq(streams.id, streamId));
   }
 
@@ -328,15 +333,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Stream cleanup operations
-  async cleanupStaleStreams(): Promise<void> {
-    // Mark streams older than 2 hours as offline to prevent stale live status
-    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
-    await db
-      .update(streams)
-      .set({ isLive: false })
-      .where(and(eq(streams.isLive, true), sql`${streams.createdAt} < ${twoHoursAgo}`));
-  }
-
   async stopAllUserStreams(userId: string): Promise<void> {
     // Stop all active streams for a specific user - useful for cleanup
     await db
@@ -369,19 +365,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(guestSessions.id, id))
       .returning();
     return updatedSession;
-  }
-
-  // Stream status management  
-  async updateStreamStatus(streamId: string, isLive: boolean, viewerCount?: number): Promise<void> {
-    const updateData: any = { isLive };
-    if (viewerCount !== undefined) {
-      updateData.viewerCount = viewerCount;
-    }
-    
-    await db
-      .update(streams)
-      .set(updateData)
-      .where(eq(streams.id, streamId));
   }
 
   async cleanupStaleStreams(): Promise<number> {

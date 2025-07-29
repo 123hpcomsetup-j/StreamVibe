@@ -356,7 +356,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if this is a guest session
       if (sessionId && !req.user) {
         const guestSession = await storage.getGuestSession(streamId, sessionId);
-        if (!guestSession || guestSession.tokensRemaining <= 0) {
+        if (!guestSession || (guestSession.tokensRemaining || 0) <= 0) {
           return res.status(403).json({ message: "Guest session expired or no tokens remaining" });
         }
         
@@ -367,12 +367,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           guestSessionId: guestSession.id, // Use guest session ID instead
           message,
           tipAmount: 0, // Guests can't tip
-          senderName: guestSession.guestName, // Use auto-generated guest name
+          senderName: guestSession.guestName || 'Guest', // Use auto-generated guest name
         });
         
         // Decrement guest tokens
         await storage.updateGuestSession(guestSession.id, {
-          tokensRemaining: guestSession.tokensRemaining - 1
+          tokensRemaining: (guestSession.tokensRemaining || 0) - 1
         });
         
         return res.json(chatMessage);
@@ -410,12 +410,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Get user's real name for authenticated users
+      const userForName = await storage.getUser(userId);
+      const realSenderName = userForName ? `${userForName.firstName || ''} ${userForName.lastName || ''}`.trim() || userForName.username : 'User';
+
       // Create chat message
       const chatMessage = await storage.createChatMessage({
         streamId,
         userId,
         message,
         tipAmount,
+        senderName: realSenderName,
       });
       
       res.json(chatMessage);

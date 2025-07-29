@@ -123,13 +123,14 @@ export default function CreatorDashboard() {
 
   const createStreamMutation = useMutation({
     mutationFn: async (streamData: any) => {
-      return await apiRequest("/api/streams", "POST", {
+      const response = await apiRequest("POST", "/api/streams", {
         title: streamData.title || "Untitled Stream",
         category: streamData.category,
         minTip: streamData.minTip,
         tokenPrice: streamData.tokenPrice,
         privateRate: streamData.privateRate,
       });
+      return await response.json();
     },
     onSuccess: (newStream: any) => {
       setIsStreaming(true);
@@ -183,7 +184,8 @@ export default function CreatorDashboard() {
         });
       }
       
-      return await apiRequest(`/api/streams/${(currentStream as any).id}`, "DELETE");
+      const response = await apiRequest("DELETE", `/api/streams/${(currentStream as any).id}`);
+      return await response.json();
     },
     onSuccess: () => {
       setIsStreaming(false);
@@ -216,10 +218,11 @@ export default function CreatorDashboard() {
 
   const requestPayoutMutation = useMutation({
     mutationFn: async (amount: number) => {
-      return await apiRequest("/api/payouts", "POST", {
+      const response = await apiRequest("POST", "/api/payouts", {
         amount: amount,
         utrNumber: "", // This would be filled by admin
       });
+      return await response.json();
     },
     onSuccess: () => {
       toast({
@@ -248,7 +251,7 @@ export default function CreatorDashboard() {
     },
   });
 
-  const handleStartStream = () => {
+  const handleStartStream = async () => {
     if (!streamData.title.trim()) {
       toast({
         title: "Error",
@@ -257,7 +260,38 @@ export default function CreatorDashboard() {
       });
       return;
     }
-    createStreamMutation.mutate(streamData);
+
+    // Check camera and microphone access first
+    try {
+      toast({
+        title: "Requesting Camera Access",
+        description: "Please allow camera and microphone access to start streaming.",
+        variant: "default",
+      });
+
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: true, 
+        audio: true 
+      });
+      
+      // Stop the test stream immediately
+      stream.getTracks().forEach(track => track.stop());
+      
+      toast({
+        title: "Camera Access Granted",
+        description: "Starting your live stream...",
+        variant: "default",
+      });
+
+      createStreamMutation.mutate(streamData);
+    } catch (error) {
+      console.error('Camera access error:', error);
+      toast({
+        title: "Camera Access Required",
+        description: "Please allow camera and microphone access to stream.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleStopStream = () => {
