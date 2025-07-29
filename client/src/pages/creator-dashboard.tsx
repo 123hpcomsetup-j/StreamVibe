@@ -22,7 +22,7 @@ export default function CreatorDashboard() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamData, setStreamData] = useState({
     title: "",
-    category: "Art & Design",
+    category: "Art & Design", 
     minTip: 5,
     tokenPrice: 1,
     privateRate: 20,
@@ -252,43 +252,27 @@ export default function CreatorDashboard() {
   });
 
   const handleStartStream = async () => {
-    if (!streamData.title.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a stream title.",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Use creator's name as default title if no title provided
+    const defaultTitle = typedUser?.username ? `${typedUser.username}'s Live Stream` : "Live Stream";
+    const finalStreamData = {
+      ...streamData,
+      title: streamData.title.trim() || defaultTitle
+    };
 
     // Check camera and microphone access first
     try {
       toast({
-        title: "Requesting Camera Access",
-        description: "Please allow camera and microphone access to start streaming.",
+        title: "Starting Stream",
+        description: "Requesting camera access...",
         variant: "default",
       });
 
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: true, 
-        audio: true 
-      });
-      
-      // Stop the test stream immediately
-      stream.getTracks().forEach(track => track.stop());
-      
-      toast({
-        title: "Camera Access Granted",
-        description: "Starting your live stream...",
-        variant: "default",
-      });
-
-      createStreamMutation.mutate(streamData);
+      createStreamMutation.mutate(finalStreamData);
     } catch (error) {
-      console.error('Camera access error:', error);
+      console.error('Stream start error:', error);
       toast({
-        title: "Camera Access Required",
-        description: "Please allow camera and microphone access to stream.",
+        title: "Stream Start Failed",
+        description: "Failed to start stream. Please try again.",
         variant: "destructive",
       });
     }
@@ -390,9 +374,10 @@ export default function CreatorDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {isStreaming && (
+              {isStreaming && currentStream && (
                 <div className="space-y-4">
                   <LiveStreamControls 
+                    streamId={(currentStream as any).id}
                     onStreamStart={handleStartStream}
                     onStreamStop={handleStopStream}
                   />

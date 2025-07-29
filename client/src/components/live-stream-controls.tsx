@@ -1,51 +1,50 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
-import { Play, Square, Video, VideoOff, Mic, MicOff, Users, Settings, Wifi, MessageCircle, Send } from "lucide-react";
+import { Video, VideoOff, Mic, MicOff, Users, MessageCircle, Send, Wifi } from "lucide-react";
 import { io, Socket } from 'socket.io-client';
 
 interface LiveStreamControlsProps {
+  streamId?: string;
   onStreamStart?: (streamId: string) => void;
   onStreamStop?: () => void;
 }
 
-export default function LiveStreamControls({ onStreamStart, onStreamStop }: LiveStreamControlsProps) {
+export default function LiveStreamControls({ streamId, onStreamStart, onStreamStop }: LiveStreamControlsProps) {
   const { user } = useAuth();
-  const typedUser = user as any; // Type assertion for user object
+  const typedUser = user as any;
   const { toast } = useToast();
-  
-  // Stream state
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [currentStreamId, setCurrentStreamId] = useState<string | null>(null);
-  const [viewerCount, setViewerCount] = useState(0);
-  const [streamQuality, setStreamQuality] = useState<'720p' | '1080p'>('720p');
-  const [isVideoEnabled, setIsVideoEnabled] = useState(true);
-  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   
   // WebRTC state
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [viewerCount, setViewerCount] = useState(0);
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
-  
+  const [currentStreamId, setCurrentStreamId] = useState<string | null>(null);
+  const [streamQuality, setStreamQuality] = useState<'720p' | '1080p'>('720p');
+
   // Refs
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   
-  // Stream configuration
-  const [streamData, setStreamData] = useState({
-    title: "",
-    category: "Art & Design"
-  });
+  // Chat state
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [newChatMessage, setNewChatMessage] = useState('');
 
   // WebRTC configuration with STUN servers
   const rtcConfiguration = {
@@ -55,6 +54,20 @@ export default function LiveStreamControls({ onStreamStart, onStreamStop }: Live
       { urls: 'stun:stun2.l.google.com:19302' }
     ]
   };
+
+  // Initialize components when stream ID is available
+  useEffect(() => {
+    if (streamId) {
+      setCurrentStreamId(streamId);
+      setIsStreaming(true);
+      
+      // Start media stream immediately
+      getMediaStream().catch(console.error);
+      
+      // Load chat messages
+      loadChatMessages();
+    }
+  }, [streamId]);
 
   // Initialize socket connection
   useEffect(() => {
@@ -84,6 +97,11 @@ export default function LiveStreamControls({ onStreamStart, onStreamStop }: Live
       
       // Create peer connection for new viewer
       createPeerConnection(data.viewerId);
+    });
+
+    // Listen for new chat messages
+    newSocket.on('chat-message', (message: any) => {
+      setChatMessages(prev => [...prev, message]);
     });
 
     setSocket(newSocket);
@@ -214,122 +232,54 @@ export default function LiveStreamControls({ onStreamStart, onStreamStop }: Live
     }
   };
 
-  // Create stream mutation
-  const createStreamMutation = useMutation({
-    mutationFn: async (data: { title: string; category: string }) => {
-      const response = await apiRequest("POST", "/api/streams", {
-        title: data.title,
-        category: data.category,
-        isLive: true,
-        streamUrl: `webrtc://${Date.now()}`,
-        minTip: 5,
-        privateRate: 20
-      });
-      return response;
-    },
-    onSuccess: async (streamResponse: any) => {
-      const streamId = streamResponse.id;
-      setCurrentStreamId(streamId);
-      
-      try {
-        // Set streaming state first to show controls
-        setIsStreaming(true);
-        
-        // Get media stream for video preview
-        await getMediaStream();
-        
-        // Start WebRTC streaming if socket is available
-        if (socket && typedUser) {
-          socket.emit('start-stream', {
-            streamId,
-            userId: typedUser.id,
-            username: `${typedUser.firstName || ''} ${typedUser.lastName || ''}`.trim() || 'Creator'
-          });
-        }
-        
-        toast({
-          title: "Live Stream Started!",
-          description: "You are now broadcasting live to viewers.",
-        });
-        
-        onStreamStart?.(streamId);
-        queryClient.invalidateQueries({ queryKey: ["/api/streams"] });
-      } catch (error) {
-        console.error("Failed to start WebRTC stream:", error);
-        toast({
-          title: "Camera Access Required",
-          description: "Please allow camera and microphone access to start streaming.",
-          variant: "destructive"
-        });
-        // Clean up the stream record if WebRTC fails
-        await apiRequest("PATCH", `/api/streams/${streamId}`, { isLive: false });
-      }
-    },
-    onError: (error) => {
-      toast({
-        title: "Stream Creation Failed",
-        description: "Failed to create stream. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Stop stream mutation
-  const stopStreamMutation = useMutation({
-    mutationFn: async () => {
-      if (currentStreamId) {
-        await apiRequest("PATCH", `/api/streams/${currentStreamId}`, { isLive: false });
-      }
-    },
-    onSuccess: () => {
-      // Stop local stream
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-        setLocalStream(null);
-      }
-      
-      // Close all peer connections
-      peersRef.current.forEach(peer => peer.close());
-      peersRef.current.clear();
-      
-      // Notify signaling server
-      if (socket && currentStreamId) {
-        socket.emit('end-stream', { streamId: currentStreamId });
-      }
-      
-      setIsStreaming(false);
-      setCurrentStreamId(null);
-      setViewerCount(0);
-      
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = null;
-      }
-      
-      toast({
-        title: "Stream Ended",
-        description: "Your live stream has been stopped.",
-      });
-      
-      onStreamStop?.();
-      queryClient.invalidateQueries({ queryKey: ["/api/streams"] });
-    },
-  });
-
-  const handleStartStream = () => {
-    if (!streamData.title.trim()) {
-      toast({
-        title: "Stream Title Required",
-        description: "Please enter a title for your stream.",
-        variant: "destructive",
-      });
-      return;
-    }
+  // Load chat messages
+  const loadChatMessages = async () => {
+    if (!streamId) return;
     
-    createStreamMutation.mutate(streamData);
+    try {
+      const response = await fetch(`/api/streams/${streamId}/chat`, {
+        credentials: 'include'
+      });
+      const messages = await response.json();
+      setChatMessages(messages);
+    } catch (error) {
+      console.error('Failed to load chat messages:', error);
+    }
   };
 
-  const handleStopStream = () => {
-    stopStreamMutation.mutate();
+  // Send chat message
+  const sendChatMessage = async () => {
+    if (!newChatMessage.trim() || !streamId) return;
+    
+    try {
+      const response = await fetch(`/api/streams/${streamId}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          message: newChatMessage,
+          tipAmount: 0
+        })
+      });
+      
+      const chatMessage = await response.json();
+      setChatMessages(prev => [...prev, chatMessage]);
+      setNewChatMessage('');
+      
+      // Broadcast via socket
+      if (socket) {
+        socket.emit('chat-message', chatMessage);
+      }
+    } catch (error) {
+      console.error('Failed to send chat message:', error);
+      toast({
+        title: "Chat Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getConnectionBadge = () => {
@@ -344,220 +294,126 @@ export default function LiveStreamControls({ onStreamStart, onStreamStop }: Live
   };
 
   return (
-    <div className="space-y-6">
-      {/* Stream Setup */}
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center justify-between">
-            🔴 WebRTC Live Streaming
-            {getConnectionBadge()}
-          </CardTitle>
-          <p className="text-slate-400">Open source live streaming using WebRTC technology</p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Stream Title</Label>
-              <Input
-                id="title"
-                placeholder="Enter stream title..."
-                value={streamData.title}
-                onChange={(e) => setStreamData({ ...streamData, title: e.target.value })}
-                className="bg-slate-700 border-slate-600"
-                disabled={isStreaming}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
-              <Select 
-                value={streamData.category} 
-                onValueChange={(value) => setStreamData({ ...streamData, category: value })}
-                disabled={isStreaming}
-              >
-                <SelectTrigger className="bg-slate-700 border-slate-600">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Art & Design">Art & Design</SelectItem>
-                  <SelectItem value="Gaming">Gaming</SelectItem>
-                  <SelectItem value="Music">Music</SelectItem>
-                  <SelectItem value="Cooking">Cooking</SelectItem>
-                  <SelectItem value="Education">Education</SelectItem>
-                  <SelectItem value="Fitness">Fitness</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          {/* Stream Quality Settings */}
-          <div className="space-y-2">
-            <Label>Stream Quality</Label>
-            <Select 
-              value={streamQuality} 
-              onValueChange={(value: '720p' | '1080p') => setStreamQuality(value)}
-              disabled={isStreaming}
-            >
-              <SelectTrigger className="bg-slate-700 border-slate-600">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="720p">720p HD (Recommended)</SelectItem>
-                <SelectItem value="1080p">1080p Full HD</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {/* Stream Status */}
-          <div className="flex items-center justify-between">
-            <span className="font-medium">Stream Status</span>
-            <Badge className={isStreaming ? "bg-red-500" : "bg-gray-500"}>
-              {isStreaming ? "🔴 LIVE" : "OFFLINE"}
-            </Badge>
-          </div>
-          
-          {isStreaming && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-slate-700 rounded-lg p-3">
-                <div className="text-slate-400 text-sm">Live Viewers</div>
-                <div className="text-white text-xl font-bold flex items-center">
-                  <Users className="h-5 w-5 mr-2" />
-                  {viewerCount}
-                </div>
-              </div>
-              <div className="bg-slate-700 rounded-lg p-3">
-                <div className="text-slate-400 text-sm">Stream Quality</div>
-                <div className="text-white text-xl font-bold">{streamQuality}</div>
-              </div>
-            </div>
-          )}
-          
-          {/* Action Buttons */}
-          <div className="flex space-x-2">
-            {isStreaming ? (
-              <>
-                <Button 
-                  onClick={handleStopStream}
-                  className="flex-1 bg-red-600 hover:bg-red-700"
-                  disabled={stopStreamMutation.isPending}
-                >
-                  <Square className="mr-2 h-4 w-4" />
-                  {stopStreamMutation.isPending ? "Stopping..." : "Stop Stream"}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={toggleVideo}
-                  className="bg-slate-700 hover:bg-slate-600"
-                >
-                  {isVideoEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={toggleAudio}
-                  className="bg-slate-700 hover:bg-slate-600"
-                >
-                  {isAudioEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
-                </Button>
-              </>
-            ) : (
-              <Button 
-                onClick={handleStartStream}
-                disabled={createStreamMutation.isPending}
-                className="w-full bg-red-500 hover:bg-red-600"
-              >
-                <Play className="mr-2 h-4 w-4" />
-                {createStreamMutation.isPending ? "Starting Stream..." : "Go Live"}
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Live Preview */}
-      {isStreaming && (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Live Video Preview - Main Area */}
+      <div className="lg:col-span-2">
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
-            <CardTitle className="text-white">Live Preview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="relative bg-black rounded-lg overflow-hidden">
-              {localStream ? (
-                <>
-                  <video
-                    ref={localVideoRef}
-                    autoPlay
-                    muted
-                    playsInline
-                    className="w-full h-64 object-cover"
-                  />
-                  <div className="absolute top-4 left-4">
-                    <Badge className="bg-red-500 animate-pulse">
-                      <div className="w-2 h-2 bg-white rounded-full mr-2"></div>
-                      LIVE
-                    </Badge>
-                  </div>
-                  {!isVideoEnabled && (
-                    <div className="absolute inset-0 bg-slate-900/80 flex items-center justify-center">
-                      <VideoOff className="h-12 w-12 text-slate-400" />
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="w-full h-64 flex items-center justify-center">
-                  <div className="text-center">
-                    <Video className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                    <p className="text-slate-400">Setting up camera...</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Live Chat for Viewers */}
-      {isStreaming && currentStreamId && (
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center">
-              <MessageCircle className="mr-2 h-5 w-5" />
-              Live Chat
+            <CardTitle className="text-white flex items-center justify-between">
+              🔴 Live Video Preview
+              {getConnectionBadge()}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {/* Chat Messages */}
-              <div className="h-48 bg-slate-900 rounded-lg p-3 overflow-y-auto">
-                <div className="space-y-2">
-                  <div className="text-slate-400 text-sm text-center">
-                    Chat is live! Viewers can send messages here.
-                  </div>
-                  {/* Sample messages for demo */}
-                  <div className="bg-slate-700 rounded-lg p-2">
-                    <div className="text-blue-400 text-sm font-medium">Viewer123</div>
-                    <div className="text-white text-sm">Great stream! Keep it up! 🎉</div>
-                  </div>
-                  <div className="bg-slate-700 rounded-lg p-2">
-                    <div className="text-green-400 text-sm font-medium">StreamFan</div>
-                    <div className="text-white text-sm">Amazing content as always!</div>
+            <div className="relative bg-black rounded-lg overflow-hidden">
+              <video
+                ref={localVideoRef}
+                autoPlay
+                muted
+                playsInline
+                className="w-full aspect-video object-cover"
+                style={{ maxHeight: '400px' }}
+              />
+              {!localStream && (
+                <div className="absolute inset-0 flex items-center justify-center bg-slate-900 bg-opacity-75">
+                  <div className="text-center">
+                    <Video className="h-16 w-16 mx-auto text-slate-500 mb-4" />
+                    <p className="text-slate-400">Camera access required for streaming</p>
                   </div>
                 </div>
-              </div>
+              )}
               
-              {/* Creator Chat Input */}
-              <div className="flex space-x-2">
-                <Input
-                  placeholder="Send a message to viewers..."
-                  className="flex-1 bg-slate-700 border-slate-600"
-                />
-                <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                  <Send className="h-4 w-4" />
-                </Button>
+              {/* Stream Controls Overlay */}
+              <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Button
+                    onClick={toggleVideo}
+                    size="sm"
+                    variant={isVideoEnabled ? "default" : "destructive"}
+                    className="bg-black bg-opacity-50 hover:bg-opacity-75"
+                  >
+                    {isVideoEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    onClick={toggleAudio}
+                    size="sm"
+                    variant={isAudioEnabled ? "default" : "destructive"}
+                    className="bg-black bg-opacity-50 hover:bg-opacity-75"
+                  >
+                    {isAudioEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+                  </Button>
+                </div>
+                
+                <div className="flex items-center space-x-4 text-white text-sm">
+                  <div className="flex items-center">
+                    <Users className="h-4 w-4 mr-1" />
+                    {viewerCount}
+                  </div>
+                  <Badge className="bg-red-500 text-white">LIVE</Badge>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
-      )}
+      </div>
+
+      {/* Live Chat - Sidebar */}
+      <div className="lg:col-span-1">
+        <Card className="bg-slate-800 border-slate-700 h-full">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center">
+              <MessageCircle className="h-5 w-5 mr-2" />
+              Live Chat
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="h-96 flex flex-col">
+            {/* Chat Messages */}
+            <div className="flex-1 overflow-y-auto space-y-2 mb-4 max-h-80">
+              {chatMessages.length === 0 ? (
+                <div className="text-slate-400 text-center py-8">
+                  <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No messages yet</p>
+                  <p className="text-sm">Chat will appear here when viewers join</p>
+                </div>
+              ) : (
+                chatMessages.map((msg, index) => (
+                  <div key={index} className="text-sm">
+                    <div className="flex items-start space-x-2">
+                      <span className="font-medium text-blue-400 flex-shrink-0">
+                        {msg.senderName || 'User'}:
+                      </span>
+                      <span className="text-slate-300 break-words">{msg.message}</span>
+                    </div>
+                    {msg.tipAmount > 0 && (
+                      <div className="text-green-400 text-xs ml-2">
+                        💰 Tipped {msg.tipAmount} tokens!
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+            
+            {/* Chat Input */}
+            <div className="flex space-x-2">
+              <Input
+                placeholder="Say something to your viewers..."
+                value={newChatMessage}
+                onChange={(e) => setNewChatMessage(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()}
+                className="bg-slate-700 border-slate-600 text-white flex-1"
+              />
+              <Button 
+                onClick={sendChatMessage}
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
