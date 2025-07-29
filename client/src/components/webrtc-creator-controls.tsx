@@ -32,8 +32,8 @@ export default function WebRTCCreatorControls({ onStreamStart, onStreamStop }: W
   // WebRTC hook for creator
   const webrtc = useWebRTC({
     streamId: currentStreamId || 'temp',
-    userId: user?.id || '',
-    username: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Creator',
+    userId: (user as any)?.id || '',
+    username: `${(user as any)?.firstName || ''} ${(user as any)?.lastName || ''}`.trim() || 'Creator',
     isCreator: true
   });
 
@@ -208,11 +208,11 @@ export default function WebRTCCreatorControls({ onStreamStart, onStreamStop }: W
           <CardContent>
             <WebRTCStreamPlayer
               streamId={currentStreamId}
-              userId={user?.id || ''}
-              username={`${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Creator'}
+              userId={(user as any)?.id || ''}
+              username={`${(user as any)?.firstName || ''} ${(user as any)?.lastName || ''}`.trim() || 'Creator'}
               isCreator={true}
               title={streamData.title}
-              creatorName={`${user?.firstName || ''} ${user?.lastName || ''}`.trim()}
+              creatorName={`${(user as any)?.firstName || ''} ${(user as any)?.lastName || ''}`.trim()}
               onViewerCountChange={() => {}}
             />
             

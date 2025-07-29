@@ -76,8 +76,9 @@ export function setupWebRTC(server: Server) {
         activeStreams.set(streamId, {
           streamId,
           creatorSocketId: socket.id,
-          viewers: new Set()
-        });
+          viewers: new Set(),
+          creatorUserId: userId  // Store creator user ID for reconnection
+        } as any);
 
         socket.join(`stream-${streamId}`);
         

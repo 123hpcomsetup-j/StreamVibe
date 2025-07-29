@@ -129,8 +129,8 @@ export function useWebRTC({ streamId, userId, username, isCreator }: UseWebRTCPr
   const joinStream = useCallback(() => {
     if (isCreator || !socket) return;
 
-    socket.emit('join-stream', { streamId, userId });
-  }, [isCreator, socket, streamId, userId]);
+    socket.emit('viewer-join-stream', { streamId });
+  }, [isCreator, socket, streamId]);
 
   // Stop streaming
   const stopStreaming = useCallback(() => {

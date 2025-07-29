@@ -477,6 +477,20 @@ export default function CreatorDashboard() {
     createStreamMutation.mutate(finalStreamData, {
       onSuccess: (newStream) => {
         setIsStreaming(true);
+        
+        // CRITICAL: Register creator with WebRTC signaling server
+        const socket = (window as any).streamSocket;
+        if (socket && typedUser?.id) {
+          console.log('Registering creator with WebRTC server:', newStream.id, typedUser.id);
+          socket.emit('start-stream', {
+            streamId: newStream.id,
+            userId: typedUser.id
+          });
+          
+          // Store stream ID globally for WebRTC use
+          (window as any).currentStreamId = newStream.id;
+        }
+        
         if (useWebRTC) {
           // Show WebRTC streaming modal
           setShowWebRTCModal(true);
