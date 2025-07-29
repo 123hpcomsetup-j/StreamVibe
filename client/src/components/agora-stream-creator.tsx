@@ -33,11 +33,12 @@ export default function AgoraStreamCreator({
   const [isStreaming, setIsStreaming] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
   const [isVideoOn, setIsVideoOn] = useState(true);
-  const [isAudioOn, setIsAudioOn] = useState(true);
+  const [isAudioOn, setIsAudioOn] = useState(true);  
   const [isConnected, setIsConnected] = useState(false);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [message, setMessage] = useState("");
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
   
   const clientRef = useRef<IAgoraRTCClient | null>(null);
   const videoTrackRef = useRef<ICameraVideoTrack | null>(null);
@@ -384,14 +385,77 @@ export default function AgoraStreamCreator({
     }
   };
 
+  const startPreview = async () => {
+    try {
+      // Create video and audio tracks for preview
+      const videoTrack = await AgoraRTC.createCameraVideoTrack({
+        encoderConfig: {
+          width: 1280,
+          height: 720,
+          frameRate: 30,
+          bitrateMax: 1000,
+          bitrateMin: 500
+        }
+      });
+      const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      
+      videoTrackRef.current = videoTrack;
+      audioTrackRef.current = audioTrack;
+
+      // Play video locally for preview
+      if (videoContainerRef.current) {
+        videoTrack.play(videoContainerRef.current);
+      }
+
+      setShowPreview(true);
+      
+      toast({
+        title: "Preview Started",
+        description: "Camera preview is now active. Click 'Go Live' to start streaming.",
+      });
+
+    } catch (error: any) {
+      console.error("Failed to start preview:", error);
+      toast({
+        title: "Preview Failed",
+        description: "Unable to access camera/microphone. Please check permissions.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopPreview = async () => {
+    try {
+      // Close tracks
+      if (videoTrackRef.current) {
+        videoTrackRef.current.close();
+        videoTrackRef.current = null;
+      }
+      if (audioTrackRef.current) {
+        audioTrackRef.current.close();
+        audioTrackRef.current = null;
+      }
+
+      setShowPreview(false);
+      
+      toast({
+        title: "Preview Stopped",
+        description: "Camera preview has been stopped.",
+      });
+
+    } catch (error: any) {
+      console.error("Error stopping preview:", error);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 space-y-6">
-        {/* Stream Controls */}
+      <div className="lg:col-span-2 space-y-4">
+        {/* Video Preview - Always visible */}
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
             <CardTitle className="text-white flex items-center justify-between">
-              <span>Live Stream Controls</span>
+              <span>Stream Preview</span>
               {isStreaming && (
                 <Badge variant="secondary" className="bg-red-600 text-white">
                   <div className="w-2 h-2 bg-white rounded-full animate-pulse mr-2"></div>
@@ -400,95 +464,132 @@ export default function AgoraStreamCreator({
               )}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Connection Status */}
-            {isConnected && (
-              <div className="flex items-center text-green-400 text-sm">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
-                <span>Connected to Agora - {viewerCount} viewers</span>
-              </div>
-            )}
-            
-            {/* Stream Controls */}
-            <div className="flex space-x-2">
-              {isStreaming ? (
-                <>
-                  <Button 
-                    onClick={stopStreaming}
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    <Square className="mr-2 h-4 w-4" />
-                    Stop Stream
-                  </Button>
-                  <Button 
-                    onClick={toggleVideo}
-                    variant={isVideoOn ? "secondary" : "destructive"}
-                    className="flex-1"
-                  >
-                    {isVideoOn ? <Video className="mr-2 h-4 w-4" /> : <VideoOff className="mr-2 h-4 w-4" />}
-                    {isVideoOn ? "Video On" : "Video Off"}
-                  </Button>
-                  <Button 
-                    onClick={toggleAudio}
-                    variant={isAudioOn ? "secondary" : "destructive"}
-                    className="flex-1"
-                  >
-                    {isAudioOn ? <Mic className="mr-2 h-4 w-4" /> : <MicOff className="mr-2 h-4 w-4" />}
-                    {isAudioOn ? "Audio On" : "Audio Off"}
-                  </Button>
-                </>
-              ) : (
-                <Button 
-                  onClick={startStreaming}
-                  className="w-full bg-red-500 hover:bg-red-600"
-                >
-                  <Play className="mr-2 h-4 w-4" />
-                  Start Live Stream
-                </Button>
+          <CardContent>
+            <div 
+              ref={videoContainerRef}
+              className="relative w-full h-64 md:h-80 lg:h-96 bg-black rounded-lg overflow-hidden"
+            >
+              {!isStreaming && !showPreview && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center text-slate-400">
+                    <Video className="h-12 w-12 mx-auto mb-2" />
+                    <p>Camera preview will appear here</p>
+                    <p className="text-sm text-slate-500 mt-1">Click "Preview" or "Go Live" to start</p>
+                  </div>
+                </div>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Video Preview */}
+        {/* Mobile-Friendly Stream Controls - Below Video */}
         <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white">Stream Preview</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-white text-lg">Stream Controls</CardTitle>
+            {/* Connection Status */}
+            {isConnected && (
+              <div className="flex items-center text-green-400 text-sm">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
+                <span>Connected - {viewerCount} viewers watching</span>
+              </div>
+            )}
           </CardHeader>
-          <CardContent>
-            <div 
-              ref={videoContainerRef}
-              className="relative w-full h-64 bg-slate-900 rounded-lg overflow-hidden"
-            >
-              {!isStreaming && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center text-slate-400">
-                    <Video className="h-12 w-12 mx-auto mb-2" />
-                    <p>Start streaming to see preview</p>
-                  </div>
+          <CardContent className="space-y-4">
+            {/* Main Stream Buttons */}
+            <div className="w-full space-y-3">
+              {!isStreaming && !showPreview && (
+                <div className="grid grid-cols-2 gap-3">
+                  <Button 
+                    onClick={startPreview}
+                    className="bg-blue-500 hover:bg-blue-600 py-3"
+                  >
+                    <Video className="mr-2 h-4 w-4" />
+                    Preview
+                  </Button>
+                  <Button 
+                    onClick={startStreaming}
+                    className="bg-red-500 hover:bg-red-600 py-3"
+                  >
+                    <Play className="mr-2 h-4 w-4" />
+                    Go Live
+                  </Button>
                 </div>
+              )}
+              
+              {showPreview && !isStreaming && (
+                <div className="grid grid-cols-2 gap-3">
+                  <Button 
+                    onClick={stopPreview}
+                    variant="outline"
+                    className="py-3"
+                  >
+                    <Square className="mr-2 h-4 w-4" />
+                    Stop Preview
+                  </Button>
+                  <Button 
+                    onClick={startStreaming}
+                    className="bg-red-500 hover:bg-red-600 py-3"
+                  >
+                    <Play className="mr-2 h-4 w-4" />
+                    Go Live
+                  </Button>
+                </div>
+              )}
+              
+              {isStreaming && (
+                <Button 
+                  onClick={stopStreaming}
+                  className="w-full bg-red-600 hover:bg-red-700 text-lg py-3"
+                >
+                  <Square className="mr-2 h-5 w-5" />
+                  Stop Stream
+                </Button>
               )}
             </div>
             
-            {/* Stream Stats */}
+            {/* Video/Audio Controls - Mobile Optimized */}
             {isStreaming && (
-              <div className="mt-4 grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-3">
+                <Button 
+                  onClick={toggleVideo}
+                  variant={isVideoOn ? "secondary" : "destructive"}
+                  className="py-3"
+                >
+                  {isVideoOn ? <Video className="mr-2 h-4 w-4" /> : <VideoOff className="mr-2 h-4 w-4" />}
+                  <span className="hidden sm:inline">{isVideoOn ? "Video On" : "Video Off"}</span>
+                  <span className="sm:hidden">{isVideoOn ? "Cam" : "No Cam"}</span>
+                </Button>
+                <Button 
+                  onClick={toggleAudio}
+                  variant={isAudioOn ? "secondary" : "destructive"}
+                  className="py-3"
+                >
+                  {isAudioOn ? <Mic className="mr-2 h-4 w-4" /> : <MicOff className="mr-2 h-4 w-4" />}
+                  <span className="hidden sm:inline">{isAudioOn ? "Audio On" : "Audio Off"}</span>
+                  <span className="sm:hidden">{isAudioOn ? "Mic" : "Muted"}</span>
+                </Button>
+              </div>
+            )}
+
+            {/* Stream Stats - Mobile Responsive */}
+            {isStreaming && (
+              <div className="grid grid-cols-3 gap-3 mt-4">
                 <div className="bg-slate-700 rounded-lg p-3 text-center">
-                  <div className="text-slate-400 text-sm">Viewers</div>
-                  <div className="text-white text-xl font-bold flex items-center justify-center">
-                    <Users className="w-4 h-4 mr-1" />
+                  <div className="text-slate-400 text-xs sm:text-sm">Viewers</div>
+                  <div className="text-white text-lg sm:text-xl font-bold flex items-center justify-center">
+                    <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                     {viewerCount}
                   </div>
                 </div>
                 <div className="bg-slate-700 rounded-lg p-3 text-center">
-                  <div className="text-slate-400 text-sm">Video</div>
-                  <div className="text-white text-xl font-bold">
+                  <div className="text-slate-400 text-xs sm:text-sm">Video</div>
+                  <div className="text-white text-lg sm:text-xl font-bold">
                     {isVideoOn ? "ON" : "OFF"}
                   </div>
                 </div>
                 <div className="bg-slate-700 rounded-lg p-3 text-center">
-                  <div className="text-slate-400 text-sm">Audio</div>
-                  <div className="text-white text-xl font-bold">
+                  <div className="text-slate-400 text-xs sm:text-sm">Audio</div>
+                  <div className="text-white text-lg sm:text-xl font-bold">
                     {isAudioOn ? "ON" : "OFF"}
                   </div>
                 </div>
