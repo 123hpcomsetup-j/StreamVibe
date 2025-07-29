@@ -504,133 +504,176 @@ export default function AgoraStreamCreator({
                   </div>
                 </div>
               )}
+              {/* Live Stream Overlay Controls */}
               {isStreaming && (
-                <div className="absolute top-4 left-4 z-10">
-                  <Badge variant="secondary" className="bg-red-600 text-white">
-                    <div className="w-2 h-2 bg-white rounded-full animate-pulse mr-2"></div>
-                    YOUR LIVE STREAM
-                  </Badge>
-                </div>
+                <>
+                  {/* Live Badge */}
+                  <div className="absolute top-4 left-4 z-10">
+                    <Badge variant="secondary" className="bg-red-600 text-white">
+                      <div className="w-2 h-2 bg-white rounded-full animate-pulse mr-2"></div>
+                      LIVE
+                    </Badge>
+                  </div>
+                  
+                  {/* Stream Controls Overlay - Top Right */}
+                  <div className="absolute top-4 right-4 z-10 flex space-x-2">
+                    <Button
+                      onClick={toggleVideo}
+                      size="sm"
+                      variant={isVideoOn ? "secondary" : "destructive"}
+                      className="h-8 w-8 p-0 bg-black/50 hover:bg-black/70 border-white/20"
+                    >
+                      {isVideoOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      onClick={toggleAudio}
+                      size="sm"
+                      variant={isAudioOn ? "secondary" : "destructive"}
+                      className="h-8 w-8 p-0 bg-black/50 hover:bg-black/70 border-white/20"
+                    >
+                      {isAudioOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  
+                  {/* Viewer Count - Top Center */}
+                  <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
+                    <div className="bg-black/50 text-white px-3 py-1 rounded-full text-sm flex items-center">
+                      <Users className="h-3 w-3 mr-1" />
+                      {viewerCount} viewers
+                    </div>
+                  </div>
+                  
+                  {/* Stop Stream Button - Bottom Center */}
+                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
+                    <Button
+                      onClick={stopStreaming}
+                      size="sm"
+                      className="bg-red-600/90 hover:bg-red-700 text-white px-4 py-2 h-8"
+                    >
+                      <Square className="h-3 w-3 mr-1" />
+                      Stop Stream
+                    </Button>
+                  </div>
+                </>
+              )}
+              
+              {/* Preview Controls - Only when in preview mode */}
+              {showPreview && !isStreaming && (
+                <>
+                  <div className="absolute top-4 left-4 z-10">
+                    <Badge variant="outline" className="bg-blue-600 text-white border-blue-500">
+                      PREVIEW
+                    </Badge>
+                  </div>
+                  
+                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10 flex space-x-2">
+                    <Button
+                      onClick={stopPreview}
+                      size="sm"
+                      variant="outline"
+                      className="bg-black/50 hover:bg-black/70 text-white border-white/20 h-8"
+                    >
+                      <Square className="h-3 w-3 mr-1" />
+                      Stop Preview
+                    </Button>
+                    <Button
+                      onClick={startStreaming}
+                      size="sm"
+                      className="bg-red-600/90 hover:bg-red-700 text-white h-8"
+                    >
+                      <Play className="h-3 w-3 mr-1" />
+                      Go Live
+                    </Button>
+                  </div>
+                </>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Mobile-Friendly Stream Controls - Below Video */}
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-white text-lg">Stream Controls</CardTitle>
-            {/* Connection Status */}
-            {isConnected && (
-              <div className="flex items-center text-green-400 text-sm">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
-                <span>Connected - {viewerCount} viewers watching</span>
-              </div>
-            )}
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Main Stream Buttons */}
-            <div className="w-full space-y-3">
-              {!isStreaming && !showPreview && (
-                <div className="grid grid-cols-2 gap-3">
-                  <Button 
-                    onClick={startPreview}
-                    className="bg-blue-500 hover:bg-blue-600 py-3"
-                  >
-                    <Video className="mr-2 h-4 w-4" />
-                    Preview
-                  </Button>
-                  <Button 
-                    onClick={startStreaming}
-                    className="bg-red-500 hover:bg-red-600 py-3"
-                  >
-                    <Play className="mr-2 h-4 w-4" />
-                    Go Live
-                  </Button>
-                </div>
-              )}
-              
-              {showPreview && !isStreaming && (
-                <div className="grid grid-cols-2 gap-3">
-                  <Button 
-                    onClick={stopPreview}
-                    variant="outline"
-                    className="py-3"
-                  >
-                    <Square className="mr-2 h-4 w-4" />
-                    Stop Preview
-                  </Button>
-                  <Button 
-                    onClick={startStreaming}
-                    className="bg-red-500 hover:bg-red-600 py-3"
-                  >
-                    <Play className="mr-2 h-4 w-4" />
-                    Go Live
-                  </Button>
-                </div>
-              )}
-              
-              {isStreaming && (
-                <Button 
-                  onClick={stopStreaming}
-                  className="w-full bg-red-600 hover:bg-red-700 text-lg py-3"
-                >
-                  <Square className="mr-2 h-5 w-5" />
-                  Stop Stream
-                </Button>
-              )}
-            </div>
-            
-            {/* Video/Audio Controls - Mobile Optimized */}
-            {isStreaming && (
+        {/* Quick Start Controls - Only show when not streaming or previewing */}
+        {!isStreaming && !showPreview && (
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-white text-lg">Quick Start</CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="grid grid-cols-2 gap-3">
                 <Button 
-                  onClick={toggleVideo}
-                  variant={isVideoOn ? "secondary" : "destructive"}
-                  className="py-3"
+                  onClick={startPreview}
+                  size="sm"
+                  className="bg-blue-500 hover:bg-blue-600 h-9"
                 >
-                  {isVideoOn ? <Video className="mr-2 h-4 w-4" /> : <VideoOff className="mr-2 h-4 w-4" />}
-                  <span className="hidden sm:inline">{isVideoOn ? "Video On" : "Video Off"}</span>
-                  <span className="sm:hidden">{isVideoOn ? "Cam" : "No Cam"}</span>
+                  <Video className="mr-2 h-4 w-4" />
+                  Preview
                 </Button>
                 <Button 
-                  onClick={toggleAudio}
-                  variant={isAudioOn ? "secondary" : "destructive"}
-                  className="py-3"
+                  onClick={startStreaming}
+                  size="sm" 
+                  className="bg-red-500 hover:bg-red-600 h-9"
                 >
-                  {isAudioOn ? <Mic className="mr-2 h-4 w-4" /> : <MicOff className="mr-2 h-4 w-4" />}
-                  <span className="hidden sm:inline">{isAudioOn ? "Audio On" : "Audio Off"}</span>
-                  <span className="sm:hidden">{isAudioOn ? "Mic" : "Muted"}</span>
+                  <Play className="mr-2 h-4 w-4" />
+                  Go Live
                 </Button>
               </div>
-            )}
+              <p className="text-slate-400 text-xs mt-2 text-center">
+                Stream controls will appear on the video when live
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
-            {/* Stream Stats - Mobile Responsive */}
-            {isStreaming && (
-              <div className="grid grid-cols-3 gap-3 mt-4">
-                <div className="bg-slate-700 rounded-lg p-3 text-center">
-                  <div className="text-slate-400 text-xs sm:text-sm">Viewers</div>
-                  <div className="text-white text-lg sm:text-xl font-bold flex items-center justify-center">
-                    <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+        {/* Stream Status Info - Always visible when connected */}
+        {isConnected && (
+          <Card className="bg-slate-800 border-slate-700">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center text-green-400 text-sm">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
+                  <span>Connected to Agora</span>
+                </div>
+                {isStreaming && (
+                  <div className="flex items-center text-white text-sm bg-red-600 px-2 py-1 rounded">
+                    <div className="w-2 h-2 bg-white rounded-full animate-pulse mr-2"></div>
+                    Broadcasting Live
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Stream Statistics - Compact Version */}
+        {isStreaming && (
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-white text-lg">Stream Stats</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-slate-700 rounded p-2 text-center">
+                  <div className="text-slate-400 text-xs">Viewers</div>
+                  <div className="text-white text-lg font-bold flex items-center justify-center">
+                    <Users className="w-3 h-3 mr-1" />
                     {viewerCount}
                   </div>
                 </div>
-                <div className="bg-slate-700 rounded-lg p-3 text-center">
-                  <div className="text-slate-400 text-xs sm:text-sm">Video</div>
-                  <div className="text-white text-lg sm:text-xl font-bold">
+                <div className="bg-slate-700 rounded p-2 text-center">
+                  <div className="text-slate-400 text-xs">Video</div>
+                  <div className={`text-lg font-bold ${isVideoOn ? 'text-green-400' : 'text-red-400'}`}>
                     {isVideoOn ? "ON" : "OFF"}
                   </div>
                 </div>
-                <div className="bg-slate-700 rounded-lg p-3 text-center">
-                  <div className="text-slate-400 text-xs sm:text-sm">Audio</div>
-                  <div className="text-white text-lg sm:text-xl font-bold">
+                <div className="bg-slate-700 rounded p-2 text-center">
+                  <div className="text-slate-400 text-xs">Audio</div>
+                  <div className={`text-lg font-bold ${isAudioOn ? 'text-green-400' : 'text-red-400'}`}>
                     {isAudioOn ? "ON" : "OFF"}
                   </div>
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Chat Section */}
