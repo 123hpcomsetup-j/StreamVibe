@@ -172,6 +172,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put('/api/streams/:id/settings', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const streamId = req.params.id;
+      const { minTip, tokenPrice, privateRate } = req.body;
+      
+      const stream = await storage.getStreamById(streamId);
+      if (!stream || stream.creatorId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      // Update stream settings
+      const updatedStream = await storage.updateStream(streamId, {
+        minTip: parseInt(minTip) || 5,
+        tokenPrice: parseFloat(tokenPrice) || 1,
+        privateRate: parseInt(privateRate) || 20,
+      });
+      
+      res.json(updatedStream);
+    } catch (error) {
+      console.error("Error updating stream settings:", error);
+      res.status(400).json({ message: "Failed to update stream settings" });
+    }
+  });
+
   app.delete('/api/streams/:id', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;

@@ -269,6 +269,40 @@ export default function CreatorDashboard() {
     },
   });
 
+  // Update stream settings mutation
+  const updateStreamSettingsMutation = useMutation({
+    mutationFn: async (settings: { minTip: number; tokenPrice: number; privateRate: number }) => {
+      if (!currentStream) throw new Error("No active stream found");
+      const response = await apiRequest("PUT", `/api/streams/${(currentStream as any).id}/settings`, settings);
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Stream settings updated successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/streams/current"] });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to update stream settings. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: async (data: { firstName: string; lastName: string; username: string }) => {
@@ -603,6 +637,26 @@ export default function CreatorDashboard() {
                   />
                   <p className="text-xs text-slate-400">Default: 20 tokens per minute</p>
                 </div>
+                
+                {/* Update Settings Button for Live Streams */}
+                {isStreaming && (
+                  <div className="pt-4 border-t border-slate-600">
+                    <Button 
+                      onClick={() => updateStreamSettingsMutation.mutate({
+                        minTip: streamData.minTip,
+                        tokenPrice: streamData.tokenPrice,
+                        privateRate: streamData.privateRate
+                      })}
+                      disabled={updateStreamSettingsMutation.isPending}
+                      className="w-full bg-primary hover:bg-primary/80"
+                    >
+                      {updateStreamSettingsMutation.isPending ? "Updating..." : "Update Live Stream Settings"}
+                    </Button>
+                    <p className="text-xs text-slate-400 mt-2 text-center">
+                      Changes apply immediately to your live stream
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

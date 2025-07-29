@@ -98,6 +98,13 @@ Preferred communication style: Simple, everyday language.
   - Existing authenticated users see their usernames
   - All user types can watch streams and participate in chat
   - Seamless upgrade path: guests can sign up without losing stream access
+✓ **NEW**: Creator token pricing and tip controls (January 29, 2025):
+  - Added comprehensive token pricing settings in creator dashboard
+  - Creators can set custom token prices, minimum tip amounts, and private session rates
+  - Real-time settings updates for live streams with instant application
+  - Guest chat system respects creator-defined pricing structure
+  - Backend API endpoint `/api/streams/:id/settings` for updating stream monetization settings
+  - Enhanced UI with clear explanations of each pricing option for creators
 
 ## System Architecture
 
