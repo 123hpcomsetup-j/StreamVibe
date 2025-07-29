@@ -39,7 +39,9 @@ export default function ModernAdminPanel() {
   const [selectedPayout, setSelectedPayout] = useState<any>(null);
   const [utrNumber, setUtrNumber] = useState("");
   const [showReleaseDialog, setShowReleaseDialog] = useState(false);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  // Get active tab from URL parameters  
+  const urlParams = new URLSearchParams(location.split('?')[1] || '');
+  const [activeTab, setActiveTab] = useState(urlParams.get('tab') || 'dashboard');
 
   const typedUser = user as User | undefined;
 
@@ -379,6 +381,14 @@ export default function ModernAdminPanel() {
             Creator Payouts ({pendingPayouts.length})
           </Button>
           <Button
+            onClick={() => setActiveTab('users')}
+            variant={activeTab === 'users' ? 'default' : 'outline'}
+            className={activeTab === 'users' ? 'bg-blue-600 hover:bg-blue-700' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}
+          >
+            <Users className="mr-2 h-4 w-4" />
+            All Users
+          </Button>
+          <Button
             onClick={() => setActiveTab('creators')}
             variant={activeTab === 'creators' ? 'default' : 'outline'}
             className={activeTab === 'creators' ? 'bg-purple-600 hover:bg-purple-700' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}
@@ -488,6 +498,104 @@ export default function ModernAdminPanel() {
                                   Ban Creator
                                 </Button>
                               </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* All Users Tab */}
+          {activeTab === 'users' && (
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center">
+                  <Users className="mr-2 h-5 w-5" />
+                  All Platform Users
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {users.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Users className="h-12 w-12 text-slate-500 mx-auto mb-4" />
+                    <p className="text-slate-400">No users found</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {users.map((user: any) => (
+                      <Card key={user.id} className="bg-slate-700 border-slate-600">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-3">
+                                <div className="flex-shrink-0">
+                                  <div className="w-10 h-10 bg-slate-600 rounded-full flex items-center justify-center">
+                                    <span className="text-white font-medium text-sm">
+                                      {user.username?.charAt(0).toUpperCase() || 'U'}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-white font-medium">
+                                    {user.firstName} {user.lastName} (@{user.username})
+                                  </p>
+                                  <p className="text-slate-400 text-sm">
+                                    {user.email || 'No email provided'}
+                                  </p>
+                                  <div className="flex items-center space-x-2 mt-2">
+                                    <Badge 
+                                      variant="outline" 
+                                      className={`text-xs ${
+                                        user.role === 'admin' ? 'text-red-400 border-red-400' :
+                                        user.role === 'creator' ? 'text-purple-400 border-purple-400' :
+                                        'text-blue-400 border-blue-400'
+                                      }`}
+                                    >
+                                      {user.role?.charAt(0).toUpperCase() + user.role?.slice(1)}
+                                    </Badge>
+                                    <Badge 
+                                      variant="outline" 
+                                      className={`text-xs ${
+                                        user.isOnline ? 'text-green-400 border-green-400' : 'text-gray-400 border-gray-400'
+                                      }`}
+                                    >
+                                      {user.isOnline ? 'Online' : 'Offline'}
+                                    </Badge>
+                                    {user.role === 'creator' && (
+                                      <Badge 
+                                        variant="outline" 
+                                        className={`text-xs ${
+                                          user.isApproved ? 'text-green-400 border-green-400' : 'text-yellow-400 border-yellow-400'
+                                        }`}
+                                      >
+                                        {user.isApproved ? 'Approved' : 'Pending'}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center space-x-4 mt-1 text-xs text-slate-500">
+                                    <span>Wallet: ₹{user.walletBalance || 0}</span>
+                                    <span>Joined: {new Date(user.createdAt).toLocaleDateString()}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => banUserMutation.mutate({ 
+                                  userId: user.id, 
+                                  reason: "Admin action" 
+                                })}
+                                disabled={banUserMutation.isPending || user.role === 'admin'}
+                                className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white text-xs"
+                              >
+                                <Ban className="h-3 w-3" />
+                              </Button>
                             </div>
                           </div>
                         </CardContent>

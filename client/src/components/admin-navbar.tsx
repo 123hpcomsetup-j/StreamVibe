@@ -68,30 +68,39 @@ export default function AdminNavbar() {
 
 
 
+  const handleNavClick = (tab: string) => {
+    // Navigate to admin panel and set the active tab
+    if (tab === 'dashboard') {
+      window.location.href = '/admin-panel';
+    } else {
+      window.location.href = `/admin-panel?tab=${tab}`;
+    }
+  };
+
   const navItems = [
     { 
-      href: "/admin-panel", 
+      tab: "dashboard",
       label: "Dashboard", 
       icon: Home,
       description: "Main admin control panel"
     },
     { 
-      href: "/admin-panel?tab=streams", 
+      tab: "streams",
       label: "Live Streams", 
       icon: Eye,
       description: "Monitor live streams"
     },
     { 
-      href: "/admin-panel?tab=users", 
+      tab: "users",
       label: "Users", 
       icon: Users,
-      description: "Manage users and creators"
+      description: "Manage all platform users"
     },
     { 
-      href: "/admin-panel?tab=payments", 
+      tab: "purchases",
       label: "Payments", 
       icon: CreditCard,
-      description: "Handle token purchases"
+      description: "Handle token purchases and payouts"
     }
   ];
 
@@ -117,19 +126,21 @@ export default function AdminNavbar() {
               <div className="flex items-baseline space-x-2 xl:space-x-4">
                 {navItems.map((item) => {
                   const Icon = item.icon;
-                  const isActive = location === item.href || 
-                    (item.href.includes('?tab=') && location.includes(item.href.split('?')[1]));
+                  const isActive = (location === '/admin-panel' && item.tab === 'dashboard') ||
+                    location.includes(`tab=${item.tab}`);
                   
                   return (
-                    <Link key={item.href} href={item.href}>
-                      <a className={`text-red-200 hover:text-white px-2 xl:px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${
+                    <button
+                      key={item.tab}
+                      onClick={() => handleNavClick(item.tab)}
+                      className={`text-red-200 hover:text-white px-2 xl:px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${
                         isActive ? 'bg-red-800 text-white' : ''
-                      }`}>
-                        <Icon className="mr-1.5 xl:mr-2 h-3.5 w-3.5 xl:h-4 xl:w-4" />
-                        <span className="hidden xl:inline">{item.label}</span>
-                        <span className="xl:hidden">{item.label.split(' ')[0]}</span>
-                      </a>
-                    </Link>
+                      }`}
+                    >
+                      <Icon className="mr-1.5 xl:mr-2 h-3.5 w-3.5 xl:h-4 xl:w-4" />
+                      <span className="hidden xl:inline">{item.label}</span>
+                      <span className="xl:hidden">{item.label.split(' ')[0]}</span>
+                    </button>
                   );
                 })}
               </div>
