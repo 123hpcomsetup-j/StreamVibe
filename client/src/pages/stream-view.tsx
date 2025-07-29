@@ -143,6 +143,8 @@ export default function StreamView() {
   // Stream check for Agora
 
   // Initialize WebSocket for chat only - Agora handles streaming
+  const [socket, setSocket] = useState<Socket | null>(null);
+  
   useEffect(() => {
     if (!streamId) return;
 
@@ -165,6 +167,7 @@ export default function StreamView() {
 
     // Listen for chat messages
     newSocket.on('chat-message', (message: any) => {
+      console.log('Received chat message:', message);
       setChatMessages(prev => [...prev, message]);
     });
 
@@ -177,76 +180,61 @@ export default function StreamView() {
       });
     });
 
+    setSocket(newSocket);
+
     return () => {
       newSocket.close();
     };
   }, [streamId, typedUser?.id, guestSessionId]);
 
-  // Send chat message
-  const sendChatMutation = useMutation({
-    mutationFn: async () => {
-      if (!message.trim()) return;
+  // Display name for chat
+  const displayName = isAuthenticated 
+    ? typedUser?.username || 'User' 
+    : guestName || 'Guest';
 
-      // For authenticated users, use standard chat endpoint
-      if (isAuthenticated) {
-        const response = await apiRequest("POST", "/api/chat", {
-          streamId,
-          message: message.trim(),
-          tipAmount: 0
-        });
-        return await response.json();
-      }
+  // Send chat message via WebSocket for real-time delivery
+  const sendChatMessage = () => {
+    if (!message.trim() || !socket) return;
 
-      // For guests, check if they have tokens and session
+    // Check guest limits
+    if (!isAuthenticated) {
       if (!guestSessionId) {
-        throw new Error('Guest session not found. Please refresh the page.');
+        toast({
+          title: "Session Error",
+          description: "Guest session not found. Please refresh the page.",
+          variant: "destructive",
+        });
+        return;
       }
       
       if (tokensLeft <= 0) {
-        throw new Error('No chat tokens remaining. Sign up to continue chatting!');
+        toast({
+          title: "No Tokens",
+          description: "No chat tokens remaining. Sign up to continue chatting!",
+          variant: "destructive",
+        });
+        return;
       }
-
-      const headers: any = {
-        'Content-Type': 'application/json',
-        'x-session-id': guestSessionId,
-      };
-
-      const response = await fetch(`/api/streams/${streamId}/chat`, {
-        method: 'POST',
-        headers,
-        credentials: 'include',
-        body: JSON.stringify({
-          message: message.trim(),
-          tipAmount: 0
-        })
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to send message');
-      }
-
-      return await response.json();
-    },
-    onSuccess: (chatMessage) => {
-      setMessage("");
-      
-      // Don't add message to local state - let WebSocket handle it for real-time sync
-      // The server will broadcast the message back to all connected clients
-      
-      // Update tokens for guests
-      if (!isAuthenticated) {
-        setTokensLeft(prev => Math.max(0, prev - 1));
-      }
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Chat Error",
-        description: error.message,
-        variant: "destructive",
-      });
     }
-  });
+
+    const messageData = {
+      streamId,
+      userId: typedUser?.id || `guest_${guestSessionId}`,
+      username: displayName,
+      message: message.trim(),
+      timestamp: new Date().toISOString(),
+      userType: isAuthenticated ? 'viewer' : 'guest'
+    };
+
+    console.log('Sending chat message via WebSocket:', messageData);
+    socket.emit('chat-message', messageData);
+    setMessage("");
+    
+    // Update tokens for guests
+    if (!isAuthenticated) {
+      setTokensLeft(prev => Math.max(0, prev - 1));
+    }
+  };
 
   // Sign up mutation
   const signupMutation = useMutation({
@@ -319,9 +307,6 @@ export default function StreamView() {
   }
 
   const typedStream = stream as any;
-  const displayName = isAuthenticated 
-    ? typedUser?.username || 'User' 
-    : guestName || 'Guest';
 
   // Prevent creators from viewing their own stream
   if (typedStream && isAuthenticated && typedUser?.id === typedStream.creatorId) {
@@ -504,20 +489,25 @@ export default function StreamView() {
                   <form 
                     onSubmit={(e) => {
                       e.preventDefault();
-                      sendChatMutation.mutate();
+                      sendChatMessage();
                     }}
                     className="flex space-x-2"
                   >
                     <Input
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          sendChatMessage();
+                        }
+                      }}
                       placeholder={`Chat as ${displayName}...`}
                       className="flex-1 bg-slate-700 border-slate-600 text-white"
-                      disabled={sendChatMutation.isPending}
                     />
                     <Button 
                       type="submit"
-                      disabled={sendChatMutation.isPending || !message.trim()}
+                      disabled={!message.trim()}
                       className="bg-primary hover:bg-primary/80"
                     >
                       <Send className="h-4 w-4" />
