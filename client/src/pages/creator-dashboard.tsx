@@ -49,10 +49,24 @@ export default function CreatorDashboard() {
 
       socket.on('connect', () => {
         console.log('WebRTC signaling server connected');
+        // Identify this socket as the creator
+        if (user?.id) {
+          socket.emit('identify', { userId: user.id });
+          console.log('Socket identified as creator:', user.id);
+        }
       });
 
       socket.on('disconnect', () => {
         console.log('WebRTC signaling server disconnected');
+      });
+
+      // Also identify on reconnect
+      socket.io.on('reconnect', () => {
+        console.log('WebRTC signaling server reconnected');
+        if (user?.id) {
+          socket.emit('identify', { userId: user.id });
+          console.log('Socket re-identified as creator:', user.id);
+        }
       });
 
       // Listen for real-time tip updates
