@@ -62,26 +62,44 @@ export default function AgoraStreamViewer({
 
     // Handle remote user events
     client.on("user-published", async (user, mediaType) => {
-      console.log("Creator started broadcasting:", mediaType);
+      console.log("🎥 CREATOR BROADCASTING:", mediaType, "from user:", user.uid);
       
-      // Subscribe to the remote user
-      await client.subscribe(user, mediaType);
-      
-      if (mediaType === "video") {
-        const remoteVideoTrack = user.videoTrack;
-        if (remoteVideoTrack && videoContainerRef.current) {
-          remoteVideoTrack.play(videoContainerRef.current);
-          remoteVideoRef.current = remoteVideoTrack;
-          setHasVideo(true);
+      try {
+        // Subscribe to the remote user
+        await client.subscribe(user, mediaType);
+        console.log("✅ Successfully subscribed to creator:", mediaType);
+        
+        if (mediaType === "video") {
+          const remoteVideoTrack = user.videoTrack;
+          if (remoteVideoTrack && videoContainerRef.current) {
+            console.log("📺 Playing creator video stream");
+            remoteVideoTrack.play(videoContainerRef.current);
+            remoteVideoRef.current = remoteVideoTrack;
+            setHasVideo(true);
+            setIsLoading(false);
+            
+            toast({
+              title: "Creator is live!",
+              description: "Video stream connected successfully",
+            });
+          }
         }
-      }
-      
-      if (mediaType === "audio") {
-        const remoteAudioTrack = user.audioTrack;
-        if (remoteAudioTrack) {
-          remoteAudioTrack.play();
-          remoteAudioRef.current = remoteAudioTrack;
+        
+        if (mediaType === "audio") {
+          const remoteAudioTrack = user.audioTrack;
+          if (remoteAudioTrack) {
+            console.log("🔊 Playing creator audio stream");
+            remoteAudioTrack.play();
+            remoteAudioRef.current = remoteAudioTrack;
+          }
         }
+      } catch (error) {
+        console.error("❌ Error subscribing to creator stream:", error);
+        toast({
+          title: "Stream Connection Error",
+          description: "Failed to connect to creator's video",
+          variant: "destructive",
+        });
       }
     });
 
@@ -253,6 +271,21 @@ export default function AgoraStreamViewer({
       // Join the channel as viewer with proper authentication token
       await clientRef.current.join(appId, channelName, token, userId);
       setIsConnected(true);
+      
+      console.log("🟢 Viewer connected to Agora channel:", channelName);
+      console.log("👥 Waiting for creator to start broadcasting...");
+      
+      // Set a timeout to show message if no video appears
+      setTimeout(() => {
+        if (!hasVideo) {
+          console.log("⚠️ No video detected after 10 seconds");
+          toast({
+            title: "Waiting for Creator",
+            description: "The creator hasn't started broadcasting yet. Please wait...",
+          });
+        }
+      }, 10000);
+      
       setIsLoading(false);
 
       toast({

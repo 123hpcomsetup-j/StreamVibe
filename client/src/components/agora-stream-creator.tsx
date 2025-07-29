@@ -237,8 +237,9 @@ export default function AgoraStreamCreator({
       const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
       audioTrackRef.current = audioTrack;
 
-      // Publish tracks
+      // Publish tracks to Agora
       await clientRef.current.publish([videoTrack, audioTrack]);
+      console.log('✅ Successfully published video and audio to Agora');
 
       // Play video locally
       if (videoContainerRef.current) {
@@ -248,15 +249,22 @@ export default function AgoraStreamCreator({
       setIsStreaming(true);
       onStreamStart?.(streamId);
 
-      // Emit WebSocket event to notify all clients that stream is now live
+      // IMPORTANT: Only emit live status AFTER successful Agora publishing
       if (socket) {
-        console.log('Emitting start-stream event for:', streamId);
+        console.log('🚀 Broadcasting live stream status to all clients:', streamId);
         socket.emit('start-stream', { streamId, userId });
+        
+        // Also notify about stream being truly live with video
+        socket.emit('stream-live-confirmed', { 
+          streamId, 
+          userId,
+          message: 'Creator is now broadcasting video'
+        });
       }
 
       toast({
         title: "Live Stream Started!",
-        description: "You are now broadcasting live with Agora.",
+        description: "You are now broadcasting live with video to viewers.",
       });
 
     } catch (error: any) {

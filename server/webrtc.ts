@@ -309,16 +309,72 @@ export function setupWebRTC(server: Server) {
       });
     });
 
-    // Handle stream end
-    socket.on('end-stream', (data: { streamId: string }) => {
-      const stream = activeStreams.get(data.streamId);
-      if (stream && stream.creatorSocketId === socket.id) {
-        // Notify all viewers that stream ended
-        io.to(`stream-${data.streamId}`).emit('stream-ended', { streamId: data.streamId });
+    // Handle stream start - when creator successfully starts broadcasting
+    socket.on('start-stream', async (data: { streamId: string, userId: string }) => {
+      const { streamId, userId } = data;
+      
+      try {
+        console.log(`🚀 Creator ${userId} started broadcasting stream ${streamId}`);
         
-        // Clean up
-        activeStreams.delete(data.streamId);
-        console.log(`Stream ${data.streamId} ended`);
+        // Mark stream as live in database
+        await storage.updateStreamStatus(streamId, true);
+        
+        // Update active streams tracking
+        activeStreams.set(streamId, {
+          streamId,
+          creatorSocketId: socket.id,
+          viewers: new Set()
+        });
+        
+        // Broadcast to ALL clients that stream is now live and available
+        io.emit('stream-status-changed', { 
+          streamId, 
+          creatorId: userId, 
+          isLive: true,
+          viewerCount: 0,
+          message: 'Creator started broadcasting'
+        });
+        
+        console.log(`✅ Stream ${streamId} is now live and visible to all users`);
+        
+      } catch (error) {
+        console.error('Error starting stream:', error);
+        socket.emit('stream-error', { message: 'Failed to start stream' });
+      }
+    });
+
+    // Handle stream end
+    socket.on('end-stream', async (data: { streamId: string }) => {
+      const { streamId } = data;
+      
+      try {
+        console.log(`🔴 Ending stream ${streamId}`);
+        
+        // Mark stream as not live in database
+        await storage.updateStreamStatus(streamId, false);
+        
+        const stream = activeStreams.get(streamId);
+        if (stream && stream.creatorSocketId === socket.id) {
+          // Notify all viewers that stream ended
+          io.to(`stream-${streamId}`).emit('stream-ended', { 
+            streamId,
+            message: 'Live stream has ended'
+          });
+          
+          // Broadcast to all clients that stream is no longer live
+          io.emit('stream-status-changed', { 
+            streamId, 
+            isLive: false,
+            viewerCount: 0,
+            message: 'Stream ended'
+          });
+          
+          // Clean up
+          activeStreams.delete(streamId);
+          console.log(`Stream ${streamId} ended and removed from live streams`);
+        }
+      } catch (error) {
+        console.error('Error ending stream:', error);
       }
     });
 
