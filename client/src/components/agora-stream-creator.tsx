@@ -264,12 +264,14 @@ export default function AgoraStreamCreator({
       await clientRef.current.publish([videoTrack, audioTrack]);
       console.log('✅ Successfully published video and audio to Agora');
 
-      // Play video locally
+      // Play video locally for creator preview
       if (videoContainerRef.current) {
         videoTrack.play(videoContainerRef.current);
+        console.log('✅ Creator preview video displayed locally');
       }
 
       setIsStreaming(true);
+      setShowPreview(true); // Ensure preview stays visible during streaming
       onStreamStart?.(streamId);
 
       // IMPORTANT: Only emit live status AFTER successful Agora publishing
@@ -469,13 +471,21 @@ export default function AgoraStreamCreator({
               ref={videoContainerRef}
               className="relative w-full h-64 md:h-80 lg:h-96 bg-black rounded-lg overflow-hidden"
             >
-              {!isStreaming && !showPreview && (
+              {!showPreview && !isStreaming && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center text-slate-400">
                     <Video className="h-12 w-12 mx-auto mb-2" />
                     <p>Camera preview will appear here</p>
                     <p className="text-sm text-slate-500 mt-1">Click "Preview" or "Go Live" to start</p>
                   </div>
+                </div>
+              )}
+              {isStreaming && (
+                <div className="absolute top-4 left-4 z-10">
+                  <Badge variant="secondary" className="bg-red-600 text-white">
+                    <div className="w-2 h-2 bg-white rounded-full animate-pulse mr-2"></div>
+                    YOUR LIVE STREAM
+                  </Badge>
                 </div>
               )}
             </div>

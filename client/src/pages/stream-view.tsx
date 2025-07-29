@@ -59,6 +59,7 @@ export default function StreamView() {
   const [showTipDialog, setShowTipDialog] = useState(false);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [loginData, setLoginData] = useState({ username: '', password: '' });
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   
   // For other live streams section
   const { data: otherStreams } = useQuery({
@@ -93,10 +94,43 @@ export default function StreamView() {
     }
   }, [initialMessages]);
 
-  // Auto-scroll chat
+  // Smart auto-scroll chat - only scroll if user is near bottom
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const chatContainer = document.querySelector('#chat-scroll-area [data-radix-scroll-area-viewport]');
+    if (chatContainer && chatEndRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainer;
+      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100; // 100px threshold
+      
+      // Show/hide scroll to bottom button
+      setShowScrollToBottom(!isNearBottom && chatMessages.length > 1);
+      
+      // Only auto-scroll if user is near the bottom or it's the first message
+      if (isNearBottom || chatMessages.length === 1) {
+        chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+    }
   }, [chatMessages]);
+
+  // Add scroll listener to detect when user scrolls
+  useEffect(() => {
+    const chatContainer = document.querySelector('#chat-scroll-area [data-radix-scroll-area-viewport]');
+    if (!chatContainer) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainer;
+      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
+      setShowScrollToBottom(!isNearBottom && chatMessages.length > 1);
+    };
+
+    chatContainer.addEventListener('scroll', handleScroll);
+    return () => chatContainer.removeEventListener('scroll', handleScroll);
+  }, [chatMessages.length]);
+  
+  // Function to scroll to bottom manually
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    setShowScrollToBottom(false);
+  };
 
   // Create guest session if not authenticated
   const createGuestSessionMutation = useMutation({
@@ -627,7 +661,7 @@ export default function StreamView() {
                 </CardTitle>
               </CardHeader>
               <CardContent className={`flex-1 flex flex-col overflow-hidden px-2 lg:px-6 ${showChat ? 'block' : 'hidden lg:block'}`}>
-                <ScrollArea className="flex-1 pr-2 lg:pr-4">
+                <ScrollArea className="flex-1 pr-2 lg:pr-4 relative" id="chat-scroll-area">
                   <div className="space-y-2 lg:space-y-3">
                     {chatMessages.length === 0 ? (
                       <div className="text-center py-4 lg:py-8">
@@ -662,6 +696,19 @@ export default function StreamView() {
                   )}
                   <div ref={chatEndRef} />
                 </div>
+                
+                {/* Scroll to bottom button */}
+                {showScrollToBottom && (
+                  <div className="absolute bottom-20 right-4 z-10">
+                    <Button
+                      size="sm"
+                      onClick={scrollToBottom}
+                      className="bg-primary hover:bg-primary/80 rounded-full p-2 shadow-lg"
+                    >
+                      ↓
+                    </Button>
+                  </div>
+                )}
               </ScrollArea>
               
               {/* Chat Input */}
