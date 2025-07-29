@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { io } from "socket.io-client";
+import Navbar from "@/components/navbar";
 import { 
   Video, 
   Users, 
@@ -258,81 +259,10 @@ export default function UserDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
-      {/* Header */}
-      <header className="border-b border-slate-700 bg-black/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
-                StreamVibe
-              </h1>
-              <Badge variant="secondary" className="bg-blue-600 text-white">
-                <Sparkles className="w-3 h-3 mr-1" />
-                Viewer Dashboard
-              </Badge>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              {typedUser && (
-                <div className="flex items-center space-x-4">
-                  {/* Wallet Section */}
-                  <Card className="bg-slate-800/50 border-slate-700">
-                    <CardContent className="flex items-center space-x-3 p-3">
-                      <Wallet className="w-5 h-5 text-yellow-500" />
-                      <div>
-                        <p className="text-xs text-slate-400">Balance</p>
-                        <p className="text-lg font-bold text-yellow-500">
-                          {typedUser.walletBalance || 0} tokens
-                        </p>
-                      </div>
-                      <Button 
-                        size="sm" 
-                        className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                        onClick={() => setShowBuyTokens(true)}
-                      >
-                        <Plus className="w-3 h-3 mr-1" />
-                        Buy
-                      </Button>
-                    </CardContent>
-                  </Card>
+      {/* Navigation */}
+      {typedUser && <Navbar user={typedUser} />}
 
-                  {/* User Info */}
-                  <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-semibold">
-                        {typedUser.username?.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <span className="text-sm">{typedUser.username}</span>
-                  </div>
-                </div>
-              )}
-              
-              <Button 
-                onClick={handleGoHome}
-                variant="outline"
-                size="sm"
-                className="border-slate-600 hover:bg-slate-700"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                Home
-              </Button>
-              
-              <Button 
-                onClick={handleLogout}
-                variant="outline"
-                size="sm"
-                className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Welcome Section */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white to-purple-400 bg-clip-text text-transparent">
@@ -356,6 +286,10 @@ export default function UserDashboard() {
             <TabsTrigger value="profile" className="data-[state=active]:bg-purple-600">
               <UserIcon className="w-4 h-4 mr-2" />
               Profile
+            </TabsTrigger>
+            <TabsTrigger value="wallet" className="data-[state=active]:bg-purple-600">
+              <Wallet className="w-4 h-4 mr-2" />
+              Wallet
             </TabsTrigger>
           </TabsList>
 
@@ -655,6 +589,78 @@ export default function UserDashboard() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Wallet Tab */}
+          <TabsContent value="wallet" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Wallet Balance */}
+              <Card className="bg-slate-800/50 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-white">
+                    <Wallet className="w-5 h-5 mr-2 text-yellow-500" />
+                    Wallet Balance
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-6">
+                    <div className="text-4xl font-bold text-yellow-500 mb-2">
+                      {typedUser?.walletBalance || 0}
+                    </div>
+                    <div className="text-slate-400">Available Tokens</div>
+                    <Button 
+                      className="mt-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                      onClick={() => setShowBuyTokens(true)}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Buy More Tokens
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Recent Transactions */}
+              <Card className="bg-slate-800/50 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-white">
+                    <TrendingUp className="w-5 h-5 mr-2 text-blue-500" />
+                    Recent Transactions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 max-h-64 overflow-y-auto">
+                    {typedTransactions.length === 0 ? (
+                      <div className="text-center py-4 text-slate-400">
+                        No transactions yet
+                      </div>
+                    ) : (
+                      typedTransactions.slice(0, 5).map((transaction) => (
+                        <div key={transaction.id} className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                              <Gift className="w-4 h-4 text-white" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-white">
+                                Tip to {transaction.recipientName || 'Creator'}
+                              </p>
+                              <p className="text-xs text-slate-400">
+                                {new Date(transaction.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium text-red-400">
+                              -{transaction.amount} tokens
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
