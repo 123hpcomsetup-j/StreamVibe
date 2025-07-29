@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
 import type { User } from "@shared/schema";
-import Navbar from "@/components/navbar";
+import AdminNavbar from "@/components/admin-navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,11 @@ import {
   Send,
   Wallet,
   TrendingUp,
-  Users
+  Users,
+  Eye,
+  Ban,
+  AlertTriangle,
+  Play
 } from "lucide-react";
 
 export default function ModernAdminPanel() {
@@ -73,6 +77,18 @@ export default function ModernAdminPanel() {
     queryKey: ["/api/admin/stats"],
     retry: false,
   });
+
+  // Fetch live streams for monitoring
+  const { data: liveStreams = [] } = useQuery({
+    queryKey: ["/api/streams/live"],
+    refetchInterval: 5000, // Refresh every 5 seconds
+  }) as { data: any[] };
+
+  // Fetch all users for banning
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["/api/admin/users"],
+    retry: false,
+  }) as { data: any[] };
 
   // Approve token purchase mutation
   const approveTokenPurchaseMutation = useMutation({
@@ -175,6 +191,49 @@ export default function ModernAdminPanel() {
     }
   });
 
+  // Ban user mutation
+  const banUserMutation = useMutation({
+    mutationFn: async ({ userId, reason }: { userId: string; reason: string }) => {
+      await apiRequest("POST", `/api/admin/ban-user/${userId}`, { reason });
+    },
+    onSuccess: () => {
+      toast({
+        title: "User Banned",
+        description: "User has been banned successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/streams/live"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Ban Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // End stream mutation (for inappropriate content)
+  const endStreamMutation = useMutation({
+    mutationFn: async ({ streamId, reason }: { streamId: string; reason: string }) => {
+      await apiRequest("POST", `/api/admin/end-stream/${streamId}`, { reason });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Stream Ended",
+        description: "Stream has been terminated for policy violation.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/streams/live"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Action Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleConfirmRelease = () => {
     if (!utrNumber.trim()) {
       toast({
@@ -205,7 +264,7 @@ export default function ModernAdminPanel() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800">
-      <Navbar user={typedUser} />
+      <AdminNavbar />
       
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
@@ -282,8 +341,11 @@ export default function ModernAdminPanel() {
         </div>
 
         {/* Main Content */}
-        <Tabs defaultValue="purchases" className="space-y-6">
+        <Tabs defaultValue="streams" className="space-y-6">
           <TabsList className="bg-slate-800 border-slate-700">
+            <TabsTrigger value="streams" className="data-[state=active]:bg-red-600">
+              Stream Monitor
+            </TabsTrigger>
             <TabsTrigger value="purchases" className="data-[state=active]:bg-blue-600">
               Token Purchases ({pendingTokenPurchases.length})
             </TabsTrigger>
@@ -294,6 +356,95 @@ export default function ModernAdminPanel() {
               Creator Approvals ({pendingCreators.length})
             </TabsTrigger>
           </TabsList>
+
+          {/* Stream Monitor Tab */}
+          <TabsContent value="streams">
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center">
+                  <Eye className="mr-2 h-5 w-5" />
+                  Live Stream Monitoring
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {liveStreams.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Play className="h-12 w-12 text-slate-500 mx-auto mb-4" />
+                    <p className="text-slate-400">No live streams currently active</p>
+                  </div>
+                ) : (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {liveStreams.map((stream: any) => (
+                      <Card key={stream.id} className="bg-slate-700 border-slate-600">
+                        <CardContent className="p-4">
+                          <div className="space-y-3">
+                            {/* Stream Info */}
+                            <div>
+                              <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-white font-medium truncate">{stream.title}</h3>
+                                <Badge className="bg-red-600 text-white text-xs">
+                                  LIVE
+                                </Badge>
+                              </div>
+                              <p className="text-slate-400 text-sm">Creator: {stream.creatorName}</p>
+                              <p className="text-slate-400 text-sm">Category: {stream.category}</p>
+                              <p className="text-slate-400 text-sm">
+                                Started: {new Date(stream.createdAt).toLocaleString()}
+                              </p>
+                            </div>
+
+                            {/* Stream Actions */}
+                            <div className="flex space-x-2">
+                              <Button
+                                size="sm"
+                                onClick={() => window.open(`/stream/${stream.id}`, '_blank')}
+                                className="bg-blue-600 hover:bg-blue-700 flex-1"
+                              >
+                                <Eye className="mr-1 h-4 w-4" />
+                                Monitor
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => endStreamMutation.mutate({ 
+                                  streamId: stream.id, 
+                                  reason: "Content policy violation" 
+                                })}
+                                disabled={endStreamMutation.isPending}
+                                className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
+                              >
+                                <Ban className="h-4 w-4" />
+                              </Button>
+                            </div>
+
+                            {/* Creator Actions */}
+                            <div className="pt-2 border-t border-slate-600">
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-400 text-sm">Creator Actions:</span>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => banUserMutation.mutate({ 
+                                    userId: stream.creatorId, 
+                                    reason: "Inappropriate content" 
+                                  })}
+                                  disabled={banUserMutation.isPending}
+                                  className="text-xs"
+                                >
+                                  <AlertTriangle className="mr-1 h-3 w-3" />
+                                  Ban Creator
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Token Purchases Tab */}
           <TabsContent value="purchases">

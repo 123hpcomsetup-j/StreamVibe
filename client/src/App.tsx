@@ -13,6 +13,7 @@ import PublicHome from "@/pages/public-home";
 import Home from "@/pages/home";
 import CreatorDashboard from "@/pages/creator-dashboard";
 import ModernAdminPanel from "@/pages/modern-admin-panel";
+import AdminProfile from "@/pages/admin-profile";
 import StreamView from "@/pages/stream-view";
 import UserDashboard from "@/pages/user-dashboard";
 import NotFound from "@/pages/not-found";
@@ -38,6 +39,7 @@ function Router() {
       <Route path="/user-dashboard" component={UserDashboard} />
       <Route path="/creator-dashboard" component={CreatorDashboard} />
       <Route path="/admin-panel" component={ModernAdminPanel} />
+      <Route path="/admin-profile" component={AdminProfile} />
       
       <Route component={NotFound} />
     </Switch>

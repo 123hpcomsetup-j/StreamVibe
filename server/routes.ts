@@ -865,6 +865,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin profile management endpoints
+  app.patch('/api/admin/profile', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { username, email, phone, profileImage } = req.body;
+      const updatedUser = await storage.updateUser(userId, {
+        username,
+        email,
+        phone,
+        profileImage
+      });
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating admin profile:", error);
+      res.status(400).json({ message: "Failed to update profile" });
+    }
+  });
+
+  app.post('/api/admin/change-password', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { currentPassword, newPassword } = req.body;
+      const success = await storage.changePassword(userId, currentPassword, newPassword);
+      
+      if (!success) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+      
+      res.json({ message: "Password changed successfully" });
+    } catch (error) {
+      console.error("Error changing admin password:", error);
+      res.status(400).json({ message: "Failed to change password" });
+    }
+  });
+
+  // Admin user management endpoints
+  app.get('/api/admin/users', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.post('/api/admin/ban-user/:userId', requireAuth, async (req: any, res) => {
+    try {
+      const adminUserId = req.user.id;
+      const admin = await storage.getUser(adminUserId);
+      
+      if (admin?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { userId } = req.params;
+      const { reason } = req.body;
+      
+      const bannedUser = await storage.banUser(userId, reason);
+      res.json(bannedUser);
+    } catch (error) {
+      console.error("Error banning user:", error);
+      res.status(400).json({ message: "Failed to ban user" });
+    }
+  });
+
+  app.post('/api/admin/end-stream/:streamId', requireAuth, async (req: any, res) => {
+    try {
+      const adminUserId = req.user.id;
+      const admin = await storage.getUser(adminUserId);
+      
+      if (admin?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { streamId } = req.params;
+      const { reason } = req.body;
+      
+      await storage.endStream(streamId, reason);
+      
+      // Notify all connected clients that the stream has ended
+      global.io?.to(`stream-${streamId}`).emit('stream-ended', { reason });
+      
+      res.json({ message: "Stream ended successfully" });
+    } catch (error) {
+      console.error("Error ending stream:", error);
+      res.status(400).json({ message: "Failed to end stream" });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Setup WebRTC signaling server

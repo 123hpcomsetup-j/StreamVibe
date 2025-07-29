@@ -73,6 +73,12 @@ export interface IStorage {
   // Guest sessions
   createGuestSession(session: InsertGuestSession): Promise<GuestSession>;
   getGuestSession(streamId: string, sessionId: string): Promise<GuestSession | undefined>;
+  
+  // Admin operations
+  getAllUsers(): Promise<User[]>;
+  banUser(userId: string, reason: string): Promise<User>;
+  endStream(streamId: string, reason: string): Promise<void>;
+  changePassword(userId: string, currentPassword: string, newPassword: string): Promise<boolean>;
   getGuestSessionById(id: string): Promise<GuestSession | undefined>;
   getGuestSessionsByIP(ipAddress: string): Promise<GuestSession[]>;
   updateGuestSession(id: string, updates: Partial<GuestSession>): Promise<GuestSession>;
@@ -524,6 +530,89 @@ export class DatabaseStorage implements IStorage {
         ? `${tip.senderFirstName} ${tip.senderLastName}`
         : tip.senderUsername || 'Anonymous'
     }));
+  }
+
+  // Admin operations
+  async getAllUsers(): Promise<User[]> {
+    try {
+      const allUsers = await db.select().from(users);
+      return allUsers;
+    } catch (error) {
+      console.error("Error fetching all users:", error);
+      throw error;
+    }
+  }
+
+  async banUser(userId: string, reason: string): Promise<User> {
+    try {
+      const [updatedUser] = await db
+        .update(users)
+        .set({ 
+          isApproved: false, // Ban user by removing approval
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      
+      if (!updatedUser) {
+        throw new Error("User not found");
+      }
+      
+      return updatedUser;
+    } catch (error) {
+      console.error("Error banning user:", error);
+      throw error;
+    }
+  }
+
+  async endStream(streamId: string, reason: string): Promise<void> {
+    try {
+      await db
+        .update(streams)
+        .set({ 
+          isLive: false,
+          updatedAt: new Date()
+        })
+        .where(eq(streams.id, streamId));
+      
+      console.log(`Stream ${streamId} ended by admin. Reason: ${reason}`);
+    } catch (error) {
+      console.error("Error ending stream:", error);
+      throw error;
+    }
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<boolean> {
+    try {
+      const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!user.length) {
+        return false;
+      }
+
+      // In a real app, you'd verify the current password with bcrypt
+      // For now, we'll assume the current password check passes
+      const bcrypt = await import('bcrypt');
+      const isValid = await bcrypt.compare(currentPassword, user[0].password || '');
+      
+      if (!isValid) {
+        return false;
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      
+      await db
+        .update(users)
+        .set({ 
+          password: hashedPassword,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId));
+      
+      return true;
+    } catch (error) {
+      console.error("Error changing password:", error);
+      return false;
+    }
   }
 }
 
