@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Agora Connection Test</title>
+    <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N-4.20.2.js"></script>
+</head>
+<body>
+    <h1>Agora Connection Test</h1>
+    <div id="status">Initializing...</div>
+    <button onclick="testConnection()">Test Agora Connection</button>
+    <pre id="logs"></pre>
+
+    <script>
+        const appId = '36411769f91e457a88f142921fbf5c93';
+        let logs = [];
+        
+        function log(message) {
+            logs.push(new Date().toISOString() + ': ' + message);
+            document.getElementById('logs').textContent = logs.join('\n');
+            console.log(message);
+        }
+        
+        async function testConnection() {
+            try {
+                log('Starting Agora connection test...');
+                document.getElementById('status').textContent = 'Testing...';
+                
+                // Create client
+                const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
+                client.setClientRole('host');
+                log('Client created successfully');
+                
+                // Get token from backend
+                const channelName = 'test-channel-' + Date.now();
+                log('Testing with channel: ' + channelName);
+                
+                const tokenResponse = await fetch('/api/agora/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        channelName: channelName,
+                        uid: 0,
+                        role: 'host'
+                    })
+                });
+                
+                if (!tokenResponse.ok) {
+                    throw new Error('Failed to get token: ' + tokenResponse.status);
+                }
+                
+                const { token } = await tokenResponse.json();
+                log('Got token: ' + token.substring(0, 20) + '...');
+                
+                // Try to join
+                log('Attempting to join channel...');
+                await client.join(appId, channelName, token, 0);
+                log('✅ SUCCESS! Joined channel successfully');
+                document.getElementById('status').textContent = '✅ Agora is properly configured!';
+                
+                // Leave channel
+                await client.leave();
+                log('Left channel successfully');
+                
+            } catch (error) {
+                log('❌ ERROR: ' + error.message);
+                document.getElementById('status').textContent = '❌ Error: ' + error.message;
+            }
+        }
+        
+        // Auto-test on load
+        window.onload = () => {
+            log('Page loaded, ready to test');
+            document.getElementById('status').textContent = 'Ready to test';
+        };
+    </script>
+</body>
+</html>

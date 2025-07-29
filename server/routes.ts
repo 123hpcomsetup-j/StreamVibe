@@ -45,6 +45,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Serve Agora test page
+  app.get('/test-agora-connection.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../test-agora-connection.html'));
+  });
+
   // User routes
   app.get('/api/users/online', async (req, res) => {
     try {
