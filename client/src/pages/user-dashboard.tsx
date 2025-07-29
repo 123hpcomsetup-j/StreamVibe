@@ -35,7 +35,11 @@ import {
   TrendingUp,
   Gift,
   Plus,
-  Sparkles
+  Sparkles,
+  Edit,
+  User as UserIcon,
+  Save,
+  X
 } from "lucide-react";
 import type { Stream, User, Transaction } from "@shared/schema";
 
@@ -47,6 +51,15 @@ export default function UserDashboard() {
   const [showBuyTokens, setShowBuyTokens] = useState(false);
   const [tokenAmount, setTokenAmount] = useState("");
   const [utrNumber, setUtrNumber] = useState("");
+  
+  // Profile editing state
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileData, setProfileData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phoneNumber: ""
+  });
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -61,6 +74,18 @@ export default function UserDashboard() {
       }, 500);
     }
   }, [isAuthenticated, isLoading, setLocation, toast]);
+
+  // Initialize profile data when user data loads
+  useEffect(() => {
+    if (typedUser) {
+      setProfileData({
+        firstName: typedUser.firstName || "",
+        lastName: typedUser.lastName || "",
+        email: typedUser.email || "",
+        phoneNumber: typedUser.phoneNumber || ""
+      });
+    }
+  }, [typedUser]);
 
   // Setup WebSocket for real-time updates
   useEffect(() => {
@@ -130,8 +155,51 @@ export default function UserDashboard() {
     setLocation(`/stream/${streamId}`);
   };
 
-  const handleLogout = () => {
-    window.location.href = "/api/auth/logout";
+  const handleLogout = async () => {
+    try {
+      await apiRequest("POST", "/api/auth/logout", {});
+      queryClient.clear();
+      setLocation("/user-login");
+    } catch (error) {
+      console.error("Logout error:", error);
+      setLocation("/user-login");
+    }
+  };
+
+  // Profile update mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest("PUT", "/api/auth/profile", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      setIsEditingProfile(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Update Profile",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleUpdateProfile = () => {
+    if (!profileData.firstName.trim() || !profileData.email.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "First name and email are required.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    updateProfileMutation.mutate(profileData);
   };
 
   const handleGoHome = () => {
@@ -284,6 +352,10 @@ export default function UserDashboard() {
             <TabsTrigger value="activity" className="data-[state=active]:bg-purple-600">
               <TrendingUp className="w-4 h-4 mr-2" />
               My Activity
+            </TabsTrigger>
+            <TabsTrigger value="profile" className="data-[state=active]:bg-purple-600">
+              <UserIcon className="w-4 h-4 mr-2" />
+              Profile
             </TabsTrigger>
           </TabsList>
 
@@ -442,6 +514,145 @@ export default function UserDashboard() {
                     <Wallet className="w-12 h-12 mx-auto mb-3 opacity-50" />
                     <p>No transactions yet</p>
                     <p className="text-sm mt-1">Start supporting creators!</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Profile Tab */}
+          <TabsContent value="profile" className="space-y-6">
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-white flex items-center">
+                      <UserIcon className="mr-2 h-5 w-5 text-purple-500" />
+                      Profile Settings
+                    </CardTitle>
+                    <CardDescription>
+                      Manage your personal information and preferences
+                    </CardDescription>
+                  </div>
+                  {!isEditingProfile && (
+                    <Button
+                      onClick={() => setIsEditingProfile(true)}
+                      variant="outline"
+                      size="sm"
+                      className="border-purple-600 text-purple-400 hover:bg-purple-600 hover:text-white"
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit Profile
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isEditingProfile ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-slate-300">First Name *</Label>
+                        <Input
+                          value={profileData.firstName}
+                          onChange={(e) => setProfileData({...profileData, firstName: e.target.value})}
+                          placeholder="Enter your first name"
+                          className="bg-slate-700 border-slate-600 text-white"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-slate-300">Last Name</Label>
+                        <Input
+                          value={profileData.lastName}
+                          onChange={(e) => setProfileData({...profileData, lastName: e.target.value})}
+                          placeholder="Enter your last name"
+                          className="bg-slate-700 border-slate-600 text-white"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-slate-300">Email Address *</Label>
+                      <Input
+                        type="email"
+                        value={profileData.email}
+                        onChange={(e) => setProfileData({...profileData, email: e.target.value})}
+                        placeholder="Enter your email address"
+                        className="bg-slate-700 border-slate-600 text-white"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label className="text-slate-300">Phone Number</Label>
+                      <Input
+                        type="tel"
+                        value={profileData.phoneNumber}
+                        onChange={(e) => setProfileData({...profileData, phoneNumber: e.target.value})}
+                        placeholder="Enter your phone number"
+                        className="bg-slate-700 border-slate-600 text-white"
+                      />
+                    </div>
+                    
+                    <div className="flex space-x-2 pt-4">
+                      <Button
+                        onClick={handleUpdateProfile}
+                        disabled={updateProfileMutation.isPending}
+                        className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                      >
+                        <Save className="w-4 h-4 mr-2" />
+                        {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
+                      </Button>
+                      <Button
+                        onClick={() => setIsEditingProfile(false)}
+                        variant="outline"
+                        className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-sm text-slate-400">Name</p>
+                          <p className="text-white font-medium">
+                            {typedUser?.firstName && typedUser?.lastName 
+                              ? `${typedUser.firstName} ${typedUser.lastName}` 
+                              : typedUser?.username || "Not set"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-400">Email</p>
+                          <p className="text-white">{typedUser?.email || "Not set"}</p>
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-sm text-slate-400">Username</p>
+                          <p className="text-white">{typedUser?.username}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-400">Phone Number</p>
+                          <p className="text-white">{typedUser?.phoneNumber || "Not set"}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="pt-4 border-t border-slate-700">
+                      <div className="flex items-center space-x-4">
+                        <Badge variant="secondary" className="bg-blue-600 text-white">
+                          <UserIcon className="w-3 h-3 mr-1" />
+                          {typedUser?.role?.charAt(0).toUpperCase() + typedUser?.role?.slice(1)} Account
+                        </Badge>
+                        <Badge variant="outline" className="border-yellow-500 text-yellow-500">
+                          <Wallet className="w-3 h-3 mr-1" />
+                          {typedUser?.walletBalance || 0} Tokens
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
                 )}
               </CardContent>
