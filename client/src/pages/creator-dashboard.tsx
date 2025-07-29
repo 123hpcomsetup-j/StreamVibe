@@ -164,7 +164,11 @@ export default function CreatorDashboard() {
 
   const stopStreamMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("DELETE", `/api/streams/${(currentStream as any)?.id}`);
+      const stream = currentStream as any;
+      if (!stream?.id) {
+        throw new Error('No active stream to stop');
+      }
+      const response = await apiRequest("DELETE", `/api/streams/${stream.id}`);
       return response.json();
     },
     onSuccess: () => {
@@ -272,6 +276,16 @@ export default function CreatorDashboard() {
   };
 
   const handleStopStream = () => {
+    const stream = currentStream as any;
+    if (!stream?.id) {
+      toast({
+        title: "No Active Stream",
+        description: "No stream to stop.",
+        variant: "destructive",
+      });
+      setShowAgoraModal(false);
+      return;
+    }
     stopStreamMutation.mutate();
     setShowAgoraModal(false);
   };

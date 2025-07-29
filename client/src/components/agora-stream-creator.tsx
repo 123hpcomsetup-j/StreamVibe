@@ -109,7 +109,8 @@ export default function AgoraStreamCreator({
       
       console.log('Joining Agora channel:', channelName, 'with user ID:', numericUserId);
       
-      // Join the channel
+      // Join the channel with token (using null for testing mode, but may need actual token for production)
+      // For testing App IDs that require tokens, we use a temporary token or enable testing mode
       await clientRef.current.join(appId, channelName, null, numericUserId);
       setIsConnected(true);
 

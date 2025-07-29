@@ -214,8 +214,25 @@ export default function AgoraStreamViewer({
         return;
       }
 
+      // Sanitize channel name to match creator's channel
+      let channelName = streamId;
+      if (!channelName || channelName.trim() === "" || channelName === "undefined") {
+        channelName = `stream_${Date.now()}`;
+      }
+      
+      // Use same sanitization as creator
+      channelName = channelName
+        .replace(/[^a-zA-Z0-9_]/g, '_')
+        .substring(0, 64);
+      
+      if (!channelName) {
+        channelName = `stream_${Date.now()}`;
+      }
+      
+      console.log('Viewer joining Agora channel:', channelName, 'with user ID:', userId);
+      
       // Join the channel as viewer
-      await clientRef.current.join(appId, streamId, null, userId);
+      await clientRef.current.join(appId, channelName, null, userId);
       setIsConnected(true);
       setIsLoading(false);
 
