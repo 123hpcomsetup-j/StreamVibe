@@ -248,6 +248,12 @@ export default function AgoraStreamCreator({
       setIsStreaming(true);
       onStreamStart?.(streamId);
 
+      // Emit WebSocket event to notify all clients that stream is now live
+      if (socket) {
+        console.log('Emitting start-stream event for:', streamId);
+        socket.emit('start-stream', { streamId, userId });
+      }
+
       toast({
         title: "Live Stream Started!",
         description: "You are now broadcasting live with Agora.",
@@ -309,6 +315,12 @@ export default function AgoraStreamCreator({
       setIsConnected(false);
       setViewerCount(0);
       onStreamStop?.();
+
+      // Emit WebSocket event to notify all clients that stream has ended
+      if (socket) {
+        console.log('Emitting end-stream event for:', streamId);
+        socket.emit('end-stream', { streamId });
+      }
 
       toast({
         title: "Stream Stopped",

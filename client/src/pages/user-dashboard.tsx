@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { io } from "socket.io-client";
 import { 
   Video, 
   Users, 
@@ -61,10 +62,35 @@ export default function UserDashboard() {
     }
   }, [isAuthenticated, isLoading, setLocation, toast]);
 
+  // Setup WebSocket for real-time updates
+  useEffect(() => {
+    if (isAuthenticated) {
+      const socket = io(window.location.origin, {
+        path: '/socket.io',
+        transports: ['websocket', 'polling']
+      });
+
+      socket.on('connect', () => {
+        console.log('UserDashboard connected to WebSocket for real-time updates');
+      });
+
+      // Listen for stream status changes
+      socket.on('stream-status-changed', (data) => {
+        console.log('Stream status changed in user dashboard:', data);
+        // Invalidate and refetch live streams when status changes
+        queryClient.invalidateQueries({ queryKey: ["/api/streams/live"] });
+      });
+
+      return () => {
+        socket.disconnect();
+      };
+    }
+  }, [isAuthenticated]);
+
   // Fetch live streams
   const { data: liveStreams = [], isLoading: streamsLoading } = useQuery({
     queryKey: ["/api/streams/live"],
-    refetchInterval: 5000, // Refresh every 5 seconds
+    refetchInterval: 5000, // Refresh every 5 seconds as fallback
   });
 
   // Fetch user transactions

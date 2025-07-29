@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Play, Users, Video, Heart, Coins, ChevronRight } from "lucide-react";
+import { io } from "socket.io-client";
+import { queryClient } from "@/lib/queryClient";
 
 export default function PublicHome() {
   const [, setLocation] = useLocation();
@@ -12,12 +14,44 @@ export default function PublicHome() {
   const { data: liveStreams = [], isLoading: streamsLoading } = useQuery({
     queryKey: ["/api/streams/live"],
     retry: false,
+    refetchInterval: 5000, // Refresh every 5 seconds as fallback
   });
 
   const { data: onlineUsers = [], isLoading: usersLoading } = useQuery({
     queryKey: ["/api/users/online"],
     retry: false,
+    refetchInterval: 10000, // Refresh every 10 seconds as fallback
   });
+
+  // Setup WebSocket for real-time updates
+  useEffect(() => {
+    const socket = io(window.location.origin, {
+      path: '/socket.io',
+      transports: ['websocket', 'polling']
+    });
+
+    socket.on('connect', () => {
+      console.log('PublicHome connected to WebSocket for real-time updates');
+    });
+
+    // Listen for stream status changes
+    socket.on('stream-status-changed', (data) => {
+      console.log('Stream status changed:', data);
+      // Invalidate and refetch live streams when status changes
+      queryClient.invalidateQueries({ queryKey: ["/api/streams/live"] });
+    });
+
+    // Listen for user status changes
+    socket.on('user-status-changed', (data) => {
+      console.log('User status changed:', data);
+      // Invalidate and refetch online users when status changes
+      queryClient.invalidateQueries({ queryKey: ["/api/users/online"] });
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   // Filter only creators who are online
   const onlineCreators = Array.isArray(onlineUsers) ? onlineUsers.filter((user: any) => user.role === 'creator') : [];

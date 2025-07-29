@@ -174,16 +174,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         creatorId: userId,
       });
 
-      // Ensure isLive is set when creating stream
+      // Always mark new streams as live by default (creators are starting to stream)
       const streamData = {
         ...validatedData,
-        isLive: req.body.isLive === true // Preserve the isLive field from request
+        isLive: true // Always create streams as live
       };
 
       const stream = await storage.createStream(streamData);
       
       // Set user as online when starting stream
       await storage.updateUserOnlineStatus(userId, true);
+      
+      // Broadcast stream status change immediately via WebSocket
+      if (global.io) {
+        console.log(`Broadcasting new live stream ${stream.id} for creator ${userId}`);
+        global.io.emit('stream-status-changed', { 
+          streamId: stream.id, 
+          creatorId: userId, 
+          isLive: true,
+          viewerCount: 0
+        });
+      }
       
       res.json(stream);
     } catch (error) {
