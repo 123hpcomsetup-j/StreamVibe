@@ -339,113 +339,179 @@ export default function AgoraStreamCreator({
       <div className="lg:col-span-2 space-y-6">
         {/* Stream Controls */}
         <Card className="bg-slate-800 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center justify-between">
-            <span>Live Stream Controls</span>
-            {isStreaming && (
-              <Badge variant="secondary" className="bg-red-600 text-white">
-                <div className="w-2 h-2 bg-white rounded-full animate-pulse mr-2"></div>
-                LIVE
-              </Badge>
+          <CardHeader>
+            <CardTitle className="text-white flex items-center justify-between">
+              <span>Live Stream Controls</span>
+              {isStreaming && (
+                <Badge variant="secondary" className="bg-red-600 text-white">
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse mr-2"></div>
+                  LIVE
+                </Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Connection Status */}
+            {isConnected && (
+              <div className="flex items-center text-green-400 text-sm">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
+                <span>Connected to Agora - {viewerCount} viewers</span>
+              </div>
             )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Connection Status */}
-          {isConnected && (
-            <div className="flex items-center text-green-400 text-sm">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
-              <span>Connected to Agora - {viewerCount} viewers</span>
+            
+            {/* Stream Controls */}
+            <div className="flex space-x-2">
+              {isStreaming ? (
+                <>
+                  <Button 
+                    onClick={stopStreaming}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    <Square className="mr-2 h-4 w-4" />
+                    Stop Stream
+                  </Button>
+                  <Button 
+                    onClick={toggleVideo}
+                    variant={isVideoOn ? "secondary" : "destructive"}
+                    className="flex-1"
+                  >
+                    {isVideoOn ? <Video className="mr-2 h-4 w-4" /> : <VideoOff className="mr-2 h-4 w-4" />}
+                    {isVideoOn ? "Video On" : "Video Off"}
+                  </Button>
+                  <Button 
+                    onClick={toggleAudio}
+                    variant={isAudioOn ? "secondary" : "destructive"}
+                    className="flex-1"
+                  >
+                    {isAudioOn ? <Mic className="mr-2 h-4 w-4" /> : <MicOff className="mr-2 h-4 w-4" />}
+                    {isAudioOn ? "Audio On" : "Audio Off"}
+                  </Button>
+                </>
+              ) : (
+                <Button 
+                  onClick={startStreaming}
+                  className="w-full bg-red-500 hover:bg-red-600"
+                >
+                  <Play className="mr-2 h-4 w-4" />
+                  Start Live Stream
+                </Button>
+              )}
             </div>
-          )}
-          
-          {/* Stream Controls */}
-          <div className="flex space-x-2">
-            {isStreaming ? (
-              <>
-                <Button 
-                  onClick={stopStreaming}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  <Square className="mr-2 h-4 w-4" />
-                  Stop Stream
-                </Button>
-                <Button 
-                  onClick={toggleVideo}
-                  variant={isVideoOn ? "secondary" : "destructive"}
-                  className="flex-1"
-                >
-                  {isVideoOn ? <Video className="mr-2 h-4 w-4" /> : <VideoOff className="mr-2 h-4 w-4" />}
-                  {isVideoOn ? "Video On" : "Video Off"}
-                </Button>
-                <Button 
-                  onClick={toggleAudio}
-                  variant={isAudioOn ? "secondary" : "destructive"}
-                  className="flex-1"
-                >
-                  {isAudioOn ? <Mic className="mr-2 h-4 w-4" /> : <MicOff className="mr-2 h-4 w-4" />}
-                  {isAudioOn ? "Audio On" : "Audio Off"}
-                </Button>
-              </>
-            ) : (
-              <Button 
-                onClick={startStreaming}
-                className="w-full bg-red-500 hover:bg-red-600"
-              >
-                <Play className="mr-2 h-4 w-4" />
-                Start Live Stream
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Video Preview */}
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-white">Stream Preview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div 
-            ref={videoContainerRef}
-            className="relative w-full h-64 bg-slate-900 rounded-lg overflow-hidden"
-          >
-            {!isStreaming && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center text-slate-400">
-                  <Video className="h-12 w-12 mx-auto mb-2" />
-                  <p>Start streaming to see preview</p>
+        {/* Video Preview */}
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-white">Stream Preview</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div 
+              ref={videoContainerRef}
+              className="relative w-full h-64 bg-slate-900 rounded-lg overflow-hidden"
+            >
+              {!isStreaming && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center text-slate-400">
+                    <Video className="h-12 w-12 mx-auto mb-2" />
+                    <p>Start streaming to see preview</p>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Stream Stats */}
+            {isStreaming && (
+              <div className="mt-4 grid grid-cols-3 gap-4">
+                <div className="bg-slate-700 rounded-lg p-3 text-center">
+                  <div className="text-slate-400 text-sm">Viewers</div>
+                  <div className="text-white text-xl font-bold flex items-center justify-center">
+                    <Users className="w-4 h-4 mr-1" />
+                    {viewerCount}
+                  </div>
+                </div>
+                <div className="bg-slate-700 rounded-lg p-3 text-center">
+                  <div className="text-slate-400 text-sm">Video</div>
+                  <div className="text-white text-xl font-bold">
+                    {isVideoOn ? "ON" : "OFF"}
+                  </div>
+                </div>
+                <div className="bg-slate-700 rounded-lg p-3 text-center">
+                  <div className="text-slate-400 text-sm">Audio</div>
+                  <div className="text-white text-xl font-bold">
+                    {isAudioOn ? "ON" : "OFF"}
+                  </div>
                 </div>
               </div>
             )}
-          </div>
-          
-          {/* Stream Stats */}
-          {isStreaming && (
-            <div className="mt-4 grid grid-cols-3 gap-4">
-              <div className="bg-slate-700 rounded-lg p-3 text-center">
-                <div className="text-slate-400 text-sm">Viewers</div>
-                <div className="text-white text-xl font-bold flex items-center justify-center">
-                  <Users className="w-4 h-4 mr-1" />
-                  {viewerCount}
-                </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Chat Section */}
+      <div className="lg:col-span-1">
+        <Card className="bg-slate-800 border-slate-700 h-[600px] flex flex-col">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center">
+              <MessageCircle className="mr-2 h-5 w-5" />
+              Live Chat
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 flex flex-col overflow-hidden">
+            <ScrollArea className="flex-1 pr-4">
+              <div className="space-y-3">
+                {chatMessages.length === 0 ? (
+                  <div className="text-center py-8">
+                    <MessageCircle className="h-8 w-8 text-slate-500 mx-auto mb-2" />
+                    <p className="text-slate-400 text-sm">Chat with your viewers</p>
+                  </div>
+                ) : (
+                  chatMessages.map((msg, index) => (
+                    <div key={index} className="text-sm">
+                      <div className="flex items-start space-x-2">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium text-slate-300">
+                              {msg.username || 'Anonymous'}
+                            </span>
+                            {msg.userType === 'creator' && (
+                              <Badge variant="outline" className="text-xs text-purple-400 border-purple-400">
+                                Creator
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-slate-400 mt-1">{msg.message}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+                <div ref={chatEndRef} />
               </div>
-              <div className="bg-slate-700 rounded-lg p-3 text-center">
-                <div className="text-slate-400 text-sm">Video</div>
-                <div className="text-white text-xl font-bold">
-                  {isVideoOn ? "ON" : "OFF"}
-                </div>
-              </div>
-              <div className="bg-slate-700 rounded-lg p-3 text-center">
-                <div className="text-slate-400 text-sm">Audio</div>
-                <div className="text-white text-xl font-bold">
-                  {isAudioOn ? "ON" : "OFF"}
-                </div>
+            </ScrollArea>
+            
+            {/* Chat Input */}
+            <div className="mt-4 pt-4 border-t border-slate-700">
+              <div className="flex space-x-2">
+                <Input
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Send a message to your viewers..."
+                  className="bg-slate-700 border-slate-600 text-white flex-1"
+                />
+                <Button 
+                  onClick={sendMessage}
+                  disabled={!message.trim() || !socket}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
               </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

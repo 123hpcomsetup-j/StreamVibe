@@ -42,6 +42,7 @@ export default function StreamView() {
   
   // Simple stream state - Agora handles connections
   const [streamEnded, setStreamEnded] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   
   // Guest state
   const [guestName, setGuestName] = useState("");
