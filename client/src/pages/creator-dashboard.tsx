@@ -35,6 +35,7 @@ export default function CreatorDashboard() {
   });
   const [showStreamModal, setShowStreamModal] = useState(false);
   const [showAgoraModal, setShowAgoraModal] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [streamKey, setStreamKey] = useState<string>("");
 
   const typedUser = user as User | undefined;
@@ -122,8 +123,10 @@ export default function CreatorDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/streams/current"] });
       toast({
         title: "Stream Created!",
-        description: "Your stream is ready. Click 'Go Live' to start broadcasting.",
+        description: "Opening streaming studio...",
       });
+      // Automatically open Agora modal after creating stream
+      setTimeout(() => setShowAgoraModal(true), 500);
     },
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
@@ -235,12 +238,36 @@ export default function CreatorDashboard() {
       return;
     }
 
-    // Create stream first, then show streaming options
-    if (!currentStream) {
-      handleCreateStream();
+    // If we have a stream, open Agora modal directly
+    if (currentStream) {
+      setShowAgoraModal(true);
     } else {
-      // Show streaming modal with fallback options
-      setShowStreamModal(true);
+      // Create stream first, then open Agora modal
+      if (!streamData.title.trim()) {
+        toast({
+          title: "Title Required",
+          description: "Please enter a title for your stream",
+          variant: "destructive",
+        });
+        return;
+      }
+      createStreamMutation.mutate(streamData);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await apiRequest('POST', '/api/auth/logout');
+      toast({
+        title: "Logged out successfully",
+        description: "Redirecting to login page...",
+      });
+      setTimeout(() => {
+        window.location.href = '/creator-login';
+      }, 1000);
+    } catch (error) {
+      console.error('Logout error:', error);
+      window.location.href = '/creator-login';
     }
   };
 
@@ -282,41 +309,135 @@ export default function CreatorDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-900">
-      {/* Simple Navbar */}
-      <nav className="bg-slate-800 border-b border-slate-700 px-6 py-4">
+      {/* Mobile-Friendly Navbar */}
+      <nav className="bg-slate-800 border-b border-slate-700 px-4 sm:px-6 py-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-primary">Creator Studio</h1>
-          <div className="flex items-center space-x-4">
-            {(currentStream as any)?.isLive ? (
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            <h1 className="text-xl sm:text-2xl font-bold text-primary">Creator Studio</h1>
+            <div className="hidden sm:flex items-center space-x-2">
               <Button 
-                onClick={handleStopStream}
-                className="bg-red-600 hover:bg-red-700"
-                disabled={stopStreamMutation.isPending}
+                onClick={() => window.location.href = '/'}
+                variant="outline"
+                size="sm"
+                className="text-slate-300 border-slate-600 hover:bg-slate-700"
               >
-                <Square className="mr-2 h-4 w-4" />
-                {stopStreamMutation.isPending ? "Stopping..." : "Stop Stream"}
+                Home
               </Button>
-            ) : (
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            {/* Mobile dropdown menu */}
+            <div className="sm:hidden">
               <Button 
-                onClick={handleGoLive}
-                className="bg-red-500 hover:bg-red-600"
-                disabled={createStreamMutation.isPending}
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                variant="ghost"
+                size="sm"
+                className="text-slate-300"
               >
-                <Play className="mr-2 h-4 w-4" />
-                Go Live
+                ☰
               </Button>
-            )}
-            <Button 
-              onClick={handleRequestPayout}
-              variant="outline"
-              disabled={requestPayoutMutation.isPending || ((stats as any)?.availableEarnings || 0) < 500}
-              className="border-green-600 text-green-400 hover:bg-green-600 hover:text-white"
-            >
-              <DollarSign className="mr-2 h-4 w-4" />
-              Request Payout
-            </Button>
+            </div>
+            
+            {/* Desktop buttons */}
+            <div className="hidden sm:flex items-center space-x-2">
+              {(currentStream as any)?.isLive ? (
+                <Button 
+                  onClick={handleStopStream}
+                  className="bg-red-600 hover:bg-red-700"
+                  disabled={stopStreamMutation.isPending}
+                  size="sm"
+                >
+                  <Square className="mr-2 h-4 w-4" />
+                  {stopStreamMutation.isPending ? "Stopping..." : "Stop Stream"}
+                </Button>
+              ) : (
+                <Button 
+                  onClick={handleGoLive}
+                  className="bg-red-500 hover:bg-red-600"
+                  disabled={createStreamMutation.isPending}
+                  size="sm"
+                >
+                  <Play className="mr-2 h-4 w-4" />
+                  Go Live
+                </Button>
+              )}
+              <Button 
+                onClick={handleRequestPayout}
+                variant="outline"
+                disabled={requestPayoutMutation.isPending || ((stats as any)?.availableEarnings || 0) < 500}
+                className="border-green-600 text-green-400 hover:bg-green-600 hover:text-white"
+                size="sm"
+              >
+                <DollarSign className="mr-2 h-4 w-4" />
+                Request Payout
+              </Button>
+              <Button 
+                onClick={handleLogout}
+                variant="outline"
+                size="sm"
+                className="text-red-400 border-red-600 hover:bg-red-900/20"
+              >
+                Logout
+              </Button>
+            </div>
+
+            {/* Mobile: Only show main action button */}
+            <div className="sm:hidden">
+              {(currentStream as any)?.isLive ? (
+                <Button 
+                  onClick={handleStopStream}
+                  className="bg-red-600 hover:bg-red-700"
+                  disabled={stopStreamMutation.isPending}
+                  size="sm"
+                >
+                  {stopStreamMutation.isPending ? "Stop" : "Stop Stream"}
+                </Button>
+              ) : (
+                <Button 
+                  onClick={handleGoLive}
+                  className="bg-red-500 hover:bg-red-600"
+                  disabled={createStreamMutation.isPending}
+                  size="sm"
+                >
+                  {createStreamMutation.isPending ? "Starting" : "Go Live"}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Mobile dropdown menu */}
+        {showMobileMenu && (
+          <div className="sm:hidden mt-4 border-t border-slate-700 pt-4">
+            <div className="flex flex-col space-y-2">
+              <Button 
+                onClick={() => window.location.href = '/'}
+                variant="outline"
+                size="sm"
+                className="w-full text-slate-300 border-slate-600 hover:bg-slate-700"
+              >
+                Home
+              </Button>
+              <Button 
+                onClick={handleRequestPayout}
+                disabled={requestPayoutMutation.isPending || ((stats as any)?.availableEarnings || 0) < 500}
+                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600"
+                size="sm"
+              >
+                {requestPayoutMutation.isPending ? "Processing..." : "Request Payout"}
+              </Button>
+              <Button 
+                onClick={handleLogout}
+                variant="outline"
+                size="sm"
+                className="w-full text-red-400 border-red-600 hover:bg-red-900/20"
+              >
+                Logout
+              </Button>
+            </div>
+          </div>
+        )}
       </nav>
 
       <main className="max-w-7xl mx-auto p-6 space-y-6">
