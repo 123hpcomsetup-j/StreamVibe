@@ -107,8 +107,10 @@ export default function AgoraStreamCreator({
       
       console.log('=== CREATOR JOIN ATTEMPT ===');
       console.log('Channel Name:', channelName);
+      console.log('Channel Name Length:', channelName.length);
       console.log('Numeric User ID:', numericUserId);
-      console.log('App ID (first 6 chars):', appId.substring(0, 6) + '...');
+      console.log('App ID:', appId);
+      console.log('App ID Length:', appId.length);
       
       // Get Agora token from backend
       const tokenRequestBody = {
