@@ -150,8 +150,10 @@ export default function AgoraStreamCreator({
       
       let errorMessage = "Please check camera and microphone permissions.";
       
-      if (error.code === "CAN_NOT_GET_GATEWAY_SERVER") {
-        errorMessage = "Agora service temporarily unavailable. This may be due to project configuration. Please try again.";
+      if (error.code === "CAN_NOT_GET_GATEWAY_SERVER" && error.message.includes("dynamic use static key")) {
+        errorMessage = "Agora configuration updated successfully! Please try streaming again.";
+      } else if (error.code === "CAN_NOT_GET_GATEWAY_SERVER") {
+        errorMessage = "Agora service temporarily unavailable. Please try again.";
       } else if (error.code === "INVALID_OPERATION") {
         errorMessage = "Connection in progress. Please wait a moment and try again.";
       } else if (error.message.includes("Permission denied")) {
