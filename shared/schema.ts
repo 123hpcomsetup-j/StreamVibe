@@ -37,6 +37,7 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  phoneNumber: varchar("phone_number"),
   role: userRoleEnum("role").default('viewer'),
   isOnline: boolean("is_online").default(false),
   walletBalance: integer("wallet_balance").default(0),

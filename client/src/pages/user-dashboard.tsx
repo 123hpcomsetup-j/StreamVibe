@@ -318,9 +318,19 @@ export default function UserDashboard() {
                     <CardContent className="p-0">
                       {/* Stream Thumbnail */}
                       <div className="relative overflow-hidden">
-                        <div className="h-48 bg-gradient-to-br from-purple-600 via-pink-600 to-purple-600 flex items-center justify-center relative">
-                          <div className="absolute inset-0 bg-black/20"></div>
-                          <Video className="w-16 h-16 text-white opacity-80 z-10" />
+                        <div className="h-48 bg-gradient-to-br from-purple-600 via-pink-600 to-purple-600 flex items-center justify-center relative overflow-hidden">
+                          {stream.creatorProfileImage ? (
+                            <img 
+                              src={stream.creatorProfileImage} 
+                              alt={`${stream.creatorFirstName} ${stream.creatorLastName}`}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <>
+                              <div className="absolute inset-0 bg-black/20"></div>
+                              <Video className="w-16 h-16 text-white opacity-80 z-10" />
+                            </>
+                          )}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                         </div>
                         
@@ -357,7 +367,11 @@ export default function UserDashboard() {
                         
                         <div className="flex items-center justify-between mb-3">
                           <span className="text-sm text-slate-400">
-                            by <span className="text-purple-400 font-medium">{stream.creator?.username}</span>
+                            by <span className="text-purple-400 font-medium">
+                              {stream.creatorFirstName && stream.creatorLastName 
+                                ? `${stream.creatorFirstName} ${stream.creatorLastName}` 
+                                : stream.creatorName}
+                            </span>
                           </span>
                           <Badge variant="outline" className="text-xs border-purple-600 text-purple-400">
                             {stream.category}

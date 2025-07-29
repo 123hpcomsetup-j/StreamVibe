@@ -141,7 +141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Clean up stale streams before fetching (streams older than 2 hours)
       await storage.cleanupStaleStreams();
-      const liveStreams = await storage.getLiveStreams();
+      const liveStreams = await storage.getLiveStreamsWithCreators();
       res.json(liveStreams);
     } catch (error) {
       console.error("Error fetching live streams:", error);

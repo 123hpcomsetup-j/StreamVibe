@@ -161,7 +161,7 @@ router.get('/user', requireAuth, (req, res) => {
 router.put('/profile', requireAuth, async (req: any, res) => {
   try {
     const userId = req.user.id;
-    const { firstName, lastName, username } = req.body;
+    const { firstName, lastName, username, email, phoneNumber, profileImageUrl } = req.body;
     
     // Check if username is already taken by another user
     if (username) {
@@ -174,7 +174,10 @@ router.put('/profile', requireAuth, async (req: any, res) => {
     const updatedUser = await storage.updateUser(userId, {
       firstName,
       lastName,
-      username
+      username,
+      email,
+      phoneNumber,
+      profileImageUrl
     });
     
     // Return user without password

@@ -190,13 +190,21 @@ export default function PublicHome() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {displayStreams.slice(0, 6).map((stream: any) => (
                 <Card key={stream.id} className="bg-slate-800 border-slate-700 hover:bg-slate-800/80 transition-colors cursor-pointer group">
-                  <div className="aspect-video relative bg-slate-700 rounded-t-lg flex items-center justify-center">
-                    {/* Live stream preview placeholder - real WebRTC will connect when clicked */}
-                    <div className="text-center">
-                      <Video className="h-12 w-12 text-slate-400 mx-auto mb-2" />
-                      <p className="text-slate-300 text-sm font-medium">Live Stream</p>
-                      <p className="text-slate-500 text-xs">Click to watch</p>
-                    </div>
+                  <div className="aspect-video relative bg-slate-700 rounded-t-lg flex items-center justify-center overflow-hidden">
+                    {/* Creator Profile Image as Thumbnail */}
+                    {stream.creatorProfileImage ? (
+                      <img 
+                        src={stream.creatorProfileImage} 
+                        alt={`${stream.creatorFirstName} ${stream.creatorLastName}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="text-center">
+                        <Video className="h-12 w-12 text-slate-400 mx-auto mb-2" />
+                        <p className="text-slate-300 text-sm font-medium">Live Stream</p>
+                        <p className="text-slate-500 text-xs">Click to watch</p>
+                      </div>
+                    )}
                     
                     <div className="absolute top-3 left-3">
                       <Badge className="bg-red-500 text-white">
@@ -227,12 +235,24 @@ export default function PublicHome() {
                   </div>
                   <CardContent className="p-4">
                     <div className="flex items-center space-x-3 mb-3">
-                      <div className="w-12 h-12 bg-slate-600 rounded-full flex items-center justify-center">
-                        <Video className="h-6 w-6 text-slate-400" />
+                      <div className="w-12 h-12 bg-slate-600 rounded-full flex items-center justify-center overflow-hidden">
+                        {stream.creatorProfileImage ? (
+                          <img 
+                            src={stream.creatorProfileImage} 
+                            alt={stream.creatorFirstName} 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Video className="h-6 w-6 text-slate-400" />
+                        )}
                       </div>
                       <div>
                         <h4 className="font-semibold text-white">{stream.title}</h4>
-                        <p className="text-slate-400 text-sm">{stream.category}</p>
+                        <p className="text-slate-400 text-sm">
+                          {stream.creatorFirstName && stream.creatorLastName 
+                            ? `${stream.creatorFirstName} ${stream.creatorLastName}` 
+                            : stream.creatorName} • {stream.category}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center justify-between">

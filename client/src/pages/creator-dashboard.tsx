@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { DollarSign, Users, Clock, Heart, Play, Square, Settings } from "lucide-react";
+import { DollarSign, Users, Clock, Heart, Play, Square, Settings, Phone, Mail, Camera, UserIcon } from "lucide-react";
 import StreamModal from "@/components/stream-modal";
 import AgoraStreamCreator from "@/components/agora-stream-creator";
 
@@ -33,6 +33,9 @@ export default function CreatorDashboard() {
     firstName: "",
     lastName: "",
     username: "",
+    email: "",
+    phoneNumber: "",
+    profileImageUrl: "",
   });
   const [showStreamModal, setShowStreamModal] = useState(false);
   const [showAgoraModal, setShowAgoraModal] = useState(false);
@@ -55,9 +58,16 @@ export default function CreatorDashboard() {
         firstName: typedUser.firstName || "",
         lastName: typedUser.lastName || "",
         username: typedUser.username || "",
+        email: typedUser.email || "",
+        phoneNumber: (typedUser as any).phoneNumber || "",
+        profileImageUrl: typedUser.profileImageUrl || "",
       });
     }
   }, [typedUser]);
+
+  const handleProfileSave = () => {
+    updateProfileMutation.mutate(profileData);
+  };
 
   // Redirect if not authenticated or not a creator
   useEffect(() => {
@@ -222,9 +232,10 @@ export default function CreatorDashboard() {
     }
   });
 
+  // Profile update mutation  
   const updateProfileMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest("PATCH", "/api/auth/profile", data);
+      const response = await apiRequest("PUT", "/api/auth/profile", data);
       return response.json();
     },
     onSuccess: () => {
@@ -236,6 +247,15 @@ export default function CreatorDashboard() {
       });
     },
     onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Session Expired",
+          description: "Please login again.",
+          variant: "destructive",
+        });
+        window.location.href = "/creator-login";
+        return;
+      }
       toast({
         title: "Failed to Update Profile",
         description: error.message,
@@ -610,6 +630,144 @@ export default function CreatorDashboard() {
                 </Button>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Profile Management */}
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center justify-between">
+              <div className="flex items-center">
+                <UserIcon className="mr-2 h-5 w-5" />
+                Creator Profile
+              </div>
+              <Button
+                onClick={() => setIsEditingProfile(!isEditingProfile)}
+                variant="outline"
+                size="sm"
+                className="text-purple-300 border-purple-500 hover:bg-purple-600"
+              >
+                {isEditingProfile ? "Cancel" : "Edit Profile"}
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!isEditingProfile ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-16 h-16 rounded-full bg-slate-700 flex items-center justify-center overflow-hidden">
+                    {profileData.profileImageUrl ? (
+                      <img 
+                        src={profileData.profileImageUrl} 
+                        alt="Profile" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <UserIcon className="h-8 w-8 text-slate-400" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-white font-medium">{profileData.firstName} {profileData.lastName}</p>
+                    <p className="text-slate-400 text-sm">@{profileData.username}</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center text-slate-300">
+                    <Mail className="h-4 w-4 mr-2" />
+                    <span className="text-sm">{profileData.email || "Not provided"}</span>
+                  </div>
+                  <div className="flex items-center text-slate-300">
+                    <Phone className="h-4 w-4 mr-2" />
+                    <span className="text-sm">{profileData.phoneNumber || "Not provided"}</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-slate-300">First Name</Label>
+                    <Input
+                      value={profileData.firstName}
+                      onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
+                      className="bg-slate-700 border-slate-600 text-white"
+                      placeholder="Enter first name"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-slate-300">Last Name</Label>
+                    <Input
+                      value={profileData.lastName}
+                      onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
+                      className="bg-slate-700 border-slate-600 text-white"
+                      placeholder="Enter last name"
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-slate-300">Username</Label>
+                    <Input
+                      value={profileData.username}
+                      onChange={(e) => setProfileData({ ...profileData, username: e.target.value })}
+                      className="bg-slate-700 border-slate-600 text-white"
+                      placeholder="Enter username"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-slate-300">Email</Label>
+                    <Input
+                      type="email"
+                      value={profileData.email}
+                      onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                      className="bg-slate-700 border-slate-600 text-white"
+                      placeholder="Enter email address"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-slate-300">Phone Number</Label>
+                    <Input
+                      type="tel"
+                      value={profileData.phoneNumber}
+                      onChange={(e) => setProfileData({ ...profileData, phoneNumber: e.target.value })}
+                      className="bg-slate-700 border-slate-600 text-white"
+                      placeholder="+91 XXXXX XXXXX"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-slate-300">Profile Image URL</Label>
+                    <Input
+                      type="url"
+                      value={profileData.profileImageUrl}
+                      onChange={(e) => setProfileData({ ...profileData, profileImageUrl: e.target.value })}
+                      className="bg-slate-700 border-slate-600 text-white"
+                      placeholder="https://example.com/image.jpg"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex space-x-4">
+                  <Button
+                    onClick={handleProfileSave}
+                    disabled={updateProfileMutation.isPending}
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    {updateProfileMutation.isPending ? "Saving..." : "Save Profile"}
+                  </Button>
+                  <Button
+                    onClick={() => setIsEditingProfile(false)}
+                    variant="outline"
+                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

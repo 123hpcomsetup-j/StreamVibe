@@ -161,6 +161,31 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(streams.viewerCount), desc(streams.createdAt));
   }
 
+  // Get live streams with creator information for thumbnails
+  async getLiveStreamsWithCreators(): Promise<any[]> {
+    return await db
+      .select({
+        id: streams.id,
+        title: streams.title,
+        category: streams.category,
+        isLive: streams.isLive,
+        viewerCount: streams.viewerCount,
+        minTip: streams.minTip,
+        tokenPrice: streams.tokenPrice,
+        privateRate: streams.privateRate,
+        createdAt: streams.createdAt,
+        creatorId: streams.creatorId,
+        creatorName: users.username,
+        creatorFirstName: users.firstName,
+        creatorLastName: users.lastName,
+        creatorProfileImage: users.profileImageUrl,
+      })
+      .from(streams)
+      .innerJoin(users, eq(streams.creatorId, users.id))
+      .where(eq(streams.isLive, true))
+      .orderBy(desc(streams.viewerCount), desc(streams.createdAt));
+  }
+
   async getStreamById(id: string): Promise<Stream | undefined> {
     const [stream] = await db.select().from(streams).where(eq(streams.id, id));
     return stream || undefined;
