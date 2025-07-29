@@ -275,6 +275,25 @@ export function setupWebRTC(server: Server) {
       // If we have a stream, add user as viewer
       if (stream) {
         stream.viewers.add(socket.id);
+        
+        // Update viewer count and notify creator
+        const viewerCount = stream.viewers.size;
+        console.log(`Stream ${streamId} now has ${viewerCount} viewers`);
+        
+        // Notify creator of updated viewer count
+        if (stream.creatorSocketId) {
+          io.to(stream.creatorSocketId).emit('viewer-count-update', { 
+            streamId, 
+            viewerCount 
+          });
+        }
+        
+        // Broadcast viewer count to all users in the stream
+        io.to(`stream-${streamId}`).emit('stream-update', { 
+          streamId, 
+          viewerCount,
+          type: 'viewer-joined'
+        });
       }
       
       // Send confirmation that user joined chat
@@ -436,10 +455,21 @@ export function setupWebRTC(server: Server) {
           }
         } else if (stream.viewers.has(socket.id)) {
           stream.viewers.delete(socket.id);
+          console.log(`Removed viewer from stream ${streamId}, now has ${stream.viewers.size} viewers`);
           
-          io.to(`stream-${streamId}`).emit('viewer-count-update', { 
-            streamId,
-            count: stream.viewers.size 
+          // Notify creator of updated viewer count
+          if (stream.creatorSocketId) {
+            io.to(stream.creatorSocketId).emit('viewer-count-update', { 
+              streamId, 
+              viewerCount: stream.viewers.size 
+            });
+          }
+          
+          // Broadcast viewer count to all remaining users in the stream
+          io.to(`stream-${streamId}`).emit('stream-update', { 
+            streamId, 
+            viewerCount: stream.viewers.size,
+            type: 'viewer-left'
           });
           
           io.emit('stream-status-changed', { 

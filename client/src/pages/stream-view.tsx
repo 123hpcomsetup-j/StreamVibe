@@ -53,6 +53,8 @@ export default function StreamView() {
   const [message, setMessage] = useState("");
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [showSignupDialog, setShowSignupDialog] = useState(false);
+  const [tipAmount, setTipAmount] = useState(0);
+  const [showTipDialog, setShowTipDialog] = useState(false);
   const [signupData, setSignupData] = useState({
     username: "",
     password: "",
@@ -233,6 +235,51 @@ export default function StreamView() {
     // Update tokens for guests
     if (!isAuthenticated) {
       setTokensLeft(prev => Math.max(0, prev - 1));
+    }
+  };
+
+  // Send tip to creator
+  const sendTip = async () => {
+    if (!isAuthenticated || !tipAmount || tipAmount <= 0) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign up to send tips to creators.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/streams/${streamId}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          message: `💰 Sent ${tipAmount} tokens!`,
+          tipAmount: tipAmount
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to send tip');
+      }
+
+      setTipAmount(0);
+      setShowTipDialog(false);
+      toast({
+        title: "Tip Sent!",
+        description: `You tipped ${tipAmount} tokens to the creator.`,
+      });
+
+    } catch (error: any) {
+      toast({
+        title: "Tip Failed",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 

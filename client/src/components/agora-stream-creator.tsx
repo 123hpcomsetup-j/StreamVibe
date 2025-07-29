@@ -92,7 +92,16 @@ export default function AgoraStreamCreator({
       setChatMessages(prev => [...prev, data]);
     });
 
+    // Listen for viewer count updates from server
+    newSocket.on('viewer-count-update', (data) => {
+      console.log('Creator received viewer count update:', data);
+      if (data.viewerCount !== undefined) {
+        setViewerCount(data.viewerCount);
+      }
+    });
+
     newSocket.on('stream-update', (data) => {
+      console.log('Creator received stream update:', data);
       if (data.viewerCount !== undefined) {
         setViewerCount(data.viewerCount);
       }
