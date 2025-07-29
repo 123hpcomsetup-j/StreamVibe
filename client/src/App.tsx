@@ -47,9 +47,12 @@ function Router() {
 function App() {
   useEffect(() => {
     // Initialize WebSocket connection for real-time updates
-    const socket = io("http://localhost:5000", {
+    const socket = io(window.location.origin, {
       path: "/socket.io",
-      transports: ["websocket", "polling"]
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: 3,
+      reconnectionDelay: 1000
     });
 
     socket.on('connect', () => {
@@ -58,6 +61,10 @@ function App() {
 
     socket.on('disconnect', () => {
       console.log('Disconnected from streaming server');
+    });
+
+    socket.on('connect_error', (error) => {
+      console.warn('Socket connection error:', error);
     });
 
     socket.on('stream-status-changed', (data: any) => {
