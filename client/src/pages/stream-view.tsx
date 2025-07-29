@@ -30,6 +30,7 @@ import { io, Socket } from 'socket.io-client';
 import type { ChatMessage, User } from "@shared/schema";
 import NodeMediaPlayer from "@/components/node-media-player";
 import WebRTCStreamViewer from "@/components/webrtc-stream-viewer";
+import AgoraStreamViewer from "@/components/agora-stream-viewer";
 
 export default function StreamView() {
   const [, params] = useRoute("/stream/:streamId");
@@ -525,12 +526,14 @@ export default function StreamView() {
             </CardHeader>
             <CardContent>
               <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
-                {/* Use WebRTC for browser streaming */}
+                {/* Use Agora for browser streaming */}
                 {!streamEnded && typedStream && (
-                  <WebRTCStreamViewer
+                  <AgoraStreamViewer
                     streamId={typedStream.id}
-                    socket={socket}
-                    creatorUsername={typedStream.creator?.username}
+                    userId={typedUser?.id || guestSessionId || ''}
+                    username={displayName}
+                    creatorName={typedStream.creatorName}
+                    title={typedStream.title}
                   />
                 )}
                 

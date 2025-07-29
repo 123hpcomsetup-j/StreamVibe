@@ -1,0 +1,301 @@
+import { useState, useRef, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Play, Square, Video, VideoOff, Mic, MicOff, Users } from "lucide-react";
+import AgoraRTC, {
+  IAgoraRTCClient,
+  ICameraVideoTrack,
+  IMicrophoneAudioTrack,
+  UID
+} from "agora-rtc-sdk-ng";
+
+interface AgoraStreamCreatorProps {
+  streamId: string;
+  userId: string;
+  username: string;
+  onStreamStart?: (streamId: string) => void;
+  onStreamStop?: () => void;
+}
+
+export default function AgoraStreamCreator({
+  streamId,
+  userId,
+  username,
+  onStreamStart,
+  onStreamStop
+}: AgoraStreamCreatorProps) {
+  const { toast } = useToast();
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [viewerCount, setViewerCount] = useState(0);
+  const [isVideoOn, setIsVideoOn] = useState(true);
+  const [isAudioOn, setIsAudioOn] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
+  
+  const clientRef = useRef<IAgoraRTCClient | null>(null);
+  const videoTrackRef = useRef<ICameraVideoTrack | null>(null);
+  const audioTrackRef = useRef<IMicrophoneAudioTrack | null>(null);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
+
+  // Initialize Agora client
+  useEffect(() => {
+    const client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
+    clientRef.current = client;
+
+    // Set client role to host (broadcaster)
+    client.setClientRole("host");
+
+    // Handle user joined/left events
+    client.on("user-joined", (user) => {
+      console.log("Viewer joined:", user.uid);
+      setViewerCount(prev => prev + 1);
+    });
+
+    client.on("user-left", (user) => {
+      console.log("Viewer left:", user.uid);
+      setViewerCount(prev => Math.max(0, prev - 1));
+    });
+
+    return () => {
+      stopStreaming();
+    };
+  }, []);
+
+  const startStreaming = async () => {
+    if (!clientRef.current) return;
+
+    try {
+      // Check if we have Agora App ID
+      const appId = import.meta.env.VITE_AGORA_APP_ID;
+      if (!appId) {
+        toast({
+          title: "Configuration Required",
+          description: "Agora App ID not configured. Please contact support.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Join the channel
+      await clientRef.current.join(appId, streamId, null, userId);
+      setIsConnected(true);
+
+      // Create and publish video track
+      const videoTrack = await AgoraRTC.createCameraVideoTrack({
+        encoderConfig: {
+          width: 1280,
+          height: 720,
+          frameRate: 30,
+          bitrateMax: 1000,
+          bitrateMin: 500
+        }
+      });
+      videoTrackRef.current = videoTrack;
+
+      // Create and publish audio track
+      const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      audioTrackRef.current = audioTrack;
+
+      // Publish tracks
+      await clientRef.current.publish([videoTrack, audioTrack]);
+
+      // Play video locally
+      if (videoContainerRef.current) {
+        videoTrack.play(videoContainerRef.current);
+      }
+
+      setIsStreaming(true);
+      onStreamStart?.(streamId);
+
+      toast({
+        title: "Live Stream Started!",
+        description: "You are now broadcasting live with Agora.",
+      });
+
+    } catch (error: any) {
+      console.error("Failed to start streaming:", error);
+      toast({
+        title: "Failed to Start Stream",
+        description: error.message || "Please check camera and microphone permissions.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopStreaming = async () => {
+    try {
+      // Unpublish tracks
+      if (clientRef.current && (videoTrackRef.current || audioTrackRef.current)) {
+        const tracks = [videoTrackRef.current, audioTrackRef.current].filter(Boolean);
+        if (tracks.length > 0) {
+          await clientRef.current.unpublish(tracks as any);
+        }
+      }
+
+      // Close tracks
+      if (videoTrackRef.current) {
+        videoTrackRef.current.close();
+        videoTrackRef.current = null;
+      }
+      if (audioTrackRef.current) {
+        audioTrackRef.current.close();
+        audioTrackRef.current = null;
+      }
+
+      // Leave channel
+      if (clientRef.current) {
+        await clientRef.current.leave();
+      }
+
+      setIsStreaming(false);
+      setIsConnected(false);
+      setViewerCount(0);
+      onStreamStop?.();
+
+      toast({
+        title: "Stream Stopped",
+        description: "Your live stream has ended.",
+      });
+
+    } catch (error: any) {
+      console.error("Error stopping stream:", error);
+    }
+  };
+
+  const toggleVideo = async () => {
+    if (videoTrackRef.current) {
+      if (isVideoOn) {
+        await videoTrackRef.current.setEnabled(false);
+      } else {
+        await videoTrackRef.current.setEnabled(true);
+      }
+      setIsVideoOn(!isVideoOn);
+    }
+  };
+
+  const toggleAudio = async () => {
+    if (audioTrackRef.current) {
+      if (isAudioOn) {
+        await audioTrackRef.current.setEnabled(false);
+      } else {
+        await audioTrackRef.current.setEnabled(true);
+      }
+      setIsAudioOn(!isAudioOn);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Stream Controls */}
+      <Card className="bg-slate-800 border-slate-700">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center justify-between">
+            <span>Live Stream Controls</span>
+            {isStreaming && (
+              <Badge variant="secondary" className="bg-red-600 text-white">
+                <div className="w-2 h-2 bg-white rounded-full animate-pulse mr-2"></div>
+                LIVE
+              </Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Connection Status */}
+          {isConnected && (
+            <div className="flex items-center text-green-400 text-sm">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
+              <span>Connected to Agora - {viewerCount} viewers</span>
+            </div>
+          )}
+          
+          {/* Stream Controls */}
+          <div className="flex space-x-2">
+            {isStreaming ? (
+              <>
+                <Button 
+                  onClick={stopStreaming}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  <Square className="mr-2 h-4 w-4" />
+                  Stop Stream
+                </Button>
+                <Button 
+                  onClick={toggleVideo}
+                  variant={isVideoOn ? "secondary" : "destructive"}
+                  className="flex-1"
+                >
+                  {isVideoOn ? <Video className="mr-2 h-4 w-4" /> : <VideoOff className="mr-2 h-4 w-4" />}
+                  {isVideoOn ? "Video On" : "Video Off"}
+                </Button>
+                <Button 
+                  onClick={toggleAudio}
+                  variant={isAudioOn ? "secondary" : "destructive"}
+                  className="flex-1"
+                >
+                  {isAudioOn ? <Mic className="mr-2 h-4 w-4" /> : <MicOff className="mr-2 h-4 w-4" />}
+                  {isAudioOn ? "Audio On" : "Audio Off"}
+                </Button>
+              </>
+            ) : (
+              <Button 
+                onClick={startStreaming}
+                className="w-full bg-red-500 hover:bg-red-600"
+              >
+                <Play className="mr-2 h-4 w-4" />
+                Start Live Stream
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Video Preview */}
+      <Card className="bg-slate-800 border-slate-700">
+        <CardHeader>
+          <CardTitle className="text-white">Stream Preview</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div 
+            ref={videoContainerRef}
+            className="relative w-full h-64 bg-slate-900 rounded-lg overflow-hidden"
+          >
+            {!isStreaming && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center text-slate-400">
+                  <Video className="h-12 w-12 mx-auto mb-2" />
+                  <p>Start streaming to see preview</p>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Stream Stats */}
+          {isStreaming && (
+            <div className="mt-4 grid grid-cols-3 gap-4">
+              <div className="bg-slate-700 rounded-lg p-3 text-center">
+                <div className="text-slate-400 text-sm">Viewers</div>
+                <div className="text-white text-xl font-bold flex items-center justify-center">
+                  <Users className="w-4 h-4 mr-1" />
+                  {viewerCount}
+                </div>
+              </div>
+              <div className="bg-slate-700 rounded-lg p-3 text-center">
+                <div className="text-slate-400 text-sm">Video</div>
+                <div className="text-white text-xl font-bold">
+                  {isVideoOn ? "ON" : "OFF"}
+                </div>
+              </div>
+              <div className="bg-slate-700 rounded-lg p-3 text-center">
+                <div className="text-slate-400 text-sm">Audio</div>
+                <div className="text-white text-xl font-bold">
+                  {isAudioOn ? "ON" : "OFF"}
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

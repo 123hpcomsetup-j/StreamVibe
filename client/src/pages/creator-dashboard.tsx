@@ -16,6 +16,7 @@ import { DollarSign, Users, Clock, Heart, Play, Square, Settings } from "lucide-
 import { io } from "socket.io-client";
 import StreamModal from "@/components/stream-modal";
 import StreamModalWebRTC from "@/components/stream-modal-webrtc";
+import AgoraStreamCreator from "@/components/agora-stream-creator";
 
 export default function CreatorDashboard() {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -481,7 +482,7 @@ export default function CreatorDashboard() {
           (window as any).currentStreamId = newStream.id;
         }
         
-        // Always use WebRTC - show WebRTC streaming modal
+        // Always use Agora - show Agora streaming interface
         setShowWebRTCModal(true);
         // Generate stream key for identification
         if (!streamKey) {
@@ -953,13 +954,37 @@ export default function CreatorDashboard() {
         streamKey={streamKey}
       />
       
-      {/* WebRTC Stream Modal */}
-      <StreamModalWebRTC
-        isOpen={showWebRTCModal}
-        onClose={() => setShowWebRTCModal(false)}
-        streamId={streamKey}
-        socket={(window as any).streamSocket}
-      />
+      {/* Agora Streaming Modal */}
+      {showWebRTCModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-white">Live Stream Studio</h2>
+              <Button 
+                onClick={() => setShowWebRTCModal(false)}
+                variant="ghost"
+                className="text-slate-400 hover:text-white"
+              >
+                ✕
+              </Button>
+            </div>
+            
+            <AgoraStreamCreator
+              streamId={(window as any).currentStreamId || streamKey}
+              userId={typedUser?.id || ''}
+              username={typedUser?.username || 'Creator'}
+              onStreamStart={(streamId) => {
+                console.log('Agora stream started:', streamId);
+              }}
+              onStreamStop={() => {
+                console.log('Agora stream stopped');
+                setShowWebRTCModal(false);
+                handleStopStream();
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
