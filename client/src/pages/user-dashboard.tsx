@@ -399,11 +399,9 @@ export default function UserDashboard() {
                             />
                           ) : (
                             <>
-                              <div className="absolute inset-0 bg-black/20"></div>
-                              <Video className="w-16 h-16 text-white opacity-80 z-10" />
+                              <Video className="w-16 h-16 text-white opacity-80" />
                             </>
                           )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                         </div>
                         
                         {/* Live Badge */}

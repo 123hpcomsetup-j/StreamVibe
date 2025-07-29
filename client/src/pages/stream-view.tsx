@@ -509,14 +509,13 @@ export default function StreamView() {
         </div>
       </div>
 
-      {/* Main Content - Mobile First Responsive Design */}
-      <div className="mx-auto px-2 sm:px-4 lg:px-6">
-        {/* Mobile/Tablet Layout: Video 80% height, Chat below */}
+      {/* Main Content - Simplified Layout */}
+      <div className="mx-auto px-2 sm:px-4 lg:px-6 py-4">
         <div className="flex flex-col lg:grid lg:grid-cols-3 lg:gap-6 lg:max-w-7xl lg:mx-auto">
           
-          {/* Video Stream - 80% of viewport height on mobile/tablet */}
-          <div className="lg:col-span-2">
-            <div className="w-full h-[80vh] lg:h-auto">
+          {/* Video Stream - Clean container */}
+          <div className="lg:col-span-2 mb-4 lg:mb-0">
+            <div className="w-full h-[80vh] lg:h-[70vh] bg-black rounded-lg overflow-hidden">
               {!streamEnded && typedStream ? (
                 <AgoraStreamViewer
                   streamId={typedStream.id}
@@ -698,7 +697,7 @@ export default function StreamView() {
                 <Card key={stream.id} className="bg-slate-800 border-slate-700 hover:border-primary/50 transition-colors">
                   <CardContent className="p-0">
                     <div className="relative aspect-video bg-slate-700 rounded-t-lg">
-                      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-t-lg" />
+
                       <div className="absolute top-2 left-2">
                         <Badge className="bg-red-500 text-white">
                           <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse"></div>

@@ -389,31 +389,25 @@ export default function AgoraStreamViewer({
   }
 
   return (
-    <div className="w-full h-full flex flex-col">
-      {/* Responsive Video Container - Adapts to parent height */}
-      <div className="relative w-full bg-black rounded-lg overflow-hidden flex-1 min-h-0">
-        {/* Video Stream Container */}
+    <div className="w-full h-full flex flex-col bg-black rounded-lg overflow-hidden">
+      {/* Single Video Container - Simplified Layout */}
+      <div className="relative w-full h-full flex-1 min-h-0">
+        {/* Video Stream Container - Simplified */}
         <div 
           ref={videoContainerRef}
-          className="absolute inset-0 w-full h-full bg-slate-900 flex items-center justify-center"
+          className="w-full h-full bg-black flex items-center justify-center"
           style={{ 
+            position: 'relative',
             width: '100%', 
             height: '100%',
-            // Ensure Agora video fills container properly with device resolution
-            objectFit: 'cover',
-            objectPosition: 'center',
             // Mobile-specific optimizations for smooth video playback
             WebkitBackfaceVisibility: 'hidden',
             WebkitTransform: 'translate3d(0, 0, 0)',
             transform: 'translate3d(0, 0, 0)',
-            // Hardware acceleration for mobile devices
-            willChange: 'transform',
-            // Proper scaling for different device resolutions
-            imageRendering: 'optimizeQuality'
           }}
         >
           {!hasVideo && (
-            <div className="text-center text-slate-400 z-10">
+            <div className="text-center text-slate-400">
               {isConnected ? (
                 <div className="space-y-3">
                   <div className="text-4xl">🎥</div>
@@ -431,8 +425,8 @@ export default function AgoraStreamViewer({
           )}
         </div>
         
-        {/* Stream Status Overlay - Mobile responsive */}
-        <div className="absolute top-2 left-2 sm:top-4 sm:left-4 flex items-center space-x-1 sm:space-x-2 z-20">
+        {/* Simplified Overlays - Reduced z-index conflicts */}
+        <div className="absolute top-2 left-2 sm:top-4 sm:left-4 flex items-center space-x-1 sm:space-x-2">
           <Badge className="bg-red-600 text-white shadow-lg text-xs">
             <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full mr-1 animate-pulse"></div>
             LIVE
@@ -443,9 +437,9 @@ export default function AgoraStreamViewer({
           </Badge>
         </div>
         
-        {/* Video Controls - Mobile optimized */}
+        {/* Video Controls - Simplified */}
         {hasVideo && (
-          <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 z-20">
+          <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4">
             <Button
               size="sm"
               variant={isMuted ? "destructive" : "secondary"}
@@ -457,9 +451,9 @@ export default function AgoraStreamViewer({
           </div>
         )}
         
-        {/* Connection Status - Mobile responsive */}
+        {/* Connection Status - Simplified */}
         {isConnected && (
-          <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 z-20">
+          <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4">
             <Badge className="bg-green-600/80 backdrop-blur-sm text-white text-xs">
               <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full mr-1 animate-pulse"></div>
               <span className="hidden sm:inline">Connected</span>
@@ -467,33 +461,6 @@ export default function AgoraStreamViewer({
             </Badge>
           </div>
         )}
-      </div>
-
-      {/* Mobile-Optimized Stream Info - Only show on mobile/tablet */}
-      <div className="lg:hidden mt-2 p-3 bg-slate-800 rounded-lg">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <h3 className="text-sm sm:text-base font-semibold text-white truncate">{title}</h3>
-            <p className="text-xs sm:text-sm text-slate-400">by {creatorName}</p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap shrink-0">
-            {isConnected && (
-              <Badge className="bg-green-600 text-white text-xs">
-                <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse"></div>
-                Connected
-              </Badge>
-            )}
-            {!isConnected && (
-              <Button 
-                onClick={connectToStream}
-                className="bg-blue-600 hover:bg-blue-700"
-                disabled={isLoading}
-              >
-                {isLoading ? "Connecting..." : "Connect to Stream"}
-              </Button>
-            )}
-          </div>
-        </div>
       </div>
     </div>
   );
