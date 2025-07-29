@@ -235,16 +235,23 @@ export function setupWebRTC(server: Server) {
       }
     });
 
-    // Legacy join-stream handler
+    // Join stream handler for chat
     socket.on('join-stream', async (data: { streamId: string, userId: string }) => {
       const { streamId, userId } = data;
+      console.log(`User ${userId} (${socket.id}) joining stream ${streamId} for chat`);
+      
+      // Always join the stream room for chat, regardless of streaming status
+      socket.join(`stream-${streamId}`);
+      console.log(`Socket ${socket.id} joined room stream-${streamId}`);
+      
+      // Update or create stream tracking
       let stream = activeStreams.get(streamId);
       
-      // If stream not in memory, check database
+      // If stream not in memory, check database and try to restore
       if (!stream) {
         try {
           const dbStream = await storage.getStreamById(streamId);
-          if (dbStream && dbStream.isLive) {
+          if (dbStream) {
             // Find creator's socket by checking all connected sockets
             const creatorSocket = Array.from(io.sockets.sockets.values())
               .find(s => s.data?.userId === dbStream.creatorId);
@@ -258,10 +265,6 @@ export function setupWebRTC(server: Server) {
               });
               stream = activeStreams.get(streamId);
               console.log(`Restored stream ${streamId} from database`);
-            } else {
-              console.log(`Creator not connected for stream ${streamId}`);
-              socket.emit('no-active-stream', { streamId });
-              return;
             }
           }
         } catch (error) {
@@ -269,71 +272,30 @@ export function setupWebRTC(server: Server) {
         }
       }
       
+      // If we have a stream, add user as viewer
       if (stream) {
         stream.viewers.add(socket.id);
-        socket.join(`stream-${streamId}`);
-        
-        console.log(`Viewer ${userId} joined stream ${streamId}`);
-        
-        // Notify creator about new viewer
-        socket.to(stream.creatorSocketId).emit('viewer-joined', { 
-          viewerId: socket.id,
-          userId: userId,
-          viewerCount: stream.viewers.size 
-        });
-
-        // Send creator's stream info to new viewer
-        socket.emit('stream-ready', { 
-          streamId,
-          creatorSocketId: stream.creatorSocketId 
-        });
-
-        // Update viewer count for all participants
-        io.to(`stream-${streamId}`).emit('viewer-count-update', { 
-          streamId,
-          count: stream.viewers.size 
-        });
-      } else {
-        // No active stream found
-        console.log(`No active stream found for ${streamId}`);
-        socket.emit('no-active-stream', { streamId });
       }
-    });
-
-    // Handle WebRTC signaling
-    socket.on('offer', (data: { offer: RTCSessionDescriptionInit, targetId: string, streamId: string }) => {
-      socket.to(data.targetId).emit('offer', {
-        offer: data.offer,
-        senderId: socket.id,
-        streamId: data.streamId
-      });
-    });
-
-    socket.on('answer', (data: { answer: RTCSessionDescriptionInit, targetId: string, streamId: string }) => {
-      socket.to(data.targetId).emit('answer', {
-        answer: data.answer,
-        senderId: socket.id,
-        streamId: data.streamId
-      });
-    });
-
-    socket.on('ice-candidate', (data: { candidate: RTCIceCandidateInit, targetId: string, streamId: string }) => {
-      socket.to(data.targetId).emit('ice-candidate', {
-        candidate: data.candidate,
-        senderId: socket.id,
-        streamId: data.streamId
-      });
+      
+      // Send confirmation that user joined chat
+      socket.emit('joined-stream-chat', { streamId, success: true });
     });
 
     // Handle chat messages
-    socket.on('chat-message', (data: { streamId: string, message: string, username: string, userId: string }) => {
-      // Broadcast to all users in the stream room
-      io.to(`stream-${data.streamId}`).emit('chat-message', {
+    socket.on('chat-message', (data: { streamId: string, message: string, username: string, userId: string, userType?: string }) => {
+      console.log(`Chat message received from ${data.username} (${data.userType || 'user'}):`, data.message);
+      
+      // Broadcast to all users in the stream room (including the sender)
+      const messageData = {
         message: data.message,
         username: data.username,
         userId: data.userId,
+        userType: data.userType || 'user',
         timestamp: new Date().toISOString()
-      });
+      };
+      
+      io.to(`stream-${data.streamId}`).emit('chat-message', messageData);
+      console.log(`Broadcasting message to stream-${data.streamId} room`);
     });
 
     // Handle tip messages

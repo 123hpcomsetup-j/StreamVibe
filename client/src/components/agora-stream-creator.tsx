@@ -69,34 +69,41 @@ export default function AgoraStreamCreator({
     };
   }, []);
 
-  // Setup chat WebSocket connection
+  // Setup chat WebSocket connection - connect immediately, not just when streaming
   useEffect(() => {
-    if (isStreaming) {
-      const newSocket = io({
-        path: '/socket.io',
-        transports: ['websocket']
-      });
+    const newSocket = io(window.location.origin, {
+      path: '/socket.io',
+      transports: ['websocket', 'polling']
+    });
 
-      newSocket.emit('join-stream', { streamId, userId, userType: 'creator' });
+    newSocket.on('connect', () => {
+      console.log('Creator connected to chat server');
+      // Join stream room immediately
+      newSocket.emit('join-stream', { streamId, userId });
+    });
 
-      newSocket.on('chat-message', (data) => {
-        setChatMessages(prev => [...prev, data]);
-      });
+    newSocket.on('disconnect', () => {
+      console.log('Creator disconnected from chat server');
+    });
 
-      newSocket.on('stream-update', (data) => {
-        if (data.viewerCount !== undefined) {
-          setViewerCount(data.viewerCount);
-        }
-      });
+    // Listen for chat messages from all users (including viewers)
+    newSocket.on('chat-message', (data) => {
+      console.log('Creator received chat message:', data);
+      setChatMessages(prev => [...prev, data]);
+    });
 
-      setSocket(newSocket);
+    newSocket.on('stream-update', (data) => {
+      if (data.viewerCount !== undefined) {
+        setViewerCount(data.viewerCount);
+      }
+    });
 
-      return () => {
-        newSocket.emit('leave-stream', { streamId });
-        newSocket.disconnect();
-      };
-    }
-  }, [isStreaming, streamId, userId]);
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.disconnect();
+    };
+  }, [streamId, userId]);
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -116,6 +123,7 @@ export default function AgoraStreamCreator({
         userType: 'creator'
       };
 
+      console.log('Creator sending chat message:', messageData);
       socket.emit('chat-message', messageData);
       setMessage("");
     }
