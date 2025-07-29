@@ -103,7 +103,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         creatorId: userId,
       });
 
-      const stream = await storage.createStream(validatedData);
+      // Ensure isLive is set when creating stream
+      const streamData = {
+        ...validatedData,
+        isLive: req.body.isLive === true // Preserve the isLive field from request
+      };
+
+      const stream = await storage.createStream(streamData);
       
       // Set user as online when starting stream
       await storage.updateUserOnlineStatus(userId, true);
