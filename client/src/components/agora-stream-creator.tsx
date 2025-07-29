@@ -109,9 +109,28 @@ export default function AgoraStreamCreator({
       
       console.log('Joining Agora channel:', channelName, 'with user ID:', numericUserId);
       
-      // Join the channel with token (using null for testing mode, but may need actual token for production)
-      // For testing App IDs that require tokens, we use a temporary token or enable testing mode
-      await clientRef.current.join(appId, channelName, null, numericUserId);
+      // Get Agora token from backend
+      const tokenResponse = await fetch('/api/agora/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          channelName,
+          uid: numericUserId,
+          role: 'host'
+        }),
+      });
+      
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to get Agora token');
+      }
+      
+      const { token } = await tokenResponse.json();
+      console.log('Got Agora token, joining channel...');
+      
+      // Join the channel with proper authentication token
+      await clientRef.current.join(appId, channelName, token, numericUserId);
       setIsConnected(true);
 
       // Create and publish video track

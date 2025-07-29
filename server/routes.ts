@@ -7,6 +7,8 @@ import authRoutes from "./authRoutes";
 import { setupWebRTC } from "./webrtc";
 import { db } from "./db";
 import { streams, users } from "@shared/schema";
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
 import { eq } from "drizzle-orm";
 import { 
   insertStreamSchema,
@@ -51,6 +53,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching online users:", error);
       res.status(500).json({ message: "Failed to fetch online users" });
+    }
+  });
+
+  // Agora token generation endpoint
+  app.post('/api/agora/token', async (req, res) => {
+    try {
+      const { channelName, uid, role } = req.body;
+      
+      const appId = process.env.VITE_AGORA_APP_ID;
+      const appCertificate = process.env.AGORA_APP_CERTIFICATE;
+      
+      if (!appId || !appCertificate) {
+        return res.status(500).json({ message: "Agora credentials not configured" });
+      }
+      
+      // Import Agora token generator using CommonJS require
+      const { RtcTokenBuilder, RtcRole } = require('agora-token');
+      
+      // Set token expiration time (24 hours)
+      const expirationTimeInSeconds = 3600 * 24;
+      const currentTimeStamp = Math.floor(Date.now() / 1000);
+      const privilegeExpiredTs = currentTimeStamp + expirationTimeInSeconds;
+      
+      // Use proper Agora role constants
+      const agoraRole = role === 'host' ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER;
+      
+      // Generate token
+      const token = RtcTokenBuilder.buildTokenWithUid(
+        appId,
+        appCertificate,
+        channelName,
+        uid,
+        agoraRole,
+        privilegeExpiredTs
+      );
+      
+      console.log(`Generated Agora token for channel: ${channelName}, role: ${role}, uid: ${uid}`);
+      res.json({ token });
+    } catch (error: any) {
+      console.error("Error generating Agora token:", error);
+      console.error("Environment check - VITE_AGORA_APP_ID:", !!process.env.VITE_AGORA_APP_ID);
+      console.error("Environment check - AGORA_APP_CERTIFICATE:", !!process.env.AGORA_APP_CERTIFICATE);
+      res.status(500).json({ message: "Failed to generate token", error: error?.message || 'Unknown error' });
     }
   });
 

@@ -231,8 +231,28 @@ export default function AgoraStreamViewer({
       
       console.log('Viewer joining Agora channel:', channelName, 'with user ID:', userId);
       
-      // Join the channel as viewer
-      await clientRef.current.join(appId, channelName, null, userId);
+      // Get Agora token from backend
+      const tokenResponse = await fetch('/api/agora/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          channelName,
+          uid: userId,
+          role: 'audience'
+        }),
+      });
+      
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to get Agora token');
+      }
+      
+      const { token } = await tokenResponse.json();
+      console.log('Got Agora token, joining channel as viewer...');
+      
+      // Join the channel as viewer with proper authentication token
+      await clientRef.current.join(appId, channelName, token, userId);
       setIsConnected(true);
       setIsLoading(false);
 
