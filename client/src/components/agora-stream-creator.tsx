@@ -623,8 +623,8 @@ export default function AgoraStreamCreator({
           </Card>
         )}
 
-        {/* Stream Status Info - Always visible when connected */}
-        {isConnected && (
+        {/* Stream Status Info - Only show when connected but NOT streaming */}
+        {isConnected && !isStreaming && (
           <Card className="bg-slate-800 border-slate-700">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -632,44 +632,32 @@ export default function AgoraStreamCreator({
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
                   <span>Connected to Agora</span>
                 </div>
-                {isStreaming && (
-                  <div className="flex items-center text-white text-sm bg-red-600 px-2 py-1 rounded">
-                    <div className="w-2 h-2 bg-white rounded-full animate-pulse mr-2"></div>
-                    Broadcasting Live
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Stream Statistics - Compact Version */}
+        {/* Stop Stream Controls - Show only when streaming */}
         {isStreaming && (
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-white text-lg">Stream Stats</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="bg-slate-700 rounded p-2 text-center">
-                  <div className="text-slate-400 text-xs">Viewers</div>
-                  <div className="text-white text-lg font-bold flex items-center justify-center">
-                    <Users className="w-3 h-3 mr-1" />
-                    {viewerCount}
-                  </div>
+          <Card className="bg-red-900/20 border-red-500/50">
+            <CardContent className="p-6">
+              <div className="text-center">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-2"></div>
+                  <span className="text-red-400 font-semibold">LIVE STREAMING</span>
                 </div>
-                <div className="bg-slate-700 rounded p-2 text-center">
-                  <div className="text-slate-400 text-xs">Video</div>
-                  <div className={`text-lg font-bold ${isVideoOn ? 'text-green-400' : 'text-red-400'}`}>
-                    {isVideoOn ? "ON" : "OFF"}
-                  </div>
-                </div>
-                <div className="bg-slate-700 rounded p-2 text-center">
-                  <div className="text-slate-400 text-xs">Audio</div>
-                  <div className={`text-lg font-bold ${isAudioOn ? 'text-green-400' : 'text-red-400'}`}>
-                    {isAudioOn ? "ON" : "OFF"}
-                  </div>
-                </div>
+                <Button
+                  onClick={stopStreaming}
+                  size="lg"
+                  variant="destructive"
+                  className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3"
+                >
+                  <Square className="mr-2 h-5 w-5 fill-current" />
+                  End Stream
+                </Button>
+                <p className="text-slate-400 text-sm mt-3">
+                  Viewers: {viewerCount} • Video: {isVideoOn ? 'ON' : 'OFF'} • Audio: {isAudioOn ? 'ON' : 'OFF'}
+                </p>
               </div>
             </CardContent>
           </Card>
