@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { DollarSign, Users, Clock, Heart, Play, Square, Settings, Phone, Mail, Camera, UserIcon, Plus, Trash2, Edit } from "lucide-react";
+import { DollarSign, Users, Clock, Heart, Play, Square, Settings, Phone, Mail, Camera, UserIcon, Plus, Trash2, Edit, Save } from "lucide-react";
 import StreamModal from "@/components/stream-modal";
 import AgoraStreamCreator from "@/components/agora-stream-creator";
 
@@ -51,6 +51,7 @@ export default function CreatorDashboard() {
   const [showAgoraModal, setShowAgoraModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [streamKey, setStreamKey] = useState<string>("");
+  const [showActionPresets, setShowActionPresets] = useState(false);
 
   const typedUser = user as User | undefined;
 
@@ -60,6 +61,12 @@ export default function CreatorDashboard() {
       console.log('Creator dashboard loaded for user:', typedUser.id);
     }
   }, [typedUser?.id]);
+
+  // Fetch creator action presets
+  const { data: actionPresets = [] } = useQuery({
+    queryKey: ["/api/creator/action-presets"],
+    retry: false,
+  }) as { data: Array<{ id: string; name: string; tokenCost: number; isEnabled: boolean; order: number }> };
 
   // Initialize profile data when user loads
   useEffect(() => {
@@ -75,9 +82,88 @@ export default function CreatorDashboard() {
     }
   }, [typedUser]);
 
+  // Load saved action presets into stream data when going live
+  useEffect(() => {
+    if (actionPresets.length > 0 && streamData.customActions.length === 0) {
+      const presetsAsActions = actionPresets.map((preset: any) => ({
+        id: preset.id,
+        name: preset.name,
+        tokenCost: preset.tokenCost,
+        enabled: preset.isEnabled
+      }));
+      setStreamData(prev => ({
+        ...prev,
+        customActions: presetsAsActions
+      }));
+    }
+  }, [actionPresets, streamData.customActions.length]);
+
   const handleProfileSave = () => {
     updateProfileMutation.mutate(profileData);
   };
+
+  // Action preset mutations
+  const createActionPresetMutation = useMutation({
+    mutationFn: async (data: { name: string; tokenCost: number; order: number }) => {
+      return await apiRequest("POST", "/api/creator/action-presets", data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Action Preset Saved",
+        description: "Your custom action has been saved for future streams.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/creator/action-presets"] });
+      setNewAction({ name: "", tokenCost: 1 });
+    },
+    onError: (error) => {
+      toast({
+        title: "Save Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const updateActionPresetMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: { name: string; tokenCost: number; isEnabled: boolean } }) => {
+      return await apiRequest("PUT", `/api/creator/action-presets/${id}`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Action Updated",
+        description: "Your action preset has been updated.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/creator/action-presets"] });
+      setEditingAction(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteActionPresetMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("DELETE", `/api/creator/action-presets/${id}`, {});
+    },
+    onSuccess: () => {
+      toast({
+        title: "Action Deleted",
+        description: "Your action preset has been removed.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/creator/action-presets"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Delete Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
 
   // Redirect if not authenticated or not a creator
   useEffect(() => {
@@ -778,6 +864,115 @@ export default function CreatorDashboard() {
                 </Button>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Action Presets Management */}
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center">
+              <Heart className="mr-2 h-5 w-5" />
+              Custom Chat Actions
+              <Badge variant="outline" className="ml-2 text-xs">
+                Saved for all streams
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-slate-400 text-sm mb-4">
+              Set up custom actions that viewers can purchase with tokens. These will be automatically loaded for all your future streams.
+            </div>
+            
+            {/* Existing saved actions */}
+            <div className="space-y-2">
+              {actionPresets.map((preset: any) => (
+                <div key={preset.id} className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="text-white font-medium">{preset.name}</div>
+                    <Badge variant="outline" className="text-xs">
+                      {preset.tokenCost} token{preset.tokenCost !== 1 ? 's' : ''}
+                    </Badge>
+                    <Badge variant={preset.isEnabled ? "default" : "secondary"} className="text-xs">
+                      {preset.isEnabled ? "Enabled" : "Disabled"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      onClick={() => updateActionPresetMutation.mutate({
+                        id: preset.id,
+                        data: { ...preset, isEnabled: !preset.isEnabled }
+                      })}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                    >
+                      {preset.isEnabled ? "Disable" : "Enable"}
+                    </Button>
+                    <Button
+                      onClick={() => deleteActionPresetMutation.mutate(preset.id)}
+                      variant="outline"
+                      size="sm"
+                      className="text-red-400 border-red-600 hover:bg-red-900/20"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              
+              {actionPresets.length === 0 && (
+                <div className="text-center py-6 text-slate-400">
+                  <Heart className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No custom actions saved yet</p>
+                  <p className="text-sm">Create your first custom action below</p>
+                </div>
+              )}
+            </div>
+
+            {/* Add new action */}
+            {actionPresets.length < 5 && (
+              <div className="border-t border-slate-600 pt-4">
+                <div className="flex items-center space-x-2">
+                  <Input
+                    placeholder="Action name (e.g., 'say hi', 'dance')"
+                    value={newAction.name}
+                    onChange={(e) => setNewAction({ ...newAction, name: e.target.value })}
+                    className="bg-slate-700 border-slate-600 text-white flex-1"
+                  />
+                  <Input
+                    type="number"
+                    min="1"
+                    max="100"
+                    placeholder="Cost"
+                    value={newAction.tokenCost}
+                    onChange={(e) => setNewAction({ ...newAction, tokenCost: Number(e.target.value) })}
+                    className="bg-slate-700 border-slate-600 text-white w-20"
+                  />
+                  <Button
+                    onClick={() => {
+                      if (newAction.name.trim()) {
+                        createActionPresetMutation.mutate({
+                          name: newAction.name.trim(),
+                          tokenCost: newAction.tokenCost,
+                          order: actionPresets.length
+                        });
+                      }
+                    }}
+                    disabled={!newAction.name.trim() || createActionPresetMutation.isPending}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Save
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {actionPresets.length >= 5 && (
+              <div className="text-yellow-500 text-sm text-center">
+                Maximum of 5 custom actions reached. Delete an action to add a new one.
+              </div>
+            )}
           </CardContent>
         </Card>
 

@@ -119,6 +119,18 @@ export const chatMessages = pgTable("chat_messages", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Creator action presets table - save custom actions for reuse
+export const creatorActionPresets = pgTable("creator_action_presets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  creatorId: varchar("creator_id").references(() => users.id).notNull(),
+  name: varchar("name").notNull(), // e.g., "say hi", "dance", "sing song"
+  tokenCost: integer("token_cost").notNull(),
+  isEnabled: boolean("is_enabled").default(true),
+  order: integer("order").default(0), // For sorting actions
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Guest sessions table for tracking guest viewing
 export const guestSessions = pgTable("guest_sessions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -169,6 +181,13 @@ export const transactionsRelations = relations(transactions, ({ one }) => ({
   }),
 }));
 
+export const creatorActionPresetsRelations = relations(creatorActionPresets, ({ one }) => ({
+  creator: one(users, {
+    fields: [creatorActionPresets.creatorId],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -212,6 +231,12 @@ export const insertGuestSessionSchema = createInsertSchema(guestSessions).omit({
   updatedAt: true,
 });
 
+export const insertCreatorActionPresetSchema = createInsertSchema(creatorActionPresets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Custom action interface
 export interface CustomAction {
   id: string;
@@ -238,3 +263,5 @@ export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertGuestSession = z.infer<typeof insertGuestSessionSchema>;
 export type GuestSession = typeof guestSessions.$inferSelect;
+export type InsertCreatorActionPreset = z.infer<typeof insertCreatorActionPresetSchema>;
+export type CreatorActionPreset = typeof creatorActionPresets.$inferSelect;

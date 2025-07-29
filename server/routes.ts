@@ -17,7 +17,9 @@ import {
   insertTokenPurchaseSchema,
   insertReportSchema,
   insertPayoutSchema,
-  insertChatMessageSchema 
+  insertChatMessageSchema,
+  insertCreatorActionPresetSchema,
+  creatorActionPresets 
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -912,6 +914,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching guest session:", error);
       res.status(500).json({ message: "Failed to fetch guest session" });
+    }
+  });
+
+  // Creator action presets endpoints
+  app.get('/api/creator/action-presets', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'creator') {
+        return res.status(403).json({ message: "Creator access required" });
+      }
+
+      const presets = await db.select()
+        .from(creatorActionPresets)
+        .where(eq(creatorActionPresets.creatorId, userId))
+        .orderBy(creatorActionPresets.order);
+
+      res.json(presets);
+    } catch (error) {
+      console.error("Error fetching action presets:", error);
+      res.status(500).json({ message: "Failed to fetch action presets" });
+    }
+  });
+
+  app.post('/api/creator/action-presets', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'creator') {
+        return res.status(403).json({ message: "Creator access required" });
+      }
+
+      const data = insertCreatorActionPresetSchema.parse({
+        ...req.body,
+        creatorId: userId
+      });
+
+      const [preset] = await db.insert(creatorActionPresets)
+        .values(data)
+        .returning();
+
+      res.json(preset);
+    } catch (error) {
+      console.error("Error creating action preset:", error);
+      res.status(400).json({ message: "Failed to create action preset" });
+    }
+  });
+
+  app.put('/api/creator/action-presets/:id', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'creator') {
+        return res.status(403).json({ message: "Creator access required" });
+      }
+
+      const { id } = req.params;
+      const data = insertCreatorActionPresetSchema.parse({
+        ...req.body,
+        creatorId: userId
+      });
+
+      const [preset] = await db.update(creatorActionPresets)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(creatorActionPresets.id, id))
+        .returning();
+
+      if (!preset) {
+        return res.status(404).json({ message: "Action preset not found" });
+      }
+
+      res.json(preset);
+    } catch (error) {
+      console.error("Error updating action preset:", error);
+      res.status(400).json({ message: "Failed to update action preset" });
+    }
+  });
+
+  app.delete('/api/creator/action-presets/:id', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'creator') {
+        return res.status(403).json({ message: "Creator access required" });
+      }
+
+      const { id } = req.params;
+
+      const [deleted] = await db.delete(creatorActionPresets)
+        .where(eq(creatorActionPresets.id, id))
+        .returning();
+
+      if (!deleted) {
+        return res.status(404).json({ message: "Action preset not found" });
+      }
+
+      res.json({ message: "Action preset deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting action preset:", error);
+      res.status(400).json({ message: "Failed to delete action preset" });
     }
   });
 
