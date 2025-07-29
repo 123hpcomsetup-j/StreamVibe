@@ -32,6 +32,9 @@ export default function AdminNavbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const typedUser = user as User | undefined;
+  
+  // Ensure location is always a string to prevent errors
+  const currentLocation = location || '/admin-panel';
 
   // Fetch pending approvals for notifications
   const { data: pendingCreators = [] } = useQuery({
@@ -126,8 +129,8 @@ export default function AdminNavbar() {
               <div className="flex items-baseline space-x-2 xl:space-x-4">
                 {navItems.map((item) => {
                   const Icon = item.icon;
-                  const isActive = (location === '/admin-panel' && item.tab === 'dashboard') ||
-                    location.includes(`tab=${item.tab}`);
+                  const isActive = (currentLocation === '/admin-panel' && item.tab === 'dashboard') ||
+                    currentLocation.includes(`tab=${item.tab}`);
                   
                   return (
                     <button
