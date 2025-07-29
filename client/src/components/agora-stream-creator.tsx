@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Play, Square, Video, VideoOff, Mic, MicOff, Users, Send, MessageCircle } from "lucide-react";
+import { Play, Square, Video, VideoOff, Mic, MicOff, Users, Send, MessageCircle, Coins } from "lucide-react";
 import { io, Socket } from 'socket.io-client';
 import AgoraRTC, {
   IAgoraRTCClient,
@@ -517,11 +517,11 @@ export default function AgoraStreamCreator({
                   </div>
                 ) : (
                   chatMessages.map((msg, index) => (
-                    <div key={index} className="text-sm">
+                    <div key={index} className={`text-sm rounded-lg p-2 ${(msg as any).tipAmount > 0 ? 'bg-green-900/20 border border-green-500/30' : 'bg-slate-700/30'}`}>
                       <div className="flex items-start space-x-2">
                         <div className="flex-1">
                           <div className="flex items-center space-x-2">
-                            <span className="font-medium text-slate-300">
+                            <span className={`font-medium ${(msg as any).tipAmount > 0 ? 'font-bold text-green-400' : 'text-slate-300'}`}>
                               {msg.username || 'Anonymous'}
                             </span>
                             {msg.userType === 'creator' && (
@@ -529,7 +529,18 @@ export default function AgoraStreamCreator({
                                 Creator
                               </Badge>
                             )}
+                            {(msg as any).tipAmount > 0 && (
+                              <Badge className="bg-green-500 text-white text-xs">
+                                <Coins className="mr-1 h-3 w-3" />
+                                {(msg as any).tipAmount}
+                              </Badge>
+                            )}
                           </div>
+                          {(msg as any).tipAmount > 0 && (
+                            <p className="text-green-300 text-xs font-bold mt-1">
+                              💰 Just tipped {(msg as any).tipAmount} tokens!
+                            </p>
+                          )}
                           <p className="text-slate-400 mt-1">{msg.message}</p>
                         </div>
                       </div>

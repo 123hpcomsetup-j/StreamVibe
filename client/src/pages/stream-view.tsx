@@ -567,12 +567,17 @@ export default function StreamView() {
                     </div>
                   ) : (
                     chatMessages.map((msg, index) => (
-                      <div key={index} className="bg-slate-700/50 rounded-lg p-3">
+                      <div key={index} className={`rounded-lg p-3 ${msg.tipAmount > 0 ? 'bg-green-900/20 border border-green-500/30' : 'bg-slate-700/50'}`}>
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <span className="font-medium text-primary">
+                            <span className={`font-medium ${msg.tipAmount > 0 ? 'font-bold text-green-400' : 'text-primary'}`}>
                               {msg.senderName || 'Anonymous'}:
                             </span>
+                            {msg.tipAmount > 0 && (
+                              <span className="text-green-300 text-sm ml-2 font-bold">
+                                💰 tipped {msg.tipAmount} tokens!
+                              </span>
+                            )}
                             <p className="text-slate-300 mt-1">{msg.message}</p>
                           </div>
                           {msg.tipAmount > 0 && (
