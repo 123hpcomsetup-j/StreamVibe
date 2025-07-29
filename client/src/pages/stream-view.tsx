@@ -93,25 +93,29 @@ export default function StreamView() {
   const createGuestSessionMutation = useMutation({
     mutationFn: async () => {
       const sessionId = Math.random().toString(36).substring(7);
-      const response = await fetch(`/api/streams/${streamId}/guest`, {
+      const response = await fetch('/api/guest-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-session-id': sessionId
         },
-        body: JSON.stringify({})
+        body: JSON.stringify({
+          streamId,
+          sessionId,
+        })
       });
       
       if (!response.ok) {
         throw new Error('Failed to create guest session');
       }
       
-      return { sessionId, data: await response.json() };
+      const data = await response.json();
+      return { sessionId, data };
     },
     onSuccess: ({ sessionId, data }) => {
       setGuestSessionId(sessionId);
       setGuestName(data.guestName);
       setTokensLeft(data.tokensRemaining || 100);
+      setTimeLeft(data.viewTimeRemaining || 300);
     }
   });
 
@@ -277,14 +281,29 @@ export default function StreamView() {
     mutationFn: async () => {
       if (!message.trim()) return;
 
+      // For authenticated users, use standard chat endpoint
+      if (isAuthenticated) {
+        const response = await apiRequest("POST", "/api/chat", {
+          streamId,
+          message: message.trim(),
+          tipAmount: 0
+        });
+        return await response.json();
+      }
+
+      // For guests, check if they have tokens and session
+      if (!guestSessionId) {
+        throw new Error('Guest session not found. Please refresh the page.');
+      }
+      
+      if (tokensLeft <= 0) {
+        throw new Error('No chat tokens remaining. Sign up to continue chatting!');
+      }
+
       const headers: any = {
         'Content-Type': 'application/json',
+        'x-session-id': guestSessionId,
       };
-
-      // Add session ID for guests
-      if (!isAuthenticated && guestSessionId) {
-        headers['x-session-id'] = guestSessionId;
-      }
 
       const response = await fetch(`/api/streams/${streamId}/chat`, {
         method: 'POST',

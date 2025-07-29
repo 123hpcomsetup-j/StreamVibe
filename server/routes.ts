@@ -366,9 +366,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if this is a guest session
       if (sessionId && !req.user) {
         const guestSession = await storage.getGuestSession(streamId, sessionId);
-        if (!guestSession || (guestSession.tokensRemaining || 0) <= 0) {
-          return res.status(403).json({ message: "Guest session expired or no tokens remaining" });
+        if (!guestSession) {
+          return res.status(404).json({ message: "Guest session not found" });
         }
+        
+        if ((guestSession.tokensRemaining || 0) <= 0) {
+          return res.status(403).json({ message: "No chat tokens remaining. Sign up to continue chatting!" });
+        }
+        
+        // Get stream info to calculate token cost based on creator settings
+        const stream = await storage.getStreamById(streamId);
+        const tokenCost = (stream?.tokenPrice || 1); // Use creator's token price
         
         // Create chat message for guest with auto-generated name
         const chatMessage = await storage.createChatMessage({
@@ -380,12 +388,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           senderName: guestSession.guestName || 'Guest', // Use auto-generated guest name
         });
         
-        // Decrement guest tokens
+        // Decrement guest tokens (1 token per message regardless of creator price)
+        const newTokensRemaining = Math.max(0, (guestSession.tokensRemaining || 0) - 1);
         await storage.updateGuestSession(guestSession.id, {
-          tokensRemaining: (guestSession.tokensRemaining || 0) - 1
+          tokensRemaining: newTokensRemaining
         });
         
-        return res.json(chatMessage);
+        // Include updated tokens in response for client
+        const responseMessage = {
+          ...chatMessage,
+          tokensRemaining: newTokensRemaining
+        };
+        
+        return res.json(responseMessage);
       }
       
       // Regular authenticated user flow
