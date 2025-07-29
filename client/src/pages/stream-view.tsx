@@ -79,7 +79,7 @@ export default function StreamView() {
 
   // Update chat messages when initial messages load
   useEffect(() => {
-    if (initialMessages.length > 0) {
+    if (Array.isArray(initialMessages) && initialMessages.length > 0) {
       setChatMessages(initialMessages);
     }
   }, [initialMessages]);
@@ -442,6 +442,26 @@ export default function StreamView() {
   const displayName = isAuthenticated 
     ? typedUser?.username || 'User' 
     : guestName || 'Guest';
+
+  // Prevent creators from viewing their own stream
+  if (typedStream && isAuthenticated && typedUser?.id === typedStream.creatorId) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <Card className="bg-slate-800 border-slate-700 max-w-md">
+          <CardContent className="p-8 text-center">
+            <Video className="h-16 w-16 text-blue-500 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-white mb-2">This is Your Stream</h3>
+            <p className="text-slate-400 mb-4">
+              You can't view your own stream as a viewer. Use your creator dashboard to manage your live stream.
+            </p>
+            <Button onClick={() => setLocation("/creator-dashboard")} className="bg-blue-600 hover:bg-blue-700">
+              Go to Creator Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-900">

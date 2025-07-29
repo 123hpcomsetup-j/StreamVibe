@@ -80,6 +80,11 @@ Preferred communication style: Simple, everyday language.
   - Fixed test creator account authentication with proper bcrypt password hashing
   - Added backend endpoints for user registration and password reset functionality
   - Working test accounts: bob_gamer, charlie_art, diana_music (all with password123)
+✓ **FIXED**: Critical WebRTC streaming issue resolved (January 29, 2025):
+  - Fixed "Stream Not Broadcasting" error caused by creators trying to view their own streams
+  - Added creator self-view prevention with proper redirect to creator dashboard
+  - WebRTC circular connection issue eliminated - creators can't join their own stream as viewers
+  - Improved error handling and user guidance for proper stream viewing workflow
 ✓ **FIXED**: Creator approval system and streaming access (January 29, 2025):
   - Fixed "failed to start stream" error by approving test creator accounts
   - All creator test accounts (test_creator, stream_bob, live_charlie) now approved and can stream
