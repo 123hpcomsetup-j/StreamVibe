@@ -89,10 +89,28 @@ export default function AgoraStreamCreator({
         return a & a;
       }, 0));
       
-      console.log('Joining Agora channel:', streamId, 'with user ID:', numericUserId);
+      // Create a valid channel name for Agora
+      let channelName = streamId;
+      
+      // If streamId is empty or invalid, create a unique channel name
+      if (!channelName || channelName.trim() === "" || channelName === "undefined") {
+        channelName = `stream_${userId}_${Date.now()}`;
+      }
+      
+      // Sanitize channel name for Agora (only alphanumeric and underscores to be safe)
+      channelName = channelName
+        .replace(/[^a-zA-Z0-9_]/g, '_')
+        .substring(0, 64);
+      
+      // Ensure it's not empty after sanitization
+      if (!channelName) {
+        channelName = `stream_${Date.now()}`;
+      }
+      
+      console.log('Joining Agora channel:', channelName, 'with user ID:', numericUserId);
       
       // Join the channel
-      await clientRef.current.join(appId, streamId, null, numericUserId);
+      await clientRef.current.join(appId, channelName, null, numericUserId);
       setIsConnected(true);
 
       // Create and publish video track
