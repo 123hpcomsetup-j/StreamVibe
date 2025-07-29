@@ -28,22 +28,20 @@ import {
   Eye,
   Ban,
   AlertTriangle,
-  Play
+  Play,
+  Home
 } from "lucide-react";
 
 export default function ModernAdminPanel() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [selectedPayout, setSelectedPayout] = useState<any>(null);
   const [utrNumber, setUtrNumber] = useState("");
   const [showReleaseDialog, setShowReleaseDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   const typedUser = user as User | undefined;
-  
-  // Get active tab from URL parameters
-  const urlParams = new URLSearchParams(location.split('?')[1] || '');
-  const activeTab = urlParams.get('tab') || 'streams';
 
   // Redirect to home if not authenticated or not an admin
   useEffect(() => {
@@ -346,25 +344,74 @@ export default function ModernAdminPanel() {
           </Card>
         </div>
 
+        {/* Navigation Buttons */}
+        <div className="mb-8 flex flex-wrap gap-4">
+          <Button
+            onClick={() => setActiveTab('dashboard')}
+            variant={activeTab === 'dashboard' ? 'default' : 'outline'}
+            className={activeTab === 'dashboard' ? 'bg-blue-600 hover:bg-blue-700' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}
+          >
+            <Home className="mr-2 h-4 w-4" />
+            Dashboard
+          </Button>
+          <Button
+            onClick={() => setActiveTab('streams')}
+            variant={activeTab === 'streams' ? 'default' : 'outline'}
+            className={activeTab === 'streams' ? 'bg-red-600 hover:bg-red-700' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}
+          >
+            <Eye className="mr-2 h-4 w-4" />
+            Stream Monitor
+          </Button>
+          <Button
+            onClick={() => setActiveTab('purchases')}
+            variant={activeTab === 'purchases' ? 'default' : 'outline'}
+            className={activeTab === 'purchases' ? 'bg-blue-600 hover:bg-blue-700' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}
+          >
+            <CreditCard className="mr-2 h-4 w-4" />
+            Token Purchases ({pendingTokenPurchases.length})
+          </Button>
+          <Button
+            onClick={() => setActiveTab('payouts')}
+            variant={activeTab === 'payouts' ? 'default' : 'outline'}
+            className={activeTab === 'payouts' ? 'bg-green-600 hover:bg-green-700' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}
+          >
+            <Send className="mr-2 h-4 w-4" />
+            Creator Payouts ({pendingPayouts.length})
+          </Button>
+          <Button
+            onClick={() => setActiveTab('creators')}
+            variant={activeTab === 'creators' ? 'default' : 'outline'}
+            className={activeTab === 'creators' ? 'bg-purple-600 hover:bg-purple-700' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}
+          >
+            <Users className="mr-2 h-4 w-4" />
+            Creator Approval ({pendingCreators.length})
+          </Button>
+        </div>
+
         {/* Main Content */}
-        <Tabs value={activeTab} className="space-y-6">
-          <TabsList className="bg-slate-800 border-slate-700">
-            <TabsTrigger value="streams" className="data-[state=active]:bg-red-600">
-              Stream Monitor
-            </TabsTrigger>
-            <TabsTrigger value="purchases" className="data-[state=active]:bg-blue-600">
-              Token Purchases ({pendingTokenPurchases.length})
-            </TabsTrigger>
-            <TabsTrigger value="payouts" className="data-[state=active]:bg-green-600">
-              Creator Payouts ({pendingPayouts.length})
-            </TabsTrigger>
-            <TabsTrigger value="creators" className="data-[state=active]:bg-purple-600">
-              Creator Approvals ({pendingCreators.length})
-            </TabsTrigger>
-          </TabsList>
+        <div className="space-y-6">
+
+          {/* Dashboard View */}
+          {activeTab === 'dashboard' && (
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center">
+                  <Home className="mr-2 h-5 w-5" />
+                  Platform Overview
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <TrendingUp className="h-12 w-12 text-blue-500 mx-auto mb-4" />
+                  <p className="text-slate-400 mb-4">Welcome to the StreamVibe Admin Dashboard</p>
+                  <p className="text-slate-500 text-sm">Use the navigation buttons above to manage different aspects of the platform.</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Stream Monitor Tab */}
-          <TabsContent value="streams">
+          {activeTab === 'streams' && (
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
@@ -450,10 +497,10 @@ export default function ModernAdminPanel() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
 
           {/* Token Purchases Tab */}
-          <TabsContent value="purchases">
+          {activeTab === 'purchases' && (
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
@@ -513,10 +560,10 @@ export default function ModernAdminPanel() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
 
           {/* Payouts Tab */}
-          <TabsContent value="payouts">
+          {activeTab === 'payouts' && (
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
@@ -564,10 +611,10 @@ export default function ModernAdminPanel() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
 
           {/* Creator Approvals Tab */}
-          <TabsContent value="creators">
+          {activeTab === 'creators' && (
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
@@ -625,8 +672,8 @@ export default function ModernAdminPanel() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          )}
+        </div>
       </div>
 
       {/* Release Payout Dialog */}
