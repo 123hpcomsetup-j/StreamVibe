@@ -92,7 +92,7 @@ export default function LiveStreamControls({ streamId, onStreamStart, onStreamSt
     });
 
     newSocket.on('viewer-joined', (data: { viewerId: string, userId: string, viewerCount: number }) => {
-      console.log(`New viewer joined: ${data.userId}`);
+      console.log(`New viewer joined: ${data.userId}, creating peer connection`);
       setViewerCount(data.viewerCount);
       
       // Create peer connection for new viewer
@@ -104,12 +104,38 @@ export default function LiveStreamControls({ streamId, onStreamStart, onStreamSt
       setChatMessages(prev => [...prev, message]);
     });
 
+    // Handle WebRTC signaling responses
+    newSocket.on('answer', async (data: { answer: RTCSessionDescriptionInit, senderId: string }) => {
+      console.log('Creator received answer from viewer');
+      const peerConnection = peersRef.current.get(data.senderId);
+      if (peerConnection) {
+        try {
+          await peerConnection.setRemoteDescription(data.answer);
+        } catch (error) {
+          console.error('Error setting remote description:', error);
+        }
+      }
+    });
+
+    newSocket.on('ice-candidate', async (data: { candidate: RTCIceCandidateInit, senderId: string }) => {
+      const peerConnection = peersRef.current.get(data.senderId);
+      if (peerConnection) {
+        try {
+          await peerConnection.addIceCandidate(data.candidate);
+        } catch (error) {
+          console.error('Error adding ICE candidate:', error);
+        }
+      }
+    });
+
     setSocket(newSocket);
 
     return () => {
-      if (newSocket) {
-        newSocket.close();
-      }
+      newSocket.off('viewer-joined');
+      newSocket.off('answer');
+      newSocket.off('ice-candidate');
+      newSocket.off('chat-message');
+      newSocket.close();
     };
   }, []);
 

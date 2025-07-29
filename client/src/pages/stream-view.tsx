@@ -201,22 +201,49 @@ export default function StreamView() {
 
     // Handle WebRTC signaling
     newSocket.on('offer', async (data: { offer: RTCSessionDescriptionInit, senderId: string }) => {
-      if (peerConnection) {
-        await peerConnection.setRemoteDescription(data.offer);
-        const answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answer);
-        
-        newSocket.emit('answer', {
-          answer,
-          targetId: data.senderId,
-          streamId
-        });
-      }
+      console.log('Received offer, creating peer connection for viewer');
+      
+      // Create new peer connection for this offer
+      const pc = new RTCPeerConnection(rtcConfiguration);
+      
+      pc.ontrack = (event) => {
+        console.log('Viewer received remote track');
+        if (videoRef.current && event.streams[0]) {
+          videoRef.current.srcObject = event.streams[0];
+          setIsStreamConnected(true);
+        }
+      };
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          newSocket.emit('ice-candidate', {
+            candidate: event.candidate,
+            targetId: data.senderId,
+            streamId
+          });
+        }
+      };
+
+      await pc.setRemoteDescription(data.offer);
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      
+      newSocket.emit('answer', {
+        answer,
+        targetId: data.senderId,
+        streamId
+      });
+      
+      setPeerConnection(pc);
     });
 
     newSocket.on('ice-candidate', async (data: { candidate: RTCIceCandidateInit }) => {
       if (peerConnection) {
-        await peerConnection.addIceCandidate(data.candidate);
+        try {
+          await peerConnection.addIceCandidate(data.candidate);
+        } catch (error) {
+          console.error('Error adding ICE candidate:', error);
+        }
       }
     });
 
