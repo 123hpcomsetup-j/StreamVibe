@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, Users, Clock, Heart, Play, Square, Settings } from "lucide-react";
+import { io } from "socket.io-client";
 
 export default function CreatorDashboard() {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -28,6 +29,50 @@ export default function CreatorDashboard() {
   });
 
   const typedUser = user as User | undefined;
+
+  // Setup WebSocket connection
+  useEffect(() => {
+    if (typedUser?.id) {
+      const socket = io(window.location.origin, {
+        path: '/socket.io',
+        transports: ['websocket', 'polling']
+      });
+
+      // Store socket globally for access in mutations
+      (window as any).streamSocket = socket;
+
+      socket.on('connect', () => {
+        console.log('WebRTC signaling server connected');
+      });
+
+      socket.on('disconnect', () => {
+        console.log('WebRTC signaling server disconnected');
+      });
+
+      // Listen for real-time tip updates
+      socket.on('tip-message', (data: any) => {
+        toast({
+          title: "New Tip Received!",
+          description: `${data.username} tipped ${data.amount} tokens`,
+          variant: "default",
+        });
+        // Refresh stats and tips data
+        queryClient.invalidateQueries({ queryKey: ["/api/creator/stats"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/creator/tips"] });
+      });
+
+      // Listen for stream status updates
+      socket.on('stream-status-changed', (data: any) => {
+        queryClient.invalidateQueries({ queryKey: ["/api/streams/current"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/streams/live"] });
+      });
+
+      return () => {
+        socket.disconnect();
+        delete (window as any).streamSocket;
+      };
+    }
+  }, [typedUser?.id, toast]);
 
   // Redirect if not authenticated or not a creator
   useEffect(() => {
@@ -86,14 +131,14 @@ export default function CreatorDashboard() {
         privateRate: streamData.privateRate,
       });
     },
-    onSuccess: (newStream) => {
+    onSuccess: (newStream: any) => {
       setIsStreaming(true);
       queryClient.invalidateQueries({ queryKey: ["/api/streams/current"] });
       queryClient.invalidateQueries({ queryKey: ["/api/streams/live"] });
       
       // Emit WebSocket event to properly start stream
       const socket = (window as any).streamSocket;
-      if (socket && newStream) {
+      if (socket && newStream?.id) {
         socket.emit('start-stream', {
           streamId: newStream.id,
           userId: typedUser?.id
@@ -220,7 +265,7 @@ export default function CreatorDashboard() {
   };
 
   const handleRequestPayout = () => {
-    const availableEarnings = stats?.availableEarnings || 0;
+    const availableEarnings = (stats as any)?.availableEarnings || 0;
     if (availableEarnings < 500) {
       toast({
         title: "Error",
@@ -427,9 +472,9 @@ export default function CreatorDashboard() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">₹{stats?.totalEarnings || 0}</div>
+              <div className="text-2xl font-bold">₹{(stats as any)?.totalEarnings || 0}</div>
               <p className="text-xs text-muted-foreground">
-                {stats?.earningsGrowth ? `+${stats.earningsGrowth}% from last month` : 'No previous data'}
+                {(stats as any)?.earningsGrowth ? `+${(stats as any).earningsGrowth}% from last month` : 'No previous data'}
               </p>
             </CardContent>
           </Card>
@@ -440,9 +485,9 @@ export default function CreatorDashboard() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats?.followerCount || 0}</div>
+              <div className="text-2xl font-bold">{(stats as any)?.followerCount || 0}</div>
               <p className="text-xs text-muted-foreground">
-                {stats?.newFollowers ? `+${stats.newFollowers} new this week` : 'No new followers'}
+                {(stats as any)?.newFollowers ? `+${(stats as any).newFollowers} new this week` : 'No new followers'}
               </p>
             </CardContent>
           </Card>
@@ -453,7 +498,7 @@ export default function CreatorDashboard() {
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalStreamHours || 0}</div>
+              <div className="text-2xl font-bold">{(stats as any)?.totalStreamHours || 0}</div>
               <p className="text-xs text-muted-foreground">This month</p>
             </CardContent>
           </Card>
@@ -464,9 +509,9 @@ export default function CreatorDashboard() {
               <Heart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalTips || 0}</div>
+              <div className="text-2xl font-bold">{(stats as any)?.totalTips || 0}</div>
               <p className="text-xs text-muted-foreground">
-                {stats?.weeklyTips ? `+${stats.weeklyTips} this week` : 'No tips yet'}
+                {(stats as any)?.weeklyTips ? `+${(stats as any).weeklyTips} this week` : 'No tips yet'}
               </p>
             </CardContent>
           </Card>
@@ -479,8 +524,8 @@ export default function CreatorDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentTips.length > 0 ? (
-                recentTips.map((tip: any) => (
+              {(recentTips as any[]).length > 0 ? (
+                (recentTips as any[]).map((tip: any) => (
                   <div key={tip.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-700">
                     <div>
                       <p className="font-medium">{tip.senderName || 'Anonymous'}</p>
@@ -489,7 +534,7 @@ export default function CreatorDashboard() {
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-green-400">+{tip.amount} tokens</p>
-                      <p className="text-xs text-slate-400">₹{(tip.amount * (stats?.tokenPrice || 1)).toFixed(2)}</p>
+                      <p className="text-xs text-slate-400">₹{(tip.amount * ((stats as any)?.tokenPrice || 1)).toFixed(2)}</p>
                     </div>
                   </div>
                 ))
@@ -509,11 +554,11 @@ export default function CreatorDashboard() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span>Available for Payout</span>
-                <span className="font-bold text-2xl">₹{stats?.availableEarnings || 0}</span>
+                <span className="font-bold text-2xl">₹{(stats as any)?.availableEarnings || 0}</span>
               </div>
               <Button 
                 onClick={handleRequestPayout}
-                disabled={requestPayoutMutation.isPending || (stats?.availableEarnings || 0) < 500}
+                disabled={requestPayoutMutation.isPending || ((stats as any)?.availableEarnings || 0) < 500}
                 className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600"
               >
                 {requestPayoutMutation.isPending ? "Processing..." : "Request Payout"}
