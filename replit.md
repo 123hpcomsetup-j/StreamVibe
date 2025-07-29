@@ -85,6 +85,11 @@ Preferred communication style: Simple, everyday language.
   - Added creator self-view prevention with proper redirect to creator dashboard
   - WebRTC circular connection issue eliminated - creators can't join their own stream as viewers
   - Improved error handling and user guidance for proper stream viewing workflow
+✓ **FIXED**: App startup and infinite re-render issues (January 29, 2025):
+  - Resolved multiple WebSocket connection conflicts causing app to hang on "starting" screen
+  - Fixed infinite React re-render loop in PublicHome component
+  - Eliminated duplicate socket connections between App.tsx and PublicHome.tsx
+  - App now loads immediately with stable WebSocket connection for real-time updates
 ✓ **FIXED**: Creator approval system and streaming access (January 29, 2025):
   - Fixed "failed to start stream" error by approving test creator accounts
   - All creator test accounts (test_creator, stream_bob, live_charlie) now approved and can stream

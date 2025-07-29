@@ -5,11 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Play, Users, Video, Heart, Coins, ChevronRight } from "lucide-react";
-import { io, Socket } from 'socket.io-client';
 
 export default function PublicHome() {
   const [, setLocation] = useLocation();
-  const [socket, setSocket] = useState<Socket | null>(null);
   const [realTimeStreams, setRealTimeStreams] = useState<any[]>([]);
 
   const { data: liveStreams = [], isLoading: streamsLoading, refetch: refetchStreams } = useQuery({
@@ -25,59 +23,51 @@ export default function PublicHome() {
   // Filter only creators who are online
   const onlineCreators = Array.isArray(onlineUsers) ? onlineUsers.filter((user: any) => user.role === 'creator') : [];
 
-  // Initialize real-time updates with WebSocket
+  // Initialize real-time updates with existing global socket
   useEffect(() => {
     if (liveStreams && Array.isArray(liveStreams)) {
       setRealTimeStreams(liveStreams);
     }
-  }, [Array.isArray(liveStreams) ? liveStreams.length : 0]); // Only depend on length to prevent infinite loop
+  }, [liveStreams.length]); // Only depend on length to prevent infinite loops
 
-  // Prevent infinite re-renders by memoizing the dependency
-  const [socketInitialized, setSocketInitialized] = useState(false);
-
-  // WebSocket connection for real-time stream status updates
+  // Use the global socket connection from App.tsx
   useEffect(() => {
-    if (socketInitialized) return;
+    const globalSocket = (window as any).streamSocket;
+    if (globalSocket) {
 
-    const newSocket = io(window.location.origin, {
-      transports: ['websocket', 'polling']
-    });
+      // Listen for real-time stream status changes
+      const handleStreamStatusChange = (data: { streamId: string, isLive: boolean, viewerCount: number }) => {
+        if (data.isLive) {
+          // Stream went live - refetch streams data
+          refetchStreams();
+        } else {
+          // Stream went offline - update state
+          setRealTimeStreams(prevStreams => 
+            prevStreams.filter(stream => stream.id !== data.streamId)
+          );
+        }
+      };
 
-    newSocket.on('connect', () => {
-      console.log('Connected to streaming server for real-time updates');
-      setSocket(newSocket);
-      setSocketInitialized(true);
-    });
-
-    // Listen for real-time stream status changes
-    newSocket.on('stream-status-changed', (data: { streamId: string, isLive: boolean, viewerCount: number }) => {
-      if (data.isLive) {
-        // Stream went live - refetch streams data
-        refetchStreams();
-      } else {
-        // Stream went offline - update state
+      // Listen for viewer count updates
+      const handleViewerCountUpdate = (data: { streamId: string, count: number }) => {
         setRealTimeStreams(prevStreams => 
-          prevStreams.filter(stream => stream.id !== data.streamId)
+          prevStreams.map(stream => 
+            stream.id === data.streamId 
+              ? { ...stream, viewerCount: data.count }
+              : stream
+          )
         );
-      }
-    });
+      };
 
-    // Listen for viewer count updates
-    newSocket.on('viewer-count-update', (data: { streamId: string, count: number }) => {
-      setRealTimeStreams(prevStreams => 
-        prevStreams.map(stream => 
-          stream.id === data.streamId 
-            ? { ...stream, viewerCount: data.count }
-            : stream
-        )
-      );
-    });
+      globalSocket.on('stream-status-changed', handleStreamStatusChange);
+      globalSocket.on('viewer-count-update', handleViewerCountUpdate);
 
-    return () => {
-      newSocket.disconnect();
-      setSocketInitialized(false);
-    };
-  }, [socketInitialized]);
+      return () => {
+        globalSocket.off('stream-status-changed', handleStreamStatusChange);
+        globalSocket.off('viewer-count-update', handleViewerCountUpdate);
+      };
+    }
+  }, []);
 
   // Use real-time streams data instead of static query data
   const displayStreams = realTimeStreams.filter((stream: any) => stream.isLive);
