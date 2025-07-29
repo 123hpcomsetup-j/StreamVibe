@@ -36,6 +36,11 @@ export function setupWebRTC(server: Server) {
       console.log(`Socket ${socket.id} identified as user ${data.userId}`);
     });
 
+    // Auto-identify users when they connect
+    socket.on('connect', () => {
+      console.log(`User connected: ${socket.id}`);
+    });
+
     // Creator starts streaming
     socket.on('start-stream', async (data: { streamId: string, userId: string }) => {
       const { streamId, userId } = data;
