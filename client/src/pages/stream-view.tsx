@@ -121,6 +121,7 @@ export default function StreamView() {
       return { sessionId, data };
     },
     onSuccess: ({ sessionId, data }) => {
+      console.log('Guest session created successfully:', { sessionId, data });
       setGuestSessionId(sessionId);
       setGuestName(data.guestName);
       setTokensLeft(data.tokensRemaining || 100);
@@ -159,7 +160,14 @@ export default function StreamView() {
   
   useEffect(() => {
     if (!streamId) return;
+    
+    // For guests, wait until guest session is created
+    if (!isAuthenticated && !guestSessionId) {
+      console.log('Waiting for guest session to be created before connecting to WebSocket');
+      return;
+    }
 
+    console.log('Creating WebSocket connection for chat...');
     const newSocket = io(window.location.origin, {
       path: '/socket.io',
       transports: ['websocket', 'polling']
@@ -170,6 +178,7 @@ export default function StreamView() {
       
       // Join stream room for chat
       const userId = typedUser?.id || `guest_${guestSessionId}`;
+      console.log('Joining stream room with userId:', userId);
       newSocket.emit('join-stream', { streamId, userId });
     });
 
@@ -246,11 +255,25 @@ export default function StreamView() {
 
   // Send chat message via WebSocket for real-time delivery
   const sendChatMessage = () => {
-    if (!message.trim() || !socket) return;
+    if (!message.trim()) {
+      console.log('Empty message, not sending');
+      return;
+    }
+    
+    if (!socket) {
+      console.log('No socket connection available');
+      toast({
+        title: "Connection Error",
+        description: "Chat connection not established. Please refresh the page.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Check guest limits
     if (!isAuthenticated) {
       if (!guestSessionId) {
+        console.log('No guest session found');
         toast({
           title: "Session Error",
           description: "Guest session not found. Please refresh the page.",
@@ -275,7 +298,8 @@ export default function StreamView() {
       username: displayName,
       message: message.trim(),
       timestamp: new Date().toISOString(),
-      userType: isAuthenticated ? 'viewer' : 'guest'
+      userType: isAuthenticated ? 'viewer' : 'guest',
+      guestSessionId: !isAuthenticated ? guestSessionId : undefined
     };
 
     console.log('Sending chat message via WebSocket:', messageData);
@@ -571,21 +595,21 @@ export default function StreamView() {
                         <p className="text-slate-500 text-xs lg:text-sm">Be the first to say hi!</p>
                       </div>
                     ) : (
-                      chatMessages.map((msg, index) => (
-                        <div key={index} className={`rounded-lg p-2 lg:p-3 ${msg.tipAmount > 0 ? 'bg-green-900/20 border border-green-500/30' : 'bg-slate-700/50'}`}>
+                      chatMessages.map((msg: any, index: number) => (
+                        <div key={index} className={`rounded-lg p-2 lg:p-3 ${(msg.tipAmount && msg.tipAmount > 0) ? 'bg-green-900/20 border border-green-500/30' : 'bg-slate-700/50'}`}>
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <span className={`font-medium text-xs lg:text-sm ${msg.tipAmount > 0 ? 'font-bold text-green-400' : 'text-primary'}`}>
-                                {msg.senderName || 'Anonymous'}:
+                              <span className={`font-medium text-xs lg:text-sm ${(msg.tipAmount && msg.tipAmount > 0) ? 'font-bold text-green-400' : 'text-primary'}`}>
+                                {msg.senderName || msg.username || 'Anonymous'}:
                               </span>
-                              {msg.tipAmount > 0 && (
+                              {(msg.tipAmount && msg.tipAmount > 0) && (
                                 <span className="text-green-300 text-xs lg:text-sm ml-2 font-bold">
                                   💰 tipped {msg.tipAmount} tokens!
                                 </span>
                               )}
                               <p className="text-slate-300 mt-1 text-xs lg:text-sm">{msg.message}</p>
                             </div>
-                          {msg.tipAmount > 0 && (
+                          {(msg.tipAmount && msg.tipAmount > 0) && (
                             <Badge className="bg-green-500 text-white ml-2">
                               <Coins className="mr-1 h-3 w-3" />
                               {msg.tipAmount}
