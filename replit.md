@@ -173,6 +173,14 @@ Preferred communication style: Simple, everyday language.
   - Created AgoraStreamViewer component for audience with HD video playback
   - Integrated VITE_AGORA_APP_ID environment variable for API configuration
   - Agora free tier provides 10,000 minutes/month with automatic scaling and HD quality
+✓ **NEW**: Integrated live chat into Agora streaming experience (January 29, 2025):
+  - Added real-time WebSocket chat functionality to AgoraStreamViewer component
+  - Responsive grid layout: video player on left, live chat panel on right (desktop)
+  - Mobile-friendly design with chat toggle button for smaller screens
+  - Supports both authenticated users and guest viewers in chat
+  - Real-time message synchronization across all viewers watching the same stream
+  - Auto-scrolling chat with proper message display and timestamps
+  - Guest chat functionality with session-based identification
 
 ## System Architecture
 

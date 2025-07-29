@@ -3,7 +3,13 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Volume2, VolumeX } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Users, Volume2, VolumeX, Send, MessageCircle } from "lucide-react";
+import { io, Socket } from 'socket.io-client';
+import { useAuth } from "@/hooks/useAuth";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import AgoraRTC, {
   IAgoraRTCClient,
   IRemoteVideoTrack,
@@ -32,11 +38,19 @@ export default function AgoraStreamViewer({
   const [viewerCount, setViewerCount] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [hasVideo, setHasVideo] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [message, setMessage] = useState("");
+  const [socket, setSocket] = useState<Socket | null>(null);
+  
+  const { user, isAuthenticated } = useAuth();
+  const typedUser = user as any;
   
   const clientRef = useRef<IAgoraRTCClient | null>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const remoteVideoRef = useRef<IRemoteVideoTrack | null>(null);
   const remoteAudioRef = useRef<IRemoteAudioTrack | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Initialize Agora client
   useEffect(() => {
@@ -99,6 +113,88 @@ export default function AgoraStreamViewer({
       disconnect();
     };
   }, [streamId]);
+
+  // Initialize WebSocket for live chat
+  useEffect(() => {
+    if (!streamId) return;
+
+    const newSocket = io({
+      transports: ['websocket', 'polling']
+    });
+
+    newSocket.on('connect', () => {
+      console.log('Chat connected to WebSocket');
+      newSocket.emit('join-stream', { streamId, userId: typedUser?.id || 'guest' });
+    });
+
+    newSocket.on('chat-message', (messageData: any) => {
+      setChatMessages(prev => [...prev, messageData]);
+    });
+
+    newSocket.on('stream-ended', () => {
+      toast({
+        title: "Stream Ended",
+        description: "The creator has ended the stream.",
+      });
+    });
+
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.close();
+    };
+  }, [streamId, typedUser?.id]);
+
+  // Auto-scroll chat
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
+
+  // Send chat message
+  const sendChatMutation = useMutation({
+    mutationFn: async () => {
+      if (!message.trim()) return;
+
+      if (isAuthenticated) {
+        const response = await apiRequest("POST", "/api/chat", {
+          streamId,
+          message: message.trim(),
+          tipAmount: 0
+        });
+        return await response.json();
+      } else {
+        // For guests, create a simple guest session
+        const response = await fetch(`/api/streams/${streamId}/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-session-id': `guest-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+          },
+          body: JSON.stringify({
+            message: message.trim(),
+            tipAmount: 0
+          })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to send message');
+        }
+
+        return await response.json();
+      }
+    },
+    onSuccess: () => {
+      setMessage("");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Chat Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
 
   const connectToStream = async () => {
     if (!clientRef.current) return;
@@ -177,9 +273,11 @@ export default function AgoraStreamViewer({
   }
 
   return (
-    <div className="space-y-4">
-      {/* Stream Info */}
-      <Card className="bg-slate-800 border-slate-700">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* Video Player */}
+      <div className="lg:col-span-2 space-y-4">
+        {/* Stream Info */}
+        <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
           <CardTitle className="text-white flex items-center justify-between">
             <div>
@@ -195,15 +293,23 @@ export default function AgoraStreamViewer({
                 <Users className="w-3 h-3 mr-1" />
                 {viewerCount} viewers
               </Badge>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowChat(!showChat)}
+                className="lg:hidden border-slate-600 text-slate-300"
+              >
+                <MessageCircle className="h-4 w-4" />
+              </Button>
             </div>
           </CardTitle>
         </CardHeader>
-      </Card>
-
-      {/* Video Player */}
-      <Card className="bg-slate-800 border-slate-700">
-        <CardContent className="p-0">
-          <div className="relative">
+        </Card>
+        
+        {/* Video Player */}
+        <Card className="bg-slate-800 border-slate-700">
+          <CardContent className="p-0">
+            <div className="relative">
             <div 
               ref={videoContainerRef}
               className="w-full h-96 bg-slate-900 flex items-center justify-center"
@@ -238,19 +344,89 @@ export default function AgoraStreamViewer({
                 </Button>
               </div>
             )}
-          </div>
-        </CardContent>
-      </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Connection Status */}
-      {isConnected && (
-        <div className="text-center">
-          <div className="inline-flex items-center text-green-400 text-sm">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
-            Connected to Agora Live Stream
+        {/* Connection Status */}
+        {isConnected && (
+          <div className="text-center">
+            <div className="inline-flex items-center text-green-400 text-sm">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
+              Connected to Agora Live Stream
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+
+      {/* Live Chat Panel */}
+      <div className={`${showChat ? 'block' : 'hidden'} lg:block`}>
+        <Card className="bg-slate-800 border-slate-700 h-[600px] flex flex-col">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-white text-lg flex items-center">
+              <MessageCircle className="mr-2 h-5 w-5" />
+              Live Chat
+            </CardTitle>
+          </CardHeader>
+          
+          <CardContent className="flex-1 flex flex-col p-4">
+            {/* Chat Messages */}
+            <ScrollArea className="flex-1 pr-4 mb-4">
+              <div className="space-y-3">
+                {chatMessages.length === 0 ? (
+                  <div className="text-center text-slate-400 py-8">
+                    <MessageCircle className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                    <p>No messages yet</p>
+                    <p className="text-sm">Be the first to say hello!</p>
+                  </div>
+                ) : (
+                  chatMessages.map((msg, index) => (
+                    <div key={index} className="flex flex-col space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium text-white">
+                          {msg.senderName || msg.guestName || 'Anonymous'}
+                        </span>
+                        <span className="text-xs text-slate-400">
+                          {new Date(msg.createdAt).toLocaleTimeString()}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-300">{msg.message}</p>
+                    </div>
+                  ))
+                )}
+                <div ref={chatEndRef} />
+              </div>
+            </ScrollArea>
+
+            {/* Chat Input */}
+            <div className="border-t border-slate-700 pt-4">
+              <div className="flex space-x-2">
+                <Input
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder={isAuthenticated ? "Type a message..." : "Type a message (guest)..."}
+                  className="flex-1 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                  onKeyPress={(e) => e.key === 'Enter' && !sendChatMutation.isPending && sendChatMutation.mutate()}
+                  disabled={sendChatMutation.isPending}
+                />
+                <Button 
+                  onClick={() => sendChatMutation.mutate()}
+                  size="sm" 
+                  className="bg-primary hover:bg-primary/90"
+                  disabled={!message.trim() || sendChatMutation.isPending}
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+              {!isAuthenticated && (
+                <p className="text-xs text-slate-400 mt-2">
+                  Watching as guest • <span className="text-primary">Sign up</span> for unlimited chat
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
