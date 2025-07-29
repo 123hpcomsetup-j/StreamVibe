@@ -214,15 +214,14 @@ export default function AgoraStreamViewer({
         return;
       }
 
-      // Sanitize channel name to match creator's channel
+      // Use exact same channel name format as creator - keep original streamId format
       let channelName = streamId;
       if (!channelName || channelName.trim() === "" || channelName === "undefined") {
         channelName = `stream_${Date.now()}`;
       }
       
-      // Use same sanitization as creator
+      // Only ensure reasonable length, keep original format to match creator
       channelName = channelName
-        .replace(/[^a-zA-Z0-9_]/g, '_')
         .substring(0, 64);
       
       if (!channelName) {

@@ -202,6 +202,12 @@ All major platform components have been successfully tested and validated. The A
   - WebSocket streaming events properly handling stream start/stop
   - Database integration working across all user types and operations
   - Guest session system functional for temporary viewers
+✓ **CRITICAL FIX**: Resolved Agora channel name format mismatch (January 29, 2025):
+  - Fixed "invalid token, authorized failed" error in live streaming
+  - Standardized channel name format across creator and viewer components
+  - Both components now use original streamId format (preserving hyphens)
+  - Token generation and channel joining now use identical channel names
+  - Eliminated authentication failures between frontend and Agora SDK
 
 ## System Architecture
 

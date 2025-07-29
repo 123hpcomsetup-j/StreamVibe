@@ -89,7 +89,7 @@ export default function AgoraStreamCreator({
         return a & a;
       }, 0));
       
-      // Create a valid channel name for Agora
+      // Create a valid channel name for Agora - use original streamId as-is since Agora supports hyphens
       let channelName = streamId;
       
       // If streamId is empty or invalid, create a unique channel name
@@ -97,12 +97,10 @@ export default function AgoraStreamCreator({
         channelName = `stream_${userId}_${Date.now()}`;
       }
       
-      // Sanitize channel name for Agora (only alphanumeric and underscores to be safe)
-      channelName = channelName
-        .replace(/[^a-zA-Z0-9_]/g, '_')
-        .substring(0, 64);
+      // Only ensure reasonable length, keep original format
+      channelName = channelName.substring(0, 64);
       
-      // Ensure it's not empty after sanitization
+      // Ensure it's not empty after processing
       if (!channelName) {
         channelName = `stream_${Date.now()}`;
       }
