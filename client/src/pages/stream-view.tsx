@@ -28,7 +28,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { io, Socket } from 'socket.io-client';
 import type { ChatMessage, User } from "@shared/schema";
-import NodeMediaPlayer from "@/components/node-media-player";
 import AgoraStreamViewer from "@/components/agora-stream-viewer";
 
 export default function StreamView() {
