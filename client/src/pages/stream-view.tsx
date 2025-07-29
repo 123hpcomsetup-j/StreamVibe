@@ -205,6 +205,23 @@ export default function StreamView() {
       });
     });
 
+    // Listen for chat errors  
+    newSocket.on('chat-error', (data: any) => {
+      console.error('Chat error:', data);
+      toast({
+        title: "Chat Error",
+        description: data.message,
+        variant: "destructive",
+      });
+    });
+
+    // Listen for successful chat message send
+    newSocket.on('chat-message-sent', (data: any) => {
+      if (data.success) {
+        console.log('Chat message sent successfully');
+      }
+    });
+
     // Handle stream end
     newSocket.on('stream-ended', (data: { message: string }) => {
       setStreamEnded(true);

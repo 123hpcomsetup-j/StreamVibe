@@ -301,8 +301,42 @@ export function setupWebRTC(server: Server) {
     });
 
     // Handle chat messages
-    socket.on('chat-message', (data: { streamId: string, message: string, username: string, userId: string, userType?: string }) => {
+    socket.on('chat-message', async (data: { streamId: string, message: string, username: string, userId: string, userType?: string, guestSessionId?: string }) => {
       console.log(`Chat message received from ${data.username} (${data.userType || 'user'}):`, data.message);
+      
+      // Validate guest session if this is a guest user
+      if (data.userType === 'guest' && data.userId.startsWith('guest_')) {
+        const guestSessionId = data.userId.replace('guest_', '');
+        console.log(`Validating guest session: ${guestSessionId}`);
+        
+        try {
+          const guestSession = await storage.getGuestSession(data.streamId, guestSessionId);
+          if (!guestSession) {
+            console.error(`Guest session not found: ${guestSessionId}`);
+            socket.emit('chat-error', { message: 'Invalid guest session' });
+            return;
+          }
+          
+          if ((guestSession.tokensRemaining || 0) <= 0) {
+            socket.emit('chat-error', { message: 'No chat tokens remaining. Sign up to continue!' });
+            return;
+          }
+          
+          // Deduct token for guest chat
+          await storage.updateGuestSession(guestSession.id, {
+            tokensRemaining: Math.max(0, (guestSession.tokensRemaining || 0) - 1)
+          });
+          
+          console.log(`Guest ${guestSession.guestName} has ${(guestSession.tokensRemaining || 0) - 1} tokens remaining`);
+          
+          // Use guest name from session
+          data.username = guestSession.guestName || data.username;
+        } catch (error) {
+          console.error('Error validating guest session:', error);
+          socket.emit('chat-error', { message: 'Guest session validation failed' });
+          return;
+        }
+      }
       
       // Broadcast to all users in the stream room (including the sender)
       const messageData = {
@@ -315,6 +349,9 @@ export function setupWebRTC(server: Server) {
       
       io.to(`stream-${data.streamId}`).emit('chat-message', messageData);
       console.log(`Broadcasting message to stream-${data.streamId} room`);
+      
+      // Notify the sender of successful message send
+      socket.emit('chat-message-sent', { success: true });
     });
 
     // Handle tip messages
