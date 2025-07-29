@@ -103,31 +103,55 @@ export default function AgoraStreamViewer({
     // Handle remote user events
     client.on("user-published", async (user, mediaType) => {
       console.log("🎥 CREATOR BROADCASTING:", mediaType, "from user:", user.uid);
+      console.log("📊 Current client state - connected:", isConnected, "hasVideo:", hasVideo);
       
       try {
         // Subscribe to the remote user
         await client.subscribe(user, mediaType);
         console.log("✅ Successfully subscribed to creator:", mediaType);
+        console.log("📱 User object:", user);
         
         if (mediaType === "video") {
           const remoteVideoTrack = user.videoTrack;
+          console.log("📺 Video track received:", !!remoteVideoTrack);
+          console.log("🎥 Video container available:", !!videoContainerRef.current);
+          
           if (remoteVideoTrack && videoContainerRef.current) {
-            console.log("📺 Playing creator video stream");
+            console.log("🎬 Starting video playback...");
             
-            // Configure video playback for mobile compatibility
+            // Clear any existing content in video container
+            videoContainerRef.current.innerHTML = '';
+            
+            // Configure video playback for maximum compatibility
             const playConfig = {
               fit: "cover" as const,
               mirror: false
             };
             
-            remoteVideoTrack.play(videoContainerRef.current, playConfig);
-            remoteVideoRef.current = remoteVideoTrack;
-            setHasVideo(true);
-            setIsLoading(false);
-            
-            toast({
-              title: "Creator is live!",
-              description: "Video stream connected successfully",
+            try {
+              remoteVideoTrack.play(videoContainerRef.current, playConfig);
+              remoteVideoRef.current = remoteVideoTrack;
+              setHasVideo(true);
+              setIsLoading(false);
+              
+              console.log("✅ VIDEO SUCCESSFULLY PLAYING");
+              
+              toast({
+                title: "Creator is live!",
+                description: "Video stream connected successfully",
+              });
+            } catch (playError) {
+              console.error("❌ Error playing video:", playError);
+              toast({
+                title: "Video Playback Error", 
+                description: "Unable to display video stream",
+                variant: "destructive",
+              });
+            }
+          } else {
+            console.log("❌ Missing video track or container:", {
+              hasTrack: !!remoteVideoTrack,
+              hasContainer: !!videoContainerRef.current
             });
           }
         }
@@ -142,9 +166,15 @@ export default function AgoraStreamViewer({
         }
       } catch (error) {
         console.error("❌ Error subscribing to creator stream:", error);
+        console.log("📊 Error details:", {
+          errorCode: (error as any)?.code,
+          errorMessage: (error as any)?.message,
+          mediaType,
+          userId: user.uid
+        });
         toast({
           title: "Stream Connection Error",
-          description: "Failed to connect to creator's video",
+          description: `Failed to connect to creator's ${mediaType}: ${(error as any)?.message || 'Unknown error'}`,
           variant: "destructive",
         });
       }
@@ -293,9 +323,19 @@ export default function AgoraStreamViewer({
         channelName = `stream_${Date.now()}`;
       }
       
-      console.log('Viewer joining Agora channel:', channelName, 'with user ID:', userId);
+      // Convert string userId to number (same format as creator) for consistent Agora connections
+      const numericUserId = Math.abs(userId.split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+      }, 0));
       
-      // Get Agora token from backend
+      console.log('=== VIEWER JOIN ATTEMPT ===');
+      console.log('Original User ID:', userId);
+      console.log('Numeric User ID:', numericUserId);
+      console.log('Channel Name:', channelName);
+      console.log('App ID:', appId);
+      
+      // Get Agora token from backend with numeric ID
       const tokenResponse = await fetch('/api/agora/token', {
         method: 'POST',
         headers: {
@@ -303,7 +343,7 @@ export default function AgoraStreamViewer({
         },
         body: JSON.stringify({
           channelName,
-          uid: userId,
+          uid: numericUserId,
           role: 'audience'
         }),
       });
@@ -313,10 +353,16 @@ export default function AgoraStreamViewer({
       }
       
       const { token } = await tokenResponse.json();
-      console.log('Got Agora token, joining channel as viewer...');
+      console.log('Got Agora token (first 20 chars):', token.substring(0, 20) + '...');
+      console.log('Attempting to join channel with:');
+      console.log('- appId:', appId);
+      console.log('- channelName:', channelName);
+      console.log('- token (first 20):', token.substring(0, 20) + '...');
+      console.log('- uid:', numericUserId);
       
-      // Join the channel as viewer with proper authentication token
-      await clientRef.current.join(appId, channelName, token, userId);
+      // Join the channel as viewer with proper authentication token and numeric ID
+      await clientRef.current.join(appId, channelName, token, numericUserId);
+      console.log('=== VIEWER JOIN SUCCESSFUL ===');
       setIsConnected(true);
       
       console.log("🟢 Viewer connected to Agora channel:", channelName);

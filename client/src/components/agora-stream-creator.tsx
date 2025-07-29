@@ -56,13 +56,30 @@ export default function AgoraStreamCreator({
 
     // Handle user joined/left events
     client.on("user-joined", (user) => {
-      console.log("Viewer joined:", user.uid);
-      setViewerCount(prev => prev + 1);
+      console.log("👥 Viewer joined channel:", user.uid);
+      setViewerCount(prev => {
+        const newCount = prev + 1;
+        console.log("👥 Updated viewer count:", newCount);
+        return newCount;
+      });
     });
 
     client.on("user-left", (user) => {
-      console.log("Viewer left:", user.uid);
-      setViewerCount(prev => Math.max(0, prev - 1));
+      console.log("👥 Viewer left channel:", user.uid);
+      setViewerCount(prev => {
+        const newCount = Math.max(0, prev - 1);
+        console.log("👥 Updated viewer count:", newCount);
+        return newCount;
+      });
+    });
+
+    // Add more detailed event logging
+    client.on("connection-state-change", (curState, revState) => {
+      console.log("🔗 Creator connection state changed:", revState, "->", curState);
+    });
+
+    client.on("network-quality", (stats) => {
+      console.log("📶 Creator network quality:", stats);
     });
 
     return () => {
@@ -261,8 +278,15 @@ export default function AgoraStreamCreator({
       audioTrackRef.current = audioTrack;
 
       // Publish tracks to Agora
+      console.log('📤 Publishing video and audio tracks to Agora...');
       await clientRef.current.publish([videoTrack, audioTrack]);
       console.log('✅ Successfully published video and audio to Agora');
+      console.log('📊 Published tracks:', {
+        videoTrack: !!videoTrack,
+        audioTrack: !!audioTrack,
+        videoEnabled: videoTrack?.enabled,
+        audioEnabled: audioTrack?.enabled
+      });
 
       // Play video locally for creator preview
       if (videoContainerRef.current) {
