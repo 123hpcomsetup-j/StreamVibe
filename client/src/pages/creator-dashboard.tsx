@@ -220,6 +220,14 @@ export default function CreatorDashboard() {
     }
   }, [currentStream]);
 
+  // Ensure video element displays local stream when available
+  useEffect(() => {
+    if (videoRef.current && localStream) {
+      videoRef.current.srcObject = localStream;
+      console.log('Local stream attached to video element');
+    }
+  }, [localStream, isStreaming]);
+
   const createStreamMutation = useMutation({
     mutationFn: async (streamData: any) => {
       const response = await apiRequest("POST", "/api/streams", {
@@ -298,6 +306,11 @@ export default function CreatorDashboard() {
       if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
         setLocalStream(null);
+      }
+      
+      // Clear video element
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
       }
       
       // Close all peer connections
