@@ -235,8 +235,13 @@ export default function CreatorDashboard() {
       return;
     }
 
-    // Use Agora for live streaming
-    setShowAgoraModal(true);
+    // Create stream first, then show streaming options
+    if (!currentStream) {
+      handleCreateStream();
+    } else {
+      // Show streaming modal with fallback options
+      setShowStreamModal(true);
+    }
   };
 
   const handleStopStream = () => {
