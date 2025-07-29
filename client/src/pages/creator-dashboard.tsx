@@ -129,6 +129,7 @@ export default function CreatorDashboard() {
         minTip: streamData.minTip,
         tokenPrice: streamData.tokenPrice,
         privateRate: streamData.privateRate,
+        isLive: true, // Mark the stream as live immediately
       });
       return await response.json();
     },

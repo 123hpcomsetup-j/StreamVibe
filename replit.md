@@ -86,6 +86,11 @@ Preferred communication style: Simple, everyday language.
   - Fixed stream status detection - cleared old "live" streams from database
   - Streamlined layout with real-time status updates and authentic analytics
   - WebRTC controls only appear when actually streaming
+✓ **FIXED**: Live streams now visible to guest users (January 29, 2025):
+  - Fixed stream creation to properly mark streams as `isLive: true`
+  - Guest users can now see live streams on the public home page
+  - WebSocket notifications properly update all connected clients when streams go live
+  - Real-time synchronization between creator dashboard and public home page
 
 ## System Architecture
 
