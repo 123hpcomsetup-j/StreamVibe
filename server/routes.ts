@@ -347,11 +347,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+
   app.post('/api/streams/:streamId/chat', async (req: any, res) => {
     try {
       const { streamId } = req.params;
       const { message, tipAmount = 0, senderName } = req.body;
       const sessionId = req.headers['x-session-id'] as string;
+      
+      // Check for authenticated user session
+      if (req.session?.userId && !req.user) {
+        const user = await storage.getUser(req.session.userId);
+        if (user) {
+          req.user = user;
+        }
+      }
       
       // Check if this is a guest session
       if (sessionId && !req.user) {

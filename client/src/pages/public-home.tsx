@@ -46,9 +46,8 @@ export default function PublicHome() {
     // Listen for real-time stream status changes
     newSocket.on('stream-status-changed', (data: { streamId: string, isLive: boolean, viewerCount: number }) => {
       if (data.isLive) {
-        // Stream went live - refetch to get full data
-        refetchStreams();
-        refetchUsers();
+        // Stream went live - trigger a window location reload to refetch
+        window.location.reload();
       } else {
         // Stream went offline - update state
         setRealTimeStreams(prevStreams => 
