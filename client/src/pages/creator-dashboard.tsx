@@ -53,9 +53,9 @@ export default function CreatorDashboard() {
       socket.on('connect', () => {
         console.log('WebRTC signaling server connected');
         // Identify this socket as the creator
-        if (user?.id) {
-          socket.emit('identify', { userId: user.id });
-          console.log('Socket identified as creator:', user.id);
+        if (typedUser?.id) {
+          socket.emit('identify', { userId: typedUser.id });
+          console.log('Socket identified as creator:', typedUser.id);
         }
       });
 
@@ -66,9 +66,9 @@ export default function CreatorDashboard() {
       // Also identify on reconnect
       socket.io.on('reconnect', () => {
         console.log('WebRTC signaling server reconnected');
-        if (user?.id) {
-          socket.emit('identify', { userId: user.id });
-          console.log('Socket re-identified as creator:', user.id);
+        if (typedUser?.id) {
+          socket.emit('identify', { userId: typedUser.id });
+          console.log('Socket re-identified as creator:', typedUser.id);
         }
       });
 
@@ -91,7 +91,7 @@ export default function CreatorDashboard() {
       });
 
       // Handle viewer joining - create offer for them
-      socket.on('viewer-joined', async (data: { viewerId: string, userId: string, viewerCount: number }) => {
+      socket.on('viewer-joined', async (data: { viewerId: string, userId: string, viewerCount: number, streamId?: string }) => {
         console.log('Viewer joined:', data);
         
         if (localStream) {
@@ -301,7 +301,7 @@ export default function CreatorDashboard() {
       
       // Clear global stream ID
       delete (window as any).currentStreamId;
-      if (!currentStream) return;
+      if (!currentStream) return { message: "No active stream to stop" };
       
       // Emit WebSocket event to properly stop stream
       const socket = (window as any).streamSocket;
@@ -595,7 +595,7 @@ export default function CreatorDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {isStreaming && currentStream && (
+              {isStreaming && currentStream ? (
                 <div className="space-y-4">
                   {/* Video Preview */}
                   <div className="relative rounded-lg overflow-hidden bg-black">
@@ -617,7 +617,7 @@ export default function CreatorDashboard() {
                     onStreamStop={handleStopStream}
                   />
                 </div>
-              )}
+              ) : null}
               {!isStreaming && (
                 <div className="text-center py-8">
                   <Play className="w-16 h-16 mx-auto text-slate-500 mb-4" />
