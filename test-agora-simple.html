@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Agora Test</title>
+    <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N-4.20.2.js"></script>
+</head>
+<body>
+    <h1>Simple Agora Test</h1>
+    <button onclick="testAgora()">Test Agora Connection</button>
+    <div id="result"></div>
+    
+    <script>
+        async function testAgora() {
+            const result = document.getElementById('result');
+            try {
+                result.innerHTML = 'Testing...';
+                
+                // Get token
+                const response = await fetch('/api/agora/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        channelName: 'test-channel',
+                        uid: 0,
+                        role: 'host'
+                    })
+                });
+                
+                const { token } = await response.json();
+                result.innerHTML = 'Token received: ' + token.substring(0, 20) + '...';
+                
+                // Try to create client
+                const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
+                result.innerHTML += '<br>Client created successfully!';
+                
+                // Try to join
+                await client.join('36411769f91e457a88f142921fbf5c93', 'test-channel', token, 0);
+                result.innerHTML += '<br>✅ SUCCESS! Joined channel!';
+                
+                await client.leave();
+                
+            } catch (error) {
+                result.innerHTML = '❌ ERROR: ' + error.message;
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>

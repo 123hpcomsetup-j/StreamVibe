@@ -10,6 +10,7 @@ import { streams, users } from "@shared/schema";
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 import { eq } from "drizzle-orm";
+import path from "path";
 import { 
   insertStreamSchema,
   insertTransactionSchema,
