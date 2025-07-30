@@ -131,8 +131,8 @@ export default function AgoraStreamViewer({
             
             // Clear any existing content in video container safely
             try {
-              if (videoContainerRef.current.firstChild) {
-                videoContainerRef.current.innerHTML = '';
+              while (videoContainerRef.current.firstChild) {
+                videoContainerRef.current.removeChild(videoContainerRef.current.firstChild);
               }
             } catch (clearError) {
               console.log("Note: Could not clear video container, continuing...");
@@ -512,18 +512,19 @@ export default function AgoraStreamViewer({
         {/* Video Stream Container */}
         <div 
           ref={videoContainerRef}
-          className="w-full h-full bg-black flex items-center justify-center"
+          className="w-full h-full bg-black"
           style={{ 
             position: 'relative',
             width: '100%', 
             height: '100%',
+            zIndex: 1,
             WebkitBackfaceVisibility: 'hidden',
             WebkitTransform: 'translate3d(0, 0, 0)',
             transform: 'translate3d(0, 0, 0)',
           }}
         >
           {!hasVideo && (
-            <div className="text-center text-slate-400">
+            <div className="absolute inset-0 flex items-center justify-center text-center text-slate-400 z-10">
               {isConnected ? (
                 <div className="space-y-3">
                   <div className="text-4xl">🎥</div>
