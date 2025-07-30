@@ -20,6 +20,12 @@ import AgoraStreamCreator from "@/components/agora-stream-creator";
 
 export default function CreatorDashboard() {
   const { user, isLoading, isAuthenticated } = useAuth();
+  
+  // Add error handling for authentication
+  if (!isLoading && !isAuthenticated) {
+    window.location.href = '/creator-login';
+    return null;
+  }
   const { toast } = useToast();
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamData, setStreamData] = useState({

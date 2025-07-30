@@ -40,12 +40,12 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  // Start Node Media Server for RTMP streaming
-  try {
-    startMediaServer();
-  } catch (error) {
-    console.error('Failed to start media server:', error);
-  }
+  // DISABLED: Node Media Server conflicts with Agora streaming
+  // try {
+  //   startMediaServer();
+  // } catch (error) {
+  //   console.error('Failed to start media server:', error);
+  // }
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

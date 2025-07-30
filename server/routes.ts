@@ -1439,7 +1439,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   
   // Setup WebRTC signaling server
-  setupWebRTC(httpServer);
+  // DISABLED: WebRTC conflicts with Agora - Chat now handled via existing Socket.io
+  // setupWebRTC(httpServer);
   
   return httpServer;
 }
