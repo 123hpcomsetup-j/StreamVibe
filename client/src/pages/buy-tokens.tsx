@@ -181,7 +181,7 @@ export default function BuyTokens() {
                 <div className="bg-slate-900 p-4 rounded-lg">
                   <div className="flex items-center justify-between">
                     <span className="text-slate-300">Current Balance:</span>
-                    <Badge className="bg-yellow-600 text-white">
+                    <Badge className="bg-primary text-primary-foreground">
                       <Coins className="mr-1 h-4 w-4" />
                       {wallet?.tokenBalance || 0} tokens
                     </Badge>
@@ -266,7 +266,7 @@ export default function BuyTokens() {
                   <Button 
                     type="submit"
                     disabled={purchaseMutation.isPending || !upiConfig}
-                    className="w-full bg-purple-600 hover:bg-purple-700"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                   >
                     {purchaseMutation.isPending ? (
                       "Submitting Request..."

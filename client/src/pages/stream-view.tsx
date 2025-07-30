@@ -702,7 +702,7 @@ export default function StreamView() {
             <Button 
               type="submit"
               disabled={loginMutation.isPending}
-              className="w-full bg-purple-600 hover:bg-purple-700"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               {loginMutation.isPending ? (
                 "Please wait..."
@@ -842,7 +842,7 @@ export default function StreamView() {
             <Button 
               onClick={handleCustomTip}
               disabled={!customTipAmount || parseInt(customTipAmount) <= 0}
-              className="flex-1 bg-yellow-600 hover:bg-yellow-700"
+              className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               <Coins className="w-4 h-4 mr-2" />
               Send Tip

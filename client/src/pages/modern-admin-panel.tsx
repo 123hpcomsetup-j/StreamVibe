@@ -459,7 +459,7 @@ export default function ModernAdminPanel() {
           <Button
             onClick={() => setActiveTab('payouts')}
             variant={activeTab === 'payouts' ? 'default' : 'outline'}
-            className={activeTab === 'payouts' ? 'bg-green-600 hover:bg-green-700' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}
+            className={activeTab === 'payouts' ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}
           >
             <Send className="mr-2 h-4 w-4" />
             Creator Payouts ({pendingPayouts.length})
@@ -467,7 +467,7 @@ export default function ModernAdminPanel() {
           <Button
             onClick={() => setActiveTab('users')}
             variant={activeTab === 'users' ? 'default' : 'outline'}
-            className={activeTab === 'users' ? 'bg-blue-600 hover:bg-blue-700' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}
+            className={activeTab === 'users' ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}
           >
             <Users className="mr-2 h-4 w-4" />
             All Users
@@ -475,7 +475,7 @@ export default function ModernAdminPanel() {
           <Button
             onClick={() => setActiveTab('tip-menu')}
             variant={activeTab === 'tip-menu' ? 'default' : 'outline'}
-            className={activeTab === 'tip-menu' ? 'bg-pink-600 hover:bg-pink-700' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}
+            className={activeTab === 'tip-menu' ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}
           >
             <Heart className="mr-2 h-4 w-4" />
             Tip Menu ({tipMenuItems.length})
@@ -483,7 +483,7 @@ export default function ModernAdminPanel() {
           <Button
             onClick={() => setActiveTab('creators')}
             variant={activeTab === 'creators' ? 'default' : 'outline'}
-            className={activeTab === 'creators' ? 'bg-purple-600 hover:bg-purple-700' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}
+            className={activeTab === 'creators' ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}
           >
             <Users className="mr-2 h-4 w-4" />
             Creator Approval ({pendingCreators.length})

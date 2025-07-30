@@ -748,7 +748,7 @@ export default function UserDashboard() {
             <div className="bg-slate-700/50 p-4 rounded-lg">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-slate-400">Exchange Rate</span>
-                <Badge variant="secondary" className="bg-green-600">
+                <Badge variant="secondary" className="bg-primary text-primary-foreground">
                   <IndianRupee className="w-3 h-3 mr-1" />
                   1 = 1 Token
                 </Badge>

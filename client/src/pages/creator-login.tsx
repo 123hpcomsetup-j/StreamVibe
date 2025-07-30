@@ -234,7 +234,7 @@ export default function CreatorLogin() {
               
               <Button
                 type="submit"
-                className="w-full bg-purple-600 hover:bg-purple-700"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                 disabled={loginMutation.isPending}
               >
                 {loginMutation.isPending ? "Signing In..." : "Access Creator Dashboard"}
@@ -245,7 +245,7 @@ export default function CreatorLogin() {
             <div className="text-center mt-4">
               <Dialog open={showReset} onOpenChange={setShowReset}>
                 <DialogTrigger asChild>
-                  <Button variant="link" className="text-purple-400 hover:text-purple-300 p-0 h-auto">
+                  <Button variant="link" className="text-primary hover:text-primary/80 p-0 h-auto">
                     <KeyRound className="h-3 w-3 mr-1" />
                     Forgot Password?
                   </Button>
@@ -314,7 +314,7 @@ export default function CreatorLogin() {
               </p>
               <Dialog open={showSignup} onOpenChange={setShowSignup}>
                 <DialogTrigger asChild>
-                  <Button className="w-full bg-green-600 hover:bg-green-700 mb-3">
+                  <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground mb-3">
                     <UserPlus className="h-4 w-4 mr-2" />
                     Create Creator Account
                   </Button>
@@ -391,7 +391,7 @@ export default function CreatorLogin() {
                     <Button
                       type="submit"
                       disabled={signupMutation.isPending}
-                      className="w-full bg-purple-600 hover:bg-purple-700"
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
                       {signupMutation.isPending ? "Creating Account..." : "Create Creator Account"}
                     </Button>
