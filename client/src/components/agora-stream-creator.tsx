@@ -612,13 +612,17 @@ export default function AgoraStreamCreator({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-screen">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-screen">
       <div className="lg:col-span-2 relative">
-        {/* Full-Screen Video Preview */}
-        <div className="bg-slate-800 border-slate-700 h-full flex flex-col">
+        {/* Responsive Video Container */}
+        <div className="bg-slate-800 border-slate-700 h-[60vh] sm:h-[70vh] md:h-[75vh] lg:h-[85vh] flex flex-col">
           <div 
             ref={videoContainerRef}
-            className="relative flex-1 bg-black overflow-hidden"
+            className="relative flex-1 bg-black overflow-hidden w-full"
+            style={{
+              minHeight: '400px',
+              maxHeight: '85vh'
+            }}
           >
               {!showPreview && !isStreaming && (
                 <div className="absolute inset-0 flex items-center justify-center">
