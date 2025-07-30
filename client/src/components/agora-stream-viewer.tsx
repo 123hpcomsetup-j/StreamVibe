@@ -129,13 +129,6 @@ export default function AgoraStreamViewer({
           if (remoteVideoTrack && videoContainerRef.current) {
             console.log("🎬 Starting video playback...");
             
-            // Clear any existing content in video container safely
-            try {
-              videoContainerRef.current.innerHTML = '';
-            } catch (clearError) {
-              console.log("Note: Could not clear video container, continuing...");
-            }
-            
             // Configure video playback for maximum compatibility
             const playConfig = {
               fit: "cover" as const,
@@ -223,7 +216,8 @@ export default function AgoraStreamViewer({
         }
         
         if (videoContainerRef.current) {
-          videoContainerRef.current.innerHTML = '';
+          // Let Agora SDK handle video element cleanup to avoid DOM conflicts
+          console.log("Note: Video container cleanup delegated to Agora SDK");
         }
       }
       
@@ -465,13 +459,9 @@ export default function AgoraStreamViewer({
         }
       }
       
-      // Clear video container safely
+      // Let Agora SDK handle video container cleanup to avoid DOM conflicts
       if (videoContainerRef.current) {
-        try {
-          videoContainerRef.current.innerHTML = '';
-        } catch (domError) {
-          console.log("Note: Video container cleanup skipped");
-        }
+        console.log("Note: Video container cleanup delegated to Agora SDK");
       }
       
       // Leave Agora channel
