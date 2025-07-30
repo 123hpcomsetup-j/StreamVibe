@@ -570,10 +570,10 @@ export default function StreamView() {
           </div>
           
           {/* Chat Section - Below Video */}
-          <div className="min-h-[40vh] bg-slate-900 border-t border-slate-700">
+          <div className="h-[20vh] bg-slate-900 border-t border-slate-700">
             <div className="h-full flex flex-col">
               {/* Chat Header */}
-              <div className="flex items-center justify-between p-6 border-b border-slate-700 min-h-[80px]">
+              <div className="flex items-center justify-between p-4 border-b border-slate-700 h-[60px] flex-shrink-0">
                 <div className="flex items-center space-x-2">
                   <MessageCircle className="h-5 w-5 text-purple-400" />
                   <h3 className="text-white font-semibold">Live Chat</h3>
@@ -647,8 +647,8 @@ export default function StreamView() {
               </div>
               
               {/* Chat Messages */}
-              <div className="flex-1 overflow-hidden">
-                <ScrollArea className="h-full p-4">
+              <div className="flex-1 overflow-hidden min-h-0">
+                <ScrollArea className="h-full p-2">
                   <div className="space-y-2">
                     {chatMessages.length === 0 ? (
                       <div className="text-center text-slate-400 py-4">
@@ -688,7 +688,7 @@ export default function StreamView() {
               </div>
               
               {/* Chat Input */}
-              <div className="p-4 border-t border-slate-700">
+              <div className="p-3 border-t border-slate-700 flex-shrink-0">
                 {isAuthenticated ? (
                   <div className="flex space-x-2">
                     <Input
