@@ -31,15 +31,17 @@ export function setupWebRTC(server: Server) {
   const activeViewers = new Map<string, Set<string>>();
 
   io.on('connection', (socket) => {
-    console.log(`User connected: ${socket.id}`);
+    console.log(`🔗 WebSocket User connected: ${socket.id}`);
     
     // Auto-identify from query params
     const userId = socket.handshake.query.userId as string;
     const role = socket.handshake.query.role as string;
     
+    console.log(`📋 Connection details: userId=${userId}, role=${role}`);
+    
     if (userId) {
       socket.data = { userId, role };
-      console.log(`Socket ${socket.id} auto-identified as ${role} ${userId}`);
+      console.log(`✅ Socket ${socket.id} auto-identified as ${role} ${userId}`);
       
       // For creators, restore their active stream if any
       if (role === 'creator') {
