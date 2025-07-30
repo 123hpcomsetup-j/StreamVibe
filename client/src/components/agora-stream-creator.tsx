@@ -258,7 +258,14 @@ export default function AgoraStreamCreator({
       
       // Join the channel with proper authentication token
       await clientRef.current.join(appId, channelName, token, numericUserId);
-      console.log('=== JOIN SUCCESSFUL ===');
+      console.log('=== CREATOR JOIN SUCCESSFUL ===');
+      console.log('🎥 CREATOR READY TO BROADCAST TO CHANNEL:', channelName);
+      console.log('📊 Creator client state:', {
+        connectionState: clientRef.current.connectionState,
+        remoteUsers: clientRef.current.remoteUsers.length,
+        localTracks: clientRef.current.localTracks.length,
+        channelName: clientRef.current.channelName
+      });
       setIsConnected(true);
 
       // Create and publish video track

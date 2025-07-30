@@ -348,15 +348,25 @@ export default function AgoraStreamViewer({
       
       const { token } = await tokenResponse.json();
       console.log('Got Agora token (first 20 chars):', token.substring(0, 20) + '...');
-      console.log('Attempting to join channel with:');
+      console.log('=== VIEWER JOIN ATTEMPT ===');
       console.log('- appId:', appId);
       console.log('- channelName:', channelName);
       console.log('- token (first 20):', token.substring(0, 20) + '...');
       console.log('- uid:', numericUserId);
+      console.log('- streamId passed as prop:', streamId);
+      console.log('- userId passed as prop:', userId);
+      console.log('- username passed as prop:', username);
       
       // Join the channel as viewer with proper authentication token and numeric ID
       await clientRef.current.join(appId, channelName, token, numericUserId);
       console.log('=== VIEWER JOIN SUCCESSFUL ===');
+      console.log('👁️ VIEWER NOW LISTENING FOR CREATOR BROADCASTS...');
+      console.log('📊 Current Agora client state:', {
+        connectionState: clientRef.current.connectionState,
+        remoteUsers: clientRef.current.remoteUsers.length,
+        localTracks: clientRef.current.localTracks.length,
+        channelName: clientRef.current.channelName
+      });
       setIsConnected(true);
       
       console.log("🟢 Viewer connected to Agora channel:", channelName);
