@@ -10,6 +10,9 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (July 30, 2025)
 
+**AGORA STREAMING AUTHENTICATION ISSUE - Credentials Update Required (July 30, 2025):**
+Identified critical streaming authentication issue with "invalid token, authorized failed" errors from Agora SDK. Root cause: Agora App ID and Certificate credentials in environment variables are outdated (`36411769f91e457a88f142921fbf5c93`). Multiple attempts to update VITE_AGORA_APP_ID and AGORA_APP_CERTIFICATE secrets through Replit interface, but changes not taking effect. System continues using old credentials causing all streaming attempts to fail. Backend token generation working correctly, but Agora servers rejecting tokens due to credential mismatch. Created debug test page for credential verification. Streaming functionality blocked until proper Agora credentials are loaded.
+
 **COMPLETE BLUE THEME CONSISTENCY - All Buttons and Modals Unified (July 30, 2025):**
 Successfully converted all remaining non-blue buttons (white, cream, purple, green, yellow) to consistent blue primary color theme across the entire platform. Updated all modal dialogs to use white backgrounds with blue accents for perfect theme consistency. Fixed: creator login modals (signup, reset password), stream view dialogs, user dashboard badges, buy tokens page buttons, admin panel navigation buttons, and all authentication flows. Eliminated color inconsistencies by converting purple creator buttons, yellow tip buttons, green approval buttons, and multi-colored admin panel tabs to unified blue primary theme. All UI elements now maintain perfect visual consistency with white backgrounds, blue primary buttons, and black text throughout the platform.
 

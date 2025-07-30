@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Agora Debug Test</title>
+    <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N-4.20.2.js"></script>
+</head>
+<body>
+    <h1>Agora Debug Test</h1>
+    <button onclick="testCurrentCredentials()">Test Current Credentials</button>
+    <button onclick="testManualCredentials()">Test Manual Credentials</button>
+    <div id="logs"></div>
+
+    <script>
+        function log(message) {
+            const logs = document.getElementById('logs');
+            logs.innerHTML += '<div>' + new Date().toISOString() + ': ' + message + '</div>';
+            console.log(message);
+        }
+
+        async function testCurrentCredentials() {
+            try {
+                log('Testing current backend credentials...');
+                
+                const response = await fetch('/api/agora/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        channelName: 'debug-test-' + Date.now(),
+                        uid: 12345,
+                        role: 'host'
+                    })
+                });
+                
+                const data = await response.json();
+                log('Backend returned App ID: ' + data.appId);
+                log('Token (first 20 chars): ' + data.token.substring(0, 20) + '...');
+                
+                // Try to use the token
+                const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
+                client.setClientRole('host');
+                
+                await client.join(data.appId, data.channelName, data.token, data.uid);
+                log('✅ SUCCESS! Current credentials work!');
+                await client.leave();
+                
+            } catch (error) {
+                log('❌ FAILED: ' + error.message);
+            }
+        }
+
+        async function testManualCredentials() {
+            const appId = prompt('Enter your correct Agora App ID:');
+            const certificate = prompt('Enter your correct Agora App Certificate:');
+            
+            if (appId && certificate) {
+                log('Manual test with App ID: ' + appId.substring(0, 10) + '...');
+                log('This would require server-side token generation with your credentials');
+                // Would need to implement server endpoint with manual credentials
+            }
+        }
+    </script>
+</body>
+</html>
