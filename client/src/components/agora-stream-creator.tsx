@@ -384,94 +384,86 @@ export default function AgoraStreamCreator({
         try {
           console.log('📺 Video container found, playing video track...');
           
-          // Don't clear existing elements, just play the track
+          // Clear any existing content to avoid conflicts
+          videoContainerRef.current.innerHTML = '';
+          
+          // Play the video track
           await videoTrack.play(videoContainerRef.current);
           console.log('✅ Creator video track played in container');
           
-          // Apply styles and debugging for video visibility
-          const applyVideoStyles = () => {
-            const allElements = videoContainerRef.current?.querySelectorAll('*');
+          // Apply comprehensive video visibility fixes
+          const ensureVideoVisibility = () => {
             const videoElements = videoContainerRef.current?.querySelectorAll('video');
-            console.log(`🔍 Container has ${allElements?.length || 0} total elements`);
             console.log(`🎬 Found ${videoElements?.length || 0} video elements in container`);
             
-            // Log container properties
+            // Force container styles
             if (videoContainerRef.current) {
               const container = videoContainerRef.current;
-              console.log('📦 Container properties:', {
-                width: container.offsetWidth,
-                height: container.offsetHeight,
-                display: getComputedStyle(container).display,
-                position: getComputedStyle(container).position,
-                zIndex: getComputedStyle(container).zIndex,
-                overflow: getComputedStyle(container).overflow
-              });
+              container.style.cssText = `
+                position: relative !important;
+                width: 100% !important;
+                height: 100% !important;
+                background: #000 !important;
+                display: block !important;
+                overflow: hidden !important;
+                border-radius: 12px !important;
+              `;
+              console.log('✅ Container styling applied');
             }
             
-            // Check all elements in container
-            allElements?.forEach((el, index) => {
-              const htmlEl = el as HTMLElement;
-              console.log(`🔍 Element ${index + 1}:`, {
-                tagName: el.tagName,
-                className: el.className,
-                width: htmlEl.offsetWidth || 'no width',
-                height: htmlEl.offsetHeight || 'no height',
-                display: getComputedStyle(el).display,
-                visibility: getComputedStyle(el).visibility,
-                opacity: getComputedStyle(el).opacity
-              });
-            });
-            
             videoElements?.forEach((videoEl, index) => {
+              const htmlVideoEl = videoEl as HTMLVideoElement;
               console.log(`🎨 Styling video element ${index + 1}:`, {
-                currentWidth: videoEl.offsetWidth,
-                currentHeight: videoEl.offsetHeight,
-                videoWidth: videoEl.videoWidth,
-                videoHeight: videoEl.videoHeight,
-                readyState: videoEl.readyState,
-                paused: videoEl.paused
+                readyState: htmlVideoEl.readyState,
+                videoWidth: htmlVideoEl.videoWidth,
+                videoHeight: htmlVideoEl.videoHeight,
+                paused: htmlVideoEl.paused
               });
               
-              // Force video to be visible with aggressive styling
-              videoEl.style.cssText = `
+              // Apply comprehensive video styling
+              htmlVideoEl.style.cssText = `
                 width: 100% !important;
                 height: 100% !important;
                 object-fit: cover !important;
                 position: absolute !important;
                 top: 0 !important;
                 left: 0 !important;
-                z-index: 1 !important;
-                background: black !important;
+                z-index: 10 !important;
+                background: transparent !important;
                 display: block !important;
                 visibility: visible !important;
                 opacity: 1 !important;
                 border: none !important;
                 outline: none !important;
                 transform: none !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                max-width: none !important;
+                max-height: none !important;
+                min-width: 100% !important;
+                min-height: 100% !important;
               `;
               
-              console.log(`✅ Video element ${index + 1} force styled`);
+              console.log(`✅ Video element ${index + 1} styled for maximum visibility`);
               
-              // Try to play the video if it's paused
-              if (videoEl.paused) {
-                console.log(`▶️ Attempting to play video element ${index + 1}`);
-                videoEl.play().then(() => {
-                  console.log(`✅ Video element ${index + 1} playing`);
-                }).catch(error => {
-                  console.log(`❌ Video element ${index + 1} play failed:`, error);
-                });
+              // Force video to play if paused
+              if (htmlVideoEl.paused) {
+                htmlVideoEl.play().catch(e => 
+                  console.log('Video auto-play blocked:', e.message)
+                );
               }
             });
           };
           
-          // Apply styles immediately and repeatedly
-          applyVideoStyles();
-          setTimeout(applyVideoStyles, 100);
-          setTimeout(applyVideoStyles, 500);
-          setTimeout(applyVideoStyles, 1000);
-          setTimeout(applyVideoStyles, 2000);
+          // Apply styles immediately and on intervals to override any conflicts
+          ensureVideoVisibility();
           
-          console.log('✅ Creator preview video setup complete');
+          // Apply styles multiple times to ensure they stick
+          setTimeout(ensureVideoVisibility, 100);
+          setTimeout(ensureVideoVisibility, 500);
+          setTimeout(ensureVideoVisibility, 1000);
+          
+          console.log('✅ All video visibility fixes applied for creator');
           
         } catch (error) {
           console.error('❌ Error playing creator video locally:', error);

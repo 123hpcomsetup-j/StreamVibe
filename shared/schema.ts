@@ -154,6 +154,20 @@ export const transactions = pgTable("transactions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Creator payouts/withdrawals
+export const payouts = pgTable("payouts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  creatorId: varchar("creator_id").references(() => users.id).notNull(),
+  amount: integer("amount").notNull(), // tokens requested
+  status: varchar("status").default('pending'), // 'pending', 'approved', 'rejected', 'paid'
+  upiId: varchar("upi_id"), // UPI ID for payout
+  paymentMethod: varchar("payment_method").default('upi'), // 'upi', 'bank', etc.
+  adminNote: text("admin_note"),
+  processedBy: varchar("processed_by").references(() => users.id),
+  processedAt: timestamp("processed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many, one }) => ({
   streams: many(streams),
@@ -162,6 +176,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   sentTransactions: many(transactions, { relationName: "sentTransactions" }),
   receivedTransactions: many(transactions, { relationName: "receivedTransactions" }),
   tokenPurchases: many(tokenPurchases),
+  payouts: many(payouts),
 }));
 
 export const userWalletsRelations = relations(userWallets, ({ one }) => ({
@@ -178,6 +193,11 @@ export const transactionsRelations = relations(transactions, ({ one }) => ({
   toUser: one(users, { fields: [transactions.toUserId], references: [users.id], relationName: "receivedTransactions" }),
   stream: one(streams, { fields: [transactions.streamId], references: [streams.id] }),
   activity: one(creatorActivities, { fields: [transactions.activityId], references: [creatorActivities.id] }),
+}));
+
+export const payoutsRelations = relations(payouts, ({ one }) => ({
+  creator: one(users, { fields: [payouts.creatorId], references: [users.id] }),
+  processedByUser: one(users, { fields: [payouts.processedBy], references: [users.id] }),
 }));
 
 export const tokenPurchasesRelations = relations(tokenPurchases, ({ one }) => ({
@@ -233,6 +253,9 @@ export type InsertChatMessage = typeof chatMessages.$inferInsert;
 export type GuestSession = typeof guestSessions.$inferSelect;
 export type InsertGuestSession = typeof guestSessions.$inferInsert;
 
+export type Payout = typeof payouts.$inferSelect;
+export type InsertPayout = typeof payouts.$inferInsert;
+
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users);
 export const insertStreamSchema = createInsertSchema(streams);
@@ -244,4 +267,5 @@ export const insertTokenPurchaseSchema = createInsertSchema(tokenPurchases);
 export const insertTransactionSchema = createInsertSchema(transactions);
 export const insertChatMessageSchema = createInsertSchema(chatMessages);
 export const insertGuestSessionSchema = createInsertSchema(guestSessions);
+export const insertPayoutSchema = createInsertSchema(payouts);
 

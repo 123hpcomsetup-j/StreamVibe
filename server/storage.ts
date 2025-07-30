@@ -9,6 +9,7 @@ import {
   transactions,
   chatMessages,
   guestSessions,
+  payouts,
   type User,
   type UpsertUser,
   type Stream,
@@ -29,6 +30,8 @@ import {
   type InsertChatMessage,
   type GuestSession,
   type InsertGuestSession,
+  type Payout,
+  type InsertPayout,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -101,6 +104,14 @@ export interface IStorage {
   createGuestSession(session: InsertGuestSession): Promise<GuestSession>;
   getGuestSession(streamId: string, sessionId: string): Promise<GuestSession | undefined>;
   updateGuestSession(id: string, updates: Partial<InsertGuestSession>): Promise<GuestSession>;
+  
+  // Payout operations
+  createPayout(payout: InsertPayout): Promise<Payout>;
+  getCreatorPayouts(creatorId: string): Promise<Payout[]>;
+  getPendingPayouts(): Promise<Payout[]>;
+  getAllPayouts(): Promise<Payout[]>;
+  updatePayoutStatus(id: string, status: string, adminNote?: string, processedBy?: string): Promise<Payout>;
+  getCreatorEarnings(creatorId: string): Promise<{ totalEarnings: number; availableBalance: number; pendingWithdrawals: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -458,6 +469,92 @@ export class DatabaseStorage implements IStorage {
       .where(eq(guestSessions.id, id))
       .returning();
     return updatedSession;
+  }
+
+  // Payout operations
+  async createPayout(payout: InsertPayout): Promise<Payout> {
+    const [newPayout] = await db
+      .insert(payouts)
+      .values(payout)
+      .returning();
+    return newPayout;
+  }
+
+  async getCreatorPayouts(creatorId: string): Promise<Payout[]> {
+    return await db
+      .select()
+      .from(payouts)
+      .where(eq(payouts.creatorId, creatorId))
+      .orderBy(desc(payouts.createdAt));
+  }
+
+  async getPendingPayouts(): Promise<Payout[]> {
+    return await db
+      .select()
+      .from(payouts)
+      .where(eq(payouts.status, 'pending'))
+      .orderBy(desc(payouts.createdAt));
+  }
+
+  async getAllPayouts(): Promise<Payout[]> {
+    return await db
+      .select()
+      .from(payouts)
+      .orderBy(desc(payouts.createdAt));
+  }
+
+  async updatePayoutStatus(id: string, status: string, adminNote?: string, processedBy?: string): Promise<Payout> {
+    const [payout] = await db
+      .update(payouts)
+      .set({ 
+        status, 
+        adminNote, 
+        processedBy, 
+        processedAt: new Date() 
+      })
+      .where(eq(payouts.id, id))
+      .returning();
+    return payout;
+  }
+
+  async getCreatorEarnings(creatorId: string): Promise<{ totalEarnings: number; availableBalance: number; pendingWithdrawals: number }> {
+    // Get total earnings from transactions received
+    const earningsResult = await db
+      .select({ 
+        totalAmount: sql<number>`COALESCE(SUM(${transactions.amount}), 0)` 
+      })
+      .from(transactions)
+      .where(eq(transactions.toUserId, creatorId));
+    
+    const totalEarnings = earningsResult[0]?.totalAmount || 0;
+
+    // Get total pending withdrawals
+    const pendingResult = await db
+      .select({ 
+        totalPending: sql<number>`COALESCE(SUM(${payouts.amount}), 0)` 
+      })
+      .from(payouts)
+      .where(and(eq(payouts.creatorId, creatorId), eq(payouts.status, 'pending')));
+    
+    const pendingWithdrawals = pendingResult[0]?.totalPending || 0;
+
+    // Get total approved/paid withdrawals
+    const withdrawnResult = await db
+      .select({ 
+        totalWithdrawn: sql<number>`COALESCE(SUM(${payouts.amount}), 0)` 
+      })
+      .from(payouts)
+      .where(and(eq(payouts.creatorId, creatorId), sql`${payouts.status} IN ('approved', 'paid')`));
+    
+    const totalWithdrawn = withdrawnResult[0]?.totalWithdrawn || 0;
+
+    const availableBalance = totalEarnings - totalWithdrawn - pendingWithdrawals;
+
+    return {
+      totalEarnings,
+      availableBalance: Math.max(0, availableBalance),
+      pendingWithdrawals
+    };
   }
 }
 

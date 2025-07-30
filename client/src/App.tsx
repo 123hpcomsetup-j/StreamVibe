@@ -18,6 +18,7 @@ import AdminProfile from "@/pages/admin-profile";
 import StreamView from "@/pages/stream-view";
 import UserDashboard from "@/pages/user-dashboard";
 import CreatorLiveStudio from "@/pages/creator-live-studio";
+import CreatorEarnings from "@/pages/creator-earnings";
 import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
 import BuyTokens from "@/pages/buy-tokens";
@@ -62,6 +63,7 @@ function Router() {
       <Route path="/user-dashboard" component={UserDashboard} />
       <Route path="/creator-dashboard" component={CreatorDashboard} />
       <Route path="/creator-live-studio" component={CreatorLiveStudio} />
+      <Route path="/creator-earnings" component={CreatorEarnings} />
       <Route path="/admin-panel" component={ModernAdminPanel} />
       <Route path="/admin-profile" component={AdminProfile} />
       <Route path="/buy-tokens" component={BuyTokens} />

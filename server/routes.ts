@@ -992,6 +992,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get creator earnings and payout info
+  app.get('/api/creator/earnings', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'creator') {
+        return res.status(403).json({ message: "Only creators can access earnings" });
+      }
+      
+      const earnings = await storage.getCreatorEarnings(userId);
+      const payouts = await storage.getCreatorPayouts(userId);
+      
+      res.json({
+        ...earnings,
+        payouts
+      });
+    } catch (error) {
+      console.error("Error fetching creator earnings:", error);
+      res.status(500).json({ message: "Failed to fetch earnings" });
+    }
+  });
+
+  // Request payout
+  app.post('/api/creator/payout', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { amount, upiId } = req.body;
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'creator') {
+        return res.status(403).json({ message: "Only creators can request payouts" });
+      }
+      
+      if (!amount || amount < 1000) {
+        return res.status(400).json({ message: "Minimum payout amount is 1000 tokens" });
+      }
+      
+      if (!upiId || !upiId.trim()) {
+        return res.status(400).json({ message: "UPI ID is required" });
+      }
+      
+      // Check available balance
+      const earnings = await storage.getCreatorEarnings(userId);
+      if (earnings.availableBalance < amount) {
+        return res.status(400).json({ 
+          message: `Insufficient balance. Available: ${earnings.availableBalance} tokens` 
+        });
+      }
+      
+      const payout = await storage.createPayout({
+        creatorId: userId,
+        amount,
+        upiId: upiId.trim(),
+        paymentMethod: 'upi',
+        status: 'pending'
+      });
+      
+      res.status(201).json(payout);
+    } catch (error) {
+      console.error("Error creating payout request:", error);
+      res.status(500).json({ message: "Failed to create payout request" });
+    }
+  });
+
+  // Admin: Get all pending payouts
+  app.get('/api/admin/payouts', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      const payouts = await storage.getPendingPayouts();
+      res.json(payouts);
+    } catch (error) {
+      console.error("Error fetching payouts:", error);
+      res.status(500).json({ message: "Failed to fetch payouts" });
+    }
+  });
+
+  // Admin: Update payout status
+  app.patch('/api/admin/payouts/:id', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      const { id } = req.params;
+      const { status, adminNote } = req.body;
+      
+      if (!['approved', 'rejected', 'paid'].includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+      
+      const payout = await storage.updatePayoutStatus(id, status, adminNote, userId);
+      res.json(payout);
+    } catch (error) {
+      console.error("Error updating payout:", error);
+      res.status(500).json({ message: "Failed to update payout" });
+    }
+  });
+
   // Create HTTP server and setup WebRTC
   const server = createServer(app);
   
