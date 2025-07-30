@@ -1,9 +1,14 @@
-import { Search, Coins, LogOut, Menu, X, Home, Eye, Video, Users, User as UserIcon } from "lucide-react";
+import { Search, Coins, LogOut, Menu, X, Home, Eye, Video, Users, User as UserIcon, Plus, ShoppingCart } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { User } from "@shared/schema";
 
 interface NavbarProps {
@@ -13,6 +18,75 @@ interface NavbarProps {
 export default function Navbar({ user }: NavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [location] = useLocation();
+  const [showBuyTokens, setShowBuyTokens] = useState(false);
+  const [tokenAmount, setTokenAmount] = useState("");
+  const [utrNumber, setUtrNumber] = useState("");
+  const { toast } = useToast();
+
+  // Fetch real-time wallet balance
+  const { data: walletData } = useQuery({
+    queryKey: ["/api/wallet"],
+    enabled: !!user,
+    refetchInterval: 5000, // Refresh every 5 seconds
+  });
+
+  // Fetch UPI configuration
+  const { data: upiConfig } = useQuery({
+    queryKey: ["/api/upi-config"],
+    enabled: showBuyTokens,
+  });
+
+  // Token purchase mutation
+  const purchaseMutation = useMutation({
+    mutationFn: async ({ amount, utrNumber }: { amount: number; utrNumber: string }) => {
+      return await apiRequest("POST", "/api/token-purchases", {
+        tokenAmount: amount,
+        utrNumber,
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Purchase Request Submitted",
+        description: "Your token purchase request has been submitted for admin approval.",
+      });
+      setShowBuyTokens(false);
+      setTokenAmount("");
+      setUtrNumber("");
+      queryClient.invalidateQueries({ queryKey: ["/api/wallet"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Purchase Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleBuyTokens = (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = parseInt(tokenAmount);
+    if (!amount || amount <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid token amount",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!utrNumber.trim()) {
+      toast({
+        title: "UTR Required",
+        description: "Please enter your UPI transaction reference number",
+        variant: "destructive",
+      });
+      return;
+    }
+    purchaseMutation.mutate({ amount, utrNumber });
+  };
+
+  // Get current wallet balance
+  const currentBalance = (walletData as any)?.tokenBalance || 0;
 
   const handleLogout = async () => {
     try {
@@ -165,12 +239,17 @@ export default function Navbar({ user }: NavbarProps) {
               <Search className={`absolute right-2.5 top-2.5 h-4 w-4 ${user?.role === 'creator' ? 'text-purple-300' : user?.role === 'viewer' ? 'text-blue-300' : 'text-slate-400'}`} />
             </div>
             
-            {/* Wallet Balance - Responsive */}
-            <div className={`hidden sm:flex items-center space-x-2 ${theme.searchBg} rounded-lg px-2 sm:px-3 py-1.5 sm:py-2`}>
+            {/* Wallet Balance - Responsive & Clickable */}
+            <Button
+              variant="ghost"
+              onClick={() => setShowBuyTokens(true)}
+              className={`hidden sm:flex items-center space-x-2 ${theme.searchBg} rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 hover:bg-opacity-80 transition-all duration-200`}
+            >
               <Coins className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-400" />
-              <span className="text-xs sm:text-sm font-medium text-white">{user?.walletBalance || 0}</span>
+              <span className="text-xs sm:text-sm font-medium text-white">{currentBalance}</span>
               <span className="hidden md:inline text-xs sm:text-sm text-slate-300">tokens</span>
-            </div>
+              <Plus className="h-3 w-3 text-green-400 ml-1" />
+            </Button>
             
             {/* Profile and Controls */}
             <div className="flex items-center space-x-2">
@@ -249,12 +328,17 @@ export default function Navbar({ user }: NavbarProps) {
                 </div>
               </div>
               
-              {/* Mobile Wallet Balance */}
+              {/* Mobile Wallet Balance - Clickable */}
               <div className="px-3 py-2">
-                <div className={`flex items-center space-x-2 ${theme.searchBg} rounded-lg px-3 py-2`}>
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowBuyTokens(true)}
+                  className={`w-full flex items-center space-x-2 ${theme.searchBg} rounded-lg px-3 py-2 hover:bg-opacity-80 transition-all duration-200`}
+                >
                   <Coins className="h-4 w-4 text-yellow-400" />
-                  <span className="text-sm font-medium text-white">{user?.walletBalance || 0} tokens</span>
-                </div>
+                  <span className="text-sm font-medium text-white">{currentBalance} tokens</span>
+                  <Plus className="h-4 w-4 text-green-400 ml-auto" />
+                </Button>
               </div>
               
               {/* Mobile Profile */}
@@ -288,6 +372,91 @@ export default function Navbar({ user }: NavbarProps) {
           </div>
         )}
       </div>
+
+      {/* Buy Tokens Modal */}
+      <Dialog open={showBuyTokens} onOpenChange={setShowBuyTokens}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center">
+              <ShoppingCart className="mr-2 h-5 w-5 text-green-500" />
+              Buy Tokens
+            </DialogTitle>
+          </DialogHeader>
+          
+          <form onSubmit={handleBuyTokens} className="space-y-4">
+            <div className="bg-slate-800/50 rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-slate-300">Current Balance</span>
+                <div className="flex items-center space-x-1">
+                  <Coins className="h-4 w-4 text-yellow-400" />
+                  <span className="font-bold text-white">{currentBalance} tokens</span>
+                </div>
+              </div>
+            </div>
+
+            {upiConfig && (
+              <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-3 mb-4">
+                <h4 className="text-blue-200 font-medium mb-2">Payment Details</h4>
+                <div className="space-y-1 text-sm">
+                  <div><span className="text-slate-400">UPI ID:</span> <span className="text-blue-300 font-mono">{(upiConfig as any).upiId}</span></div>
+                  <div><span className="text-slate-400">Name:</span> <span className="text-blue-300">{(upiConfig as any).recipientName}</span></div>
+                  <div><span className="text-slate-400">Rate:</span> <span className="text-green-400">₹{(upiConfig as any).ratePerToken} per token</span></div>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <Label className="text-slate-300">Token Amount</Label>
+              <Input
+                type="number"
+                value={tokenAmount}
+                onChange={(e) => setTokenAmount(e.target.value)}
+                className="bg-slate-800 border-slate-600 text-white"
+                placeholder="Enter number of tokens"
+                min="1"
+                required
+              />
+              {tokenAmount && upiConfig && (
+                <p className="text-sm text-slate-400 mt-1">
+                  Total: ₹{(parseInt(tokenAmount) || 0) * (upiConfig as any).ratePerToken}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <Label className="text-slate-300">UPI Transaction Reference (UTR)</Label>
+              <Input
+                value={utrNumber}
+                onChange={(e) => setUtrNumber(e.target.value)}
+                className="bg-slate-800 border-slate-600 text-white"
+                placeholder="Enter UTR number after payment"
+                required
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                Complete the UPI payment first, then enter the transaction reference number here
+              </p>
+            </div>
+
+            <div className="flex space-x-2">
+              <Button 
+                type="button"
+                variant="outline"
+                onClick={() => setShowBuyTokens(false)}
+                className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-800"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                disabled={purchaseMutation.isPending}
+                className="flex-1 bg-green-600 hover:bg-green-700"
+              >
+                {purchaseMutation.isPending ? "Submitting..." : "Submit Request"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </nav>
   );
 }
