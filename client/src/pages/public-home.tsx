@@ -9,10 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Play, Users, Video, Heart, Coins, ChevronRight, UserPlus, LogIn } from "lucide-react";
+import { Play, Users, Video, Heart, Coins, ChevronRight, UserPlus, LogIn, Menu, X, Search } from "lucide-react";
 import { io } from "socket.io-client";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import Navbar from "@/components/navbar";
 import type { User } from "@shared/schema";
 
 export default function PublicHome() {
@@ -43,6 +42,7 @@ export default function PublicHome() {
     confirmPassword: "",
     role: "viewer" as "viewer" | "creator"
   });
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const { data: liveStreams = [], isLoading: streamsLoading } = useQuery({
     queryKey: ["/api/streams/live"],
@@ -166,39 +166,68 @@ export default function PublicHome() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Navigation - Only show for non-authenticated users */}
-        <nav className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              {/* Website Name - Clickable to go home */}
-              <button
-                onClick={() => setLocation("/")}
-                className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent hover:from-purple-300 hover:to-pink-300 transition-colors"
-              >
-                StreamVibe
-              </button>
+        <nav className="bg-slate-800 border-b border-slate-700 sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
+            <div className="flex items-center justify-between h-14 sm:h-16">
+              <div className="flex items-center flex-1">
+                <div className="flex-shrink-0">
+                  <button
+                    onClick={() => setLocation("/")}
+                    className="flex items-center space-x-1.5 sm:space-x-2 cursor-pointer"
+                  >
+                    <Video className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-primary" />
+                    <span className="text-lg sm:text-xl lg:text-2xl font-bold text-white">StreamVibe</span>
+                  </button>
+                </div>
+                
+                {/* Desktop Search */}
+                <div className="hidden lg:block ml-6 xl:ml-10 flex-1 max-w-lg">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                      placeholder="Search streams, creators..."
+                      className="bg-slate-700 border-slate-600 focus:border-primary pl-10"
+                    />
+                  </div>
+                </div>
+              </div>
               
-              {/* Login and Signup Buttons */}
-              <div className="flex items-center space-x-3">
+              {/* Desktop Auth Buttons */}
+              <div className="hidden lg:flex items-center space-x-4">
                 <Button 
-                  variant="ghost"
+                  variant="ghost" 
                   onClick={() => {
+                    setAuthData({ ...authData, role: "viewer" });
                     setIsLoginMode(true);
                     setShowAuthDialog(true);
                   }}
                   className="text-slate-300 hover:text-white"
                 >
-                  <LogIn className="mr-2 h-4 w-4" />
+                  <LogIn className="w-4 h-4 mr-2" />
                   Login
                 </Button>
                 <Button 
                   onClick={() => {
+                    setAuthData({ ...authData, role: "viewer" });
                     setIsLoginMode(false);
                     setShowAuthDialog(true);
                   }}
                   className="bg-primary hover:bg-primary/80"
                 >
-                  <UserPlus className="mr-2 h-4 w-4" />
+                  <UserPlus className="w-4 h-4 mr-2" />
                   Sign Up
+                </Button>
+              </div>
+              
+              {/* Mobile Menu Button */}
+              <div className="lg:hidden">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowAuthDialog(true)}
+                  className="text-slate-300 hover:text-white"
+                >
+                  <Menu className="h-5 w-5" />
                 </Button>
               </div>
             </div>
