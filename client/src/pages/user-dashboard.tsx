@@ -119,10 +119,14 @@ export default function UserDashboard() {
     }
   }, [isAuthenticated]);
 
-  // Fetch live streams
+  // Fetch live streams (limit to last 4 for perfect screen fit)
   const { data: liveStreams = [], isLoading: streamsLoading } = useQuery({
     queryKey: ["/api/streams/live"],
     refetchInterval: 5000, // Refresh every 5 seconds as fallback
+    select: (data) => {
+      // Show only last 4 streams for perfect screen view
+      return Array.isArray(data) ? data.slice(-4) : [];
+    }
   });
 
   // Fetch user transactions
