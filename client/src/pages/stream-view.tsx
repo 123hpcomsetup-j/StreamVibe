@@ -648,36 +648,32 @@ export default function StreamView() {
               
               {/* Chat Messages */}
               <div className="flex-1 overflow-hidden min-h-0">
-                <ScrollArea className="h-full p-2">
-                  <div className="space-y-2">
+                <ScrollArea className="h-full p-3">
+                  <div className="space-y-3">
                     {chatMessages.length === 0 ? (
-                      <div className="text-center text-slate-400 py-4">
+                      <div className="text-center text-slate-400 py-8">
                         <MessageCircle className="h-6 w-6 mx-auto mb-2 opacity-50" />
                         <p className="text-sm">No messages yet</p>
                         <p className="text-xs">Start the conversation!</p>
                       </div>
                     ) : (
                       chatMessages.map((msg, index) => (
-                        <div key={index} className="mb-3 text-sm">
+                        <div key={index} className="bg-slate-700 rounded-lg p-3">
                           <div className="flex flex-col space-y-1">
-                            <div className="flex items-start space-x-2">
-                              <span className={`font-medium text-xs ${
-                                msg.senderRole === 'creator' 
-                                  ? 'text-yellow-400' 
-                                  : msg.senderRole === 'viewer'
-                                  ? 'text-blue-400'
-                                  : 'text-gray-400'
-                              }`}>
-                                {msg.senderName}:
-                              </span>
-                            </div>
-                            <div className="pl-2">
-                              <span className="text-slate-300 text-sm break-words leading-relaxed">
-                                {msg.message}
-                              </span>
-                            </div>
+                            <span className={`font-medium text-xs ${
+                              msg.senderRole === 'creator' 
+                                ? 'text-yellow-400' 
+                                : msg.senderRole === 'viewer'
+                                ? 'text-blue-400'
+                                : 'text-gray-400'
+                            }`}>
+                              {msg.senderName}
+                            </span>
+                            <span className="text-slate-200 text-sm break-words leading-relaxed">
+                              {msg.message}
+                            </span>
                             {msg.tipAmount > 0 && (
-                              <div className="flex items-center pl-2 mt-1">
+                              <div className="flex items-center mt-1 pt-1 border-t border-slate-600">
                                 <Coins className="h-3 w-3 text-yellow-400 mr-1" />
                                 <span className="text-yellow-400 text-xs font-bold">
                                   Tipped {msg.tipAmount} tokens!
