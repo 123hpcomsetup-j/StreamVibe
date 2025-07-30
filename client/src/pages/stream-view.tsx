@@ -523,7 +523,7 @@ export default function StreamView() {
       <div className="flex-1 flex">
         <div className="flex-1 relative">
           {/* Video Player */}
-          <div className="relative h-[80vh] bg-black">
+          <div className="relative h-[75vh] bg-black">
             {viewingBlocked ? (
               <div className="absolute inset-0 flex items-center justify-center bg-black/90 z-20">
                 <div className="text-center max-w-md">
@@ -570,7 +570,7 @@ export default function StreamView() {
           </div>
           
           {/* Chat Section - Below Video */}
-          <div className="h-[20vh] bg-slate-900 border-t border-slate-700">
+          <div className="h-[25vh] bg-slate-900 border-t border-slate-700">
             <div className="h-full flex flex-col">
               {/* Chat Header */}
               <div className="flex items-center justify-between p-4 border-b border-slate-700 h-[60px] flex-shrink-0">
@@ -658,27 +658,33 @@ export default function StreamView() {
                       </div>
                     ) : (
                       chatMessages.map((msg, index) => (
-                        <div key={index} className="text-sm">
-                          <div className="flex items-start space-x-2">
-                            <span className={`font-medium flex-shrink-0 ${
-                              msg.senderRole === 'creator' 
-                                ? 'text-yellow-400' 
-                                : msg.senderRole === 'viewer'
-                                ? 'text-blue-400'
-                                : 'text-gray-400'
-                            }`}>
-                              {msg.senderName}:
-                            </span>
-                            <span className="text-slate-300 break-words">{msg.message}</span>
-                          </div>
-                          {msg.tipAmount > 0 && (
-                            <div className="flex items-center mt-1 ml-2">
-                              <Coins className="h-3 w-3 text-yellow-400 mr-1" />
-                              <span className="text-yellow-400 text-xs font-bold">
-                                Tipped {msg.tipAmount} tokens!
+                        <div key={index} className="mb-3 text-sm">
+                          <div className="flex flex-col space-y-1">
+                            <div className="flex items-start space-x-2">
+                              <span className={`font-medium text-xs ${
+                                msg.senderRole === 'creator' 
+                                  ? 'text-yellow-400' 
+                                  : msg.senderRole === 'viewer'
+                                  ? 'text-blue-400'
+                                  : 'text-gray-400'
+                              }`}>
+                                {msg.senderName}:
                               </span>
                             </div>
-                          )}
+                            <div className="pl-2">
+                              <span className="text-slate-300 text-sm break-words leading-relaxed">
+                                {msg.message}
+                              </span>
+                            </div>
+                            {msg.tipAmount > 0 && (
+                              <div className="flex items-center pl-2 mt-1">
+                                <Coins className="h-3 w-3 text-yellow-400 mr-1" />
+                                <span className="text-yellow-400 text-xs font-bold">
+                                  Tipped {msg.tipAmount} tokens!
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       ))
                     )}
