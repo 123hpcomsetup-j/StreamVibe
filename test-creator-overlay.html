@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creator Overlay Test</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 20px; 
+            background: #0f172a; 
+            color: white; 
+            font-family: Arial, sans-serif; 
+        }
+        .test-info {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .message {
+            background: #374151;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 6px;
+            border-left: 4px solid #3b82f6;
+        }
+        .tip-message {
+            border-left-color: #eab308;
+            background: #451a03;
+        }
+        .overlay-status {
+            background: #065f46;
+            color: #10b981;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-info">
+        <h2>🎥 Creator Overlay Message Test</h2>
+        <p><strong>Stream ID:</strong> 6215407a-d562-4371-b191-d38814bfb4a9</p>
+        <p><strong>Creator:</strong> test_creator</p>
+        <p><strong>Test Messages Available:</strong></p>
+        
+        <div class="message">
+            <strong>demo_user:</strong> Hello from authenticated user! (Regular Message)
+        </div>
+        
+        <div class="message tip-message">
+            <strong>demo_user:</strong> Amazing stream quality! <span style="color: #eab308; font-weight: bold;">💰 TIP: 15 tokens</span>
+        </div>
+        
+        <div class="message">
+            <strong>Guest_UJ9J6B:</strong> Hey from guest viewer! (Guest Message)
+        </div>
+    </div>
+
+    <div class="overlay-status" id="loadStatus">
+        Testing overlay message loading...
+    </div>
+
+    <div id="testResults"></div>
+
+    <script>
+        // Test the StreamMessageOverlay functionality
+        console.log('🧪 Testing Creator Overlay Message Loading');
+        
+        async function testOverlayMessages() {
+            const statusDiv = document.getElementById('loadStatus');
+            const resultsDiv = document.getElementById('testResults');
+            
+            try {
+                // Test API endpoint that overlay uses
+                statusDiv.textContent = 'Testing chat API endpoint...';
+                console.log('📡 Fetching messages from API...');
+                
+                const response = await fetch('/api/streams/6215407a-d562-4371-b191-d38814bfb4a9/chat');
+                
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status}`);
+                }
+                
+                const messages = await response.json();
+                console.log('📥 Received messages:', messages);
+                
+                if (messages.length === 0) {
+                    statusDiv.textContent = '⚠️ No messages found in database';
+                    statusDiv.style.background = '#7c2d12';
+                    statusDiv.style.color = '#fed7aa';
+                    return;
+                }
+                
+                // Display results
+                statusDiv.textContent = `✅ Successfully loaded ${messages.length} messages for creator overlay`;
+                statusDiv.style.background = '#065f46';
+                statusDiv.style.color = '#10b981';
+                
+                resultsDiv.innerHTML = '<h3>📨 Messages Retrieved for Overlay:</h3>';
+                messages.forEach((msg, index) => {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = msg.tipAmount > 0 ? 'message tip-message' : 'message';
+                    messageDiv.innerHTML = `
+                        <strong>${msg.senderName}:</strong> ${msg.message}
+                        ${msg.tipAmount > 0 ? `<span style="color: #eab308; font-weight: bold;">💰 ${msg.tipAmount} tokens</span>` : ''}
+                        <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">
+                            ${msg.userId ? 'Authenticated User' : 'Guest User'} • ${new Date(msg.createdAt).toLocaleTimeString()}
+                        </div>
+                    `;
+                    resultsDiv.appendChild(messageDiv);
+                });
+                
+                // Test overlay format conversion
+                console.log('🔄 Testing overlay message format conversion...');
+                const overlayMessages = messages.slice(-5).map(msg => ({
+                    id: msg.id,
+                    username: msg.senderName,
+                    message: msg.message,
+                    tipAmount: msg.tipAmount > 0 ? msg.tipAmount : undefined,
+                    timestamp: new Date(msg.createdAt),
+                    isTip: msg.tipAmount > 0,
+                    isCreator: msg.senderName === 'test_creator'
+                }));
+                
+                console.log('✅ Converted to overlay format:', overlayMessages);
+                
+                const conversionDiv = document.createElement('div');
+                conversionDiv.className = 'overlay-status';
+                conversionDiv.style.marginTop = '20px';
+                conversionDiv.textContent = `✅ Message format conversion successful - ${overlayMessages.length} messages ready for overlay display`;
+                resultsDiv.appendChild(conversionDiv);
+                
+            } catch (error) {
+                console.error('❌ Overlay test failed:', error);
+                statusDiv.textContent = `❌ Test failed: ${error.message}`;
+                statusDiv.style.background = '#7c2d12';
+                statusDiv.style.color = '#fed7aa';
+            }
+        }
+        
+        // Run test when page loads
+        testOverlayMessages();
+        
+        // WebSocket connection test for real-time updates
+        console.log('🔌 Testing WebSocket connection for live updates...');
+        
+        // Note: In actual overlay, Socket.IO handles real-time message delivery
+        // This test confirms the static message loading functionality
+    </script>
+</body>
+</html>

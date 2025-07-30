@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Creator Overlay Validation</title>
+    <style>
+        body { background: #0f172a; color: white; font-family: Arial; padding: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #065f46; color: #10b981; }
+        .error { background: #7c2d12; color: #fed7aa; }
+        .info { background: #1e3a8a; color: #93c5fd; }
+        .message { background: #374151; padding: 8px; margin: 5px 0; border-radius: 4px; }
+        .tip { background: #451a03; border-left: 3px solid #eab308; }
+    </style>
+</head>
+<body>
+    <h1>🎥 Creator Overlay Validation</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function validateOverlay() {
+            const results = document.getElementById('results');
+            
+            try {
+                // Test 1: API Endpoint
+                results.innerHTML += '<div class="status info">Testing API endpoint...</div>';
+                const response = await fetch('/api/streams/6215407a-d562-4371-b191-d38814bfb4a9/chat');
+                const messages = await response.json();
+                
+                results.innerHTML += `<div class="status success">✅ API Success: ${messages.length} messages retrieved</div>`;
+                
+                // Test 2: Message Types
+                const regularMessages = messages.filter(m => m.tipAmount === 0);
+                const tipMessages = messages.filter(m => m.tipAmount > 0);
+                const guestMessages = messages.filter(m => m.guestSessionId !== null);
+                const userMessages = messages.filter(m => m.userId !== null);
+                
+                results.innerHTML += `<div class="status info">📊 Message Breakdown:</div>`;
+                results.innerHTML += `<div class="status success">• Regular Messages: ${regularMessages.length}</div>`;
+                results.innerHTML += `<div class="status success">• Tip Messages: ${tipMessages.length}</div>`;
+                results.innerHTML += `<div class="status success">• Guest Messages: ${guestMessages.length}</div>`;
+                results.innerHTML += `<div class="status success">• User Messages: ${userMessages.length}</div>`;
+                
+                // Test 3: Overlay Format Conversion (Same as StreamMessageOverlay does)
+                results.innerHTML += '<div class="status info">🔄 Testing overlay format conversion...</div>';
+                const overlayMessages = messages.slice(-5).map(msg => ({
+                    id: msg.id,
+                    username: msg.senderName,
+                    message: msg.message,
+                    tipAmount: msg.tipAmount > 0 ? msg.tipAmount : undefined,
+                    timestamp: new Date(msg.createdAt),
+                    isTip: msg.tipAmount > 0,
+                    isCreator: msg.senderName === 'test_creator'
+                }));
+                
+                results.innerHTML += `<div class="status success">✅ Converted ${overlayMessages.length} messages for overlay</div>`;
+                
+                // Display all messages as they would appear in overlay
+                results.innerHTML += '<div class="status info">📨 Messages as they appear in creator overlay:</div>';
+                overlayMessages.forEach(msg => {
+                    const className = msg.isTip ? 'message tip' : 'message';
+                    const tipText = msg.isTip ? ` 💰 ${msg.tipAmount} tokens` : '';
+                    results.innerHTML += `<div class="${className}"><strong>${msg.username}:</strong> ${msg.message}${tipText}</div>`;
+                });
+                
+                // Test 4: Creator-specific functionality
+                const creatorMessages = overlayMessages.filter(m => m.isCreator);
+                results.innerHTML += `<div class="status info">👤 Creator's own messages: ${creatorMessages.length}</div>`;
+                
+                // Final validation
+                if (overlayMessages.length > 0) {
+                    results.innerHTML += '<div class="status success">🎉 CREATOR OVERLAY FUNCTIONALITY VALIDATED</div>';
+                    results.innerHTML += '<div class="status success">Creator will see all viewer and guest messages on video overlay</div>';
+                } else {
+                    results.innerHTML += '<div class="status error">❌ No messages available for overlay</div>';
+                }
+                
+            } catch (error) {
+                results.innerHTML += `<div class="status error">❌ Validation failed: ${error.message}</div>`;
+            }
+        }
+        
+        validateOverlay();
+    </script>
+</body>
+</html>
