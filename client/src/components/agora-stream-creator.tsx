@@ -347,19 +347,27 @@ export default function AgoraStreamCreator({
       } else {
         console.error('❌ No WebSocket connection available - cannot notify server of live status');
         console.error('❌ Socket details:', { exists: !!socket, connected: socket?.connected || false });
+      }
+      
+      // ALWAYS use API fallback to ensure stream goes live regardless of WebSocket status
+      try {
+        console.log('🔄 ENSURING LIVE STATUS: Updating via API PATCH (works with or without WebSocket)...');
+        const response = await fetch(`/api/streams/${streamId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ isLive: true })
+        });
         
-        // Try to update stream status via API call as fallback
-        try {
-          await fetch(`/api/streams/${streamId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ isLive: true })
-          });
-          console.log('✅ Stream status updated via API fallback');
-        } catch (apiError) {
-          console.error('❌ Failed to update stream status via API:', apiError);
+        if (response.ok) {
+          const updatedStream = await response.json();
+          console.log('✅ SUCCESS: Stream is now LIVE and visible to all viewers!', updatedStream);
+          console.log('🎯 Verification: Stream should appear on homepage immediately');
+        } else {
+          console.error('❌ API PATCH failed with status:', response.status);
         }
+      } catch (apiError) {
+        console.error('❌ Failed to update stream status via API:', apiError);
       }
 
       toast({

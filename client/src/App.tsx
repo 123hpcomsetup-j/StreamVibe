@@ -22,6 +22,24 @@ import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 import { io } from "socket.io-client";
 
+// Initialize global WebSocket connection for debugging
+const globalSocket = io(window.location.origin, {
+  path: '/socket.io',
+  transports: ['websocket', 'polling']
+});
+
+globalSocket.on('connect', () => {
+  console.log('🌐 GLOBAL: WebSocket connected to server:', globalSocket.id);
+});
+
+globalSocket.on('disconnect', () => {
+  console.log('🌐 GLOBAL: WebSocket disconnected from server');
+});
+
+globalSocket.on('connect_error', (error) => {
+  console.error('🌐 GLOBAL: WebSocket connection error:', error);
+});
+
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const typedUser = user as User | undefined;

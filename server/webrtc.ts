@@ -31,7 +31,9 @@ export function setupWebRTC(server: Server) {
   const activeViewers = new Map<string, Set<string>>();
 
   io.on('connection', (socket) => {
-    console.log(`🔗 WebSocket User connected: ${socket.id}`);
+    console.log(`🔗 NEW WEBSOCKET CONNECTION: ${socket.id}`);
+    console.log(`🌍 Client IP: ${socket.handshake.address}`);
+    console.log(`🔍 All query params:`, socket.handshake.query);
     
     // Auto-identify from query params
     const userId = socket.handshake.query.userId as string;
