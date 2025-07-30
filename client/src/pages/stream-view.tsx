@@ -395,10 +395,7 @@ export default function StreamView() {
               <div className="flex items-center space-x-4">
                 <h1 className="text-xl font-bold text-white">{typedStream?.title || 'Live Stream'}</h1>
                 <Badge className="bg-red-600 text-white">LIVE</Badge>
-                <div className="flex items-center space-x-2 text-slate-400">
-                  <Users className="h-4 w-4" />
-                  <span>{typedStream?.viewerCount || 0} viewers</span>
-                </div>
+                
               </div>
               
               <div className="flex items-center space-x-3">
