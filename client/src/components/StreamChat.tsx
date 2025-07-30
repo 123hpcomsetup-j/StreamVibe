@@ -20,6 +20,7 @@ interface ChatMessage {
   senderRole: string;
   tipAmount: number;
   timestamp: string;
+  createdAt: string;
 }
 
 interface StreamChatProps {
@@ -197,6 +198,9 @@ export function StreamChat({
                       </span>
                       <span className="text-slate-500 text-xs">
                         {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        }) : msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { 
                           hour: '2-digit', 
                           minute: '2-digit' 
                         }) : new Date().toLocaleTimeString([], { 
