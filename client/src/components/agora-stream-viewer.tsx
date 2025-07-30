@@ -53,6 +53,7 @@ export default function AgoraStreamViewer({
   const [viewerCount, setViewerCount] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [hasVideo, setHasVideo] = useState(false);
+  const [showChat, setShowChat] = useState(true);
 
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [socket, setSocket] = useState<Socket | null>(null);

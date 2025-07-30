@@ -284,7 +284,7 @@ export default function StreamView() {
             
             {isAuthenticated && (
               <div className="flex items-center space-x-4">
-                <span className="text-slate-300">Welcome, {String(displayName)}!</span>
+                <span className="text-slate-300">Welcome, {String(displayName) || 'User'}!</span>
                 <Badge className="bg-green-500 text-white">
                   <Users className="mr-1 h-3 w-3" />
                   Full Access
@@ -295,7 +295,7 @@ export default function StreamView() {
         </div>
       </div>
 
-      {/* Main Content - Full Screen Video */}
+      {/* Main Content */}
       <div className="mx-auto px-2 sm:px-4 lg:px-6 py-4">
         <div className="max-w-7xl mx-auto">
           
