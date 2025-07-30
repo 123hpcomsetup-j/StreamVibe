@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Play, Square, Video, VideoOff, Mic, MicOff, Users, Send, MessageCircle, Coins } from "lucide-react";
 import { io, Socket } from 'socket.io-client';
+import StreamMessageOverlay from "./stream-message-overlay";
 import AgoraRTC, {
   IAgoraRTCClient,
   ICameraVideoTrack,
@@ -613,6 +614,14 @@ export default function AgoraStreamCreator({
                       Stop Stream
                     </Button>
                   </div>
+
+                  {/* Message Overlay - Creator can see viewer messages */}
+                  <StreamMessageOverlay
+                    streamId={streamId}
+                    creatorName={username}
+                    stream={null}
+                    isCreator={true}
+                  />
                 </>
               )}
               

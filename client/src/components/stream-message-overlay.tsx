@@ -28,6 +28,7 @@ interface StreamMessageOverlayProps {
   guestSessionId?: string | null;
   guestTokens?: number;
   onGuestTokenUpdate?: (tokens: number) => void;
+  isCreator?: boolean;
 }
 
 interface OverlayMessage {
@@ -47,7 +48,8 @@ export default function StreamMessageOverlay({
   isGuest = false,
   guestSessionId,
   guestTokens = 0,
-  onGuestTokenUpdate
+  onGuestTokenUpdate,
+  isCreator = false
 }: StreamMessageOverlayProps) {
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
@@ -244,7 +246,8 @@ export default function StreamMessageOverlay({
     sendTipMutation.mutate({ amount: tipAmount });
   };
 
-  const canSendMessage = isGuest ? guestTokens > 0 : isAuthenticated;
+  // Creators can see messages but shouldn't send them to their own stream
+  const canSendMessage = isCreator ? false : (isGuest ? guestTokens > 0 : isAuthenticated);
   const minTip = stream?.minTip || 5;
 
   return (
@@ -284,12 +287,13 @@ export default function StreamMessageOverlay({
         </div>
       </div>
 
-      {/* Quick Action Bar - Bottom overlay */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 pointer-events-none">
-        <div className="p-4">
-          {!showMessageInput ? (
-            // Collapsed state - Quick tip buttons and message button
-            <div className="flex items-center justify-between pointer-events-auto">
+      {/* Quick Action Bar - Bottom overlay - Hidden for creators */}
+      {!isCreator && (
+        <div className="absolute bottom-0 left-0 right-0 z-30 pointer-events-none">
+          <div className="p-4">
+            {!showMessageInput ? (
+              // Collapsed state - Quick tip buttons and message button
+              <div className="flex items-center justify-between pointer-events-auto">
               {/* Quick tip buttons */}
               <div className="flex items-center space-x-2">
                 {!isGuest && (
@@ -369,8 +373,9 @@ export default function StreamMessageOverlay({
               </CardContent>
             </Card>
           )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Custom Tip Dialog */}
       <Dialog open={showTipDialog} onOpenChange={setShowTipDialog}>
