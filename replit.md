@@ -10,6 +10,9 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (July 30, 2025)
 
+**AUTHENTICATION BUTTONS REMOVED FOR LOGGED-IN USERS - Clean Dashboard Experience (July 30, 2025):**
+Removed all authentication buttons (login, signup, "Start Watching", "Become a Creator", "I Want to Watch", "I Want to Create") from authenticated user dashboards. Public home page now automatically redirects authenticated users to their appropriate dashboards: viewers to /user-dashboard, creators to /creator-dashboard, and admins to /admin-panel. Only non-authenticated users see authentication prompts and CTA buttons, creating a clean, focused experience for logged-in users without unnecessary navigation clutter.
+
 **TIP BUTTON MOVED TO VIDEO OVERLAY - Enhanced User Experience (July 30, 2025):**
 Moved tip button from side panel to video overlay for immediate access during streaming. Added quick tip buttons (Tip 5, Tip 10) with "More" button to access full token panel. Overlay buttons feature semi-transparent design with backdrop blur for professional appearance. Positioned responsively: bottom-left corner on mobile devices and top-right corner on desktop. Proper z-index layering avoids conflicts with video content. System validates user token balance before processing tips and provides instant feedback.
 

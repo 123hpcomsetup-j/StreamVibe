@@ -19,6 +19,20 @@ export default function PublicHome() {
   const [, setLocation] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
+
+  // Redirect authenticated users to their appropriate dashboards
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const typedUser = user as User;
+      if (typedUser.role === 'admin') {
+        setLocation('/admin-panel');
+      } else if (typedUser.role === 'creator') {
+        setLocation('/creator-dashboard');
+      } else if (typedUser.role === 'viewer') {
+        setLocation('/user-dashboard');
+      }
+    }
+  }, [isAuthenticated, user, setLocation]);
   
   // Dialog states
   const [showAuthDialog, setShowAuthDialog] = useState(false);
@@ -144,12 +158,14 @@ export default function PublicHome() {
   // Simply use the live streams data from React Query without socket complications
   const displayStreams = Array.isArray(liveStreams) ? liveStreams.filter((stream: any) => stream.isLive) : [];
 
+  // Don't render anything if authenticated user is being redirected
+  if (isAuthenticated && user) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Navigation - use proper Navbar component if authenticated, otherwise show simple mobile-friendly navigation */}
-      {isAuthenticated && user ? (
-        <Navbar user={user as User} />
-      ) : (
+      {/* Navigation - Only show for non-authenticated users */}
         <nav className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
@@ -188,7 +204,6 @@ export default function PublicHome() {
             </div>
           </div>
         </nav>
-      )}
 
       {/* Hero Section */}
       <div className="relative overflow-hidden">
