@@ -25,6 +25,8 @@ interface OverlayMessage {
   timestamp: Date;
   isCreator?: boolean;
   isTip?: boolean;
+  userRole?: string;
+  userType?: string;
 }
 
 export default function StreamMessageOverlay({ 
@@ -61,8 +63,10 @@ export default function StreamMessageOverlay({
         username: data.username || 'Anonymous',
         message: data.message,
         timestamp: new Date(),
-        isCreator: data.isCreator || false,
-        isTip: false
+        isCreator: data.isCreator || data.userRole === 'creator',
+        isTip: false,
+        userRole: data.userRole || 'viewer',
+        userType: data.userType || 'user'
       };
       
       setOverlayMessages(prev => [...prev.slice(-4), newMessage]); // Keep last 5 messages
@@ -82,7 +86,9 @@ export default function StreamMessageOverlay({
         tipAmount: data.amount,
         timestamp: new Date(),
         isCreator: false,
-        isTip: true
+        isTip: true,
+        userRole: data.userRole || 'viewer',
+        userType: data.userType || 'user'
       };
       
       setOverlayMessages(prev => [...prev.slice(-4), newTipMessage]); // Keep last 5 messages
@@ -127,7 +133,17 @@ export default function StreamMessageOverlay({
               <div className="flex items-center space-x-1">
                 {msg.isTip && <Gift className="h-3 w-3 text-white animate-pulse" />}
                 {msg.isCreator && <Badge className="bg-purple-700/60 text-white text-xs px-1 py-0">Creator</Badge>}
-                <span className="font-medium text-white text-xs">{msg.username}</span>
+                <span 
+                  className={`text-xs ${
+                    msg.isCreator || msg.userRole === 'creator' 
+                      ? 'font-bold text-yellow-300 drop-shadow-lg' 
+                      : msg.userRole === 'guest'
+                        ? 'font-normal text-gray-300'
+                        : 'font-medium text-blue-300'
+                  }`}
+                >
+                  {msg.username}
+                </span>
               </div>
               <p className="text-white/90 text-xs mt-0.5">{msg.message}</p>
               {msg.tipAmount && (

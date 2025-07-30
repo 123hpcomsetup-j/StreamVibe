@@ -323,6 +323,10 @@ export function setupWebRTC(server: Server) {
     socket.on('chat-message', async (data: { streamId: string, message: string, username: string, userId: string, userType?: string, guestSessionId?: string }) => {
       console.log(`Chat message received from ${data.username} (${data.userType || 'user'}):`, data.message);
       
+      let finalUsername = data.username;
+      let finalUserType = data.userType || 'user';
+      let userRole = 'viewer'; // Default role
+      
       // Validate guest session if this is a guest user
       if (data.userType === 'guest' && data.userId.startsWith('guest_')) {
         const guestSessionId = data.userId.replace('guest_', '');
@@ -349,25 +353,53 @@ export function setupWebRTC(server: Server) {
           console.log(`Guest ${guestSession.guestName} has ${(guestSession.tokensRemaining || 0) - 1} tokens remaining`);
           
           // Use guest name from session
-          data.username = guestSession.guestName || data.username;
+          finalUsername = guestSession.guestName || data.username;
+          userRole = 'guest';
         } catch (error) {
           console.error('Error validating guest session:', error);
           socket.emit('chat-error', { message: 'Guest session validation failed' });
           return;
         }
+      } else {
+        // For authenticated users, get user role from database
+        try {
+          const user = await storage.getUser(data.userId);
+          if (user) {
+            finalUsername = user.username || data.username;
+            userRole = user.role || 'viewer';
+            finalUserType = user.role || 'user';
+          }
+        } catch (error) {
+          console.error('Error fetching user details:', error);
+          // Continue with provided data if database fetch fails
+        }
+      }
+      
+      // Get stream details to check if user is the creator
+      let isCreator = false;
+      try {
+        const stream = await storage.getStreamById(data.streamId);
+        if (stream && stream.creatorId === data.userId) {
+          isCreator = true;
+          userRole = 'creator';
+        }
+      } catch (error) {
+        console.error('Error checking stream creator:', error);
       }
       
       // Broadcast to all users in the stream room (including the sender)
       const messageData = {
         message: data.message,
-        username: data.username,
+        username: finalUsername,
         userId: data.userId,
-        userType: data.userType || 'user',
+        userType: finalUserType,
+        userRole: userRole,
+        isCreator: isCreator,
         timestamp: new Date().toISOString()
       };
       
       io.to(`stream-${data.streamId}`).emit('chat-message', messageData);
-      console.log(`Broadcasting message to stream-${data.streamId} room`);
+      console.log(`Broadcasting message to stream-${data.streamId} room from ${finalUsername} (${userRole})`);
       
       // Notify the sender of successful message send
       socket.emit('chat-message-sent', { success: true });
