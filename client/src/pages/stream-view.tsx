@@ -24,7 +24,8 @@ import {
   Heart,
   Gift,
   MessageCircle,
-  Send
+  Send,
+  Phone
 } from "lucide-react";
 import type { User } from "@shared/schema";
 import AgoraStreamViewer from "@/components/agora-stream-viewer";
@@ -41,6 +42,8 @@ export default function StreamView() {
   // Simple stream state - Agora handles connections
   const [streamEnded, setStreamEnded] = useState(false);
   const [showTokenPanel, setShowTokenPanel] = useState(false);
+  const [showPrivateCallDialog, setShowPrivateCallDialog] = useState(false);
+  const [privateCallMessage, setPrivateCallMessage] = useState("");
   
   // Unauthorized user viewing restrictions
   const [viewingTimeLeft, setViewingTimeLeft] = useState(120); // 2 minutes = 120 seconds
@@ -358,6 +361,51 @@ export default function StreamView() {
 
     tipMutation.mutate({ amount });
   };
+
+  // Private call request mutation
+  const privateCallMutation = useMutation({
+    mutationFn: async (data: { creatorId: string; streamId: string; requestMessage: string }) => {
+      const response = await apiRequest("POST", "/api/private-call-requests", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      setShowPrivateCallDialog(false);
+      setPrivateCallMessage("");
+      toast({
+        title: "Private Call Requested",
+        description: "Your request has been sent to the creator.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Request Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handlePrivateCallRequest = () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Login Required",
+        description: "Please login to request private calls",
+        variant: "destructive",
+      });
+      return;
+    }
+    setShowPrivateCallDialog(true);
+  };
+
+  const submitPrivateCallRequest = () => {
+    if (!typedStream?.creatorId || !streamId) return;
+    
+    privateCallMutation.mutate({
+      creatorId: typedStream.creatorId,
+      streamId,
+      requestMessage: privateCallMessage
+    });
+  };
   
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
@@ -534,6 +582,14 @@ export default function StreamView() {
                         >
                           <Gift className="mr-1 h-3 w-3" />
                           <span className="hidden sm:inline">More</span>
+                        </Button>
+                        <Button
+                          onClick={handlePrivateCallRequest}
+                          className="bg-pink-600/90 hover:bg-pink-700 backdrop-blur-sm text-white px-2 py-2 text-xs md:text-sm md:px-3 md:py-2 md:min-w-[80px]"
+                          size="sm"
+                        >
+                          <Phone className="mr-1 h-3 w-3" />
+                          <span className="hidden sm:inline">Private</span>
                         </Button>
                       </>
                     ) : (
@@ -782,6 +838,75 @@ export default function StreamView() {
               </button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Private Call Request Dialog */}
+      <Dialog open={showPrivateCallDialog} onOpenChange={setShowPrivateCallDialog}>
+        <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center">
+              <Phone className="w-6 h-6 mr-2 text-pink-500" />
+              Request Private Call
+            </DialogTitle>
+            <DialogDescription>
+              Send a private call request to {typedStream?.creator?.username || 'Creator'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="bg-slate-700/50 p-4 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-slate-400">Cost per call</span>
+                <Badge variant="secondary" className="bg-pink-600">
+                  <Coins className="w-3 h-3 mr-1" />
+                  500 Tokens
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-400">Minimum duration</span>
+                <span className="text-sm text-white">5 minutes</span>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="callMessage">Message (Optional)</Label>
+              <Input
+                id="callMessage"
+                placeholder="Say something to the creator..."
+                value={privateCallMessage}
+                onChange={(e) => setPrivateCallMessage(e.target.value)}
+                className="bg-slate-700 border-slate-600"
+              />
+            </div>
+          </div>
+          
+          <div className="flex space-x-2 mt-6">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowPrivateCallDialog(false)}
+              className="flex-1 border-slate-600"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={submitPrivateCallRequest}
+              disabled={privateCallMutation.isPending}
+              className="flex-1 bg-pink-600 hover:bg-pink-700"
+            >
+              {privateCallMutation.isPending ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Requesting...
+                </>
+              ) : (
+                <>
+                  <Phone className="w-4 h-4 mr-2" />
+                  Send Request
+                </>
+              )}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
