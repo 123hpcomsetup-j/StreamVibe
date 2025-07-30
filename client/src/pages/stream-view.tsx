@@ -251,7 +251,8 @@ export default function StreamView() {
   }
 
   return (
-    <div className="h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col overflow-hidden">
+    <div className="h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col overflow-hidden"
+         style={{ height: '100vh' }}>
       {/* Navigation - Use proper Navbar component if authenticated, otherwise show simple navigation */}
       {isAuthenticated && typedUser ? (
         <Navbar user={typedUser} />
@@ -308,8 +309,8 @@ export default function StreamView() {
         </div>
       )}
 
-      {/* Main Content - Full Width Video */}
-      <div className="h-[80vh] overflow-hidden">
+      {/* Main Content - Full Width Video - 80% of viewport height */}
+      <div className="overflow-hidden" style={{ height: '80vh', minHeight: '80vh', maxHeight: '80vh' }}>
         {/* Video Stream - Full Container */}
         <div className="w-screen h-full bg-black overflow-hidden -mx-2 sm:-mx-4 lg:-mx-6">
             {!streamEnded && typedStream ? (

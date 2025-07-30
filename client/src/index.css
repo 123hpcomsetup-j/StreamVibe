@@ -52,6 +52,25 @@
   --ring: hsl(245, 83%, 68%);
 }
 
+/* Agora Video Full Screen Styling */
+.agora-video-container video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+/* Ensure Agora video elements take full container size */
+div[id^="agora-video-player"] {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+div[id^="agora-video-player"] video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
 @layer base {
   * {
     @apply border-border;

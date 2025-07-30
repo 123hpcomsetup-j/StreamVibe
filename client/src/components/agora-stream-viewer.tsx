@@ -515,13 +515,13 @@ export default function AgoraStreamViewer({
   }
 
   return (
-    <div className="w-full h-full flex bg-black overflow-hidden">
+    <div className="w-full h-full flex bg-black overflow-hidden" style={{ height: '100%', minHeight: '100%' }}>
       {/* Main Video Container - Desktop: left side, Mobile: full width */}
       <div className={`relative flex-1 ${showChat ? 'lg:w-2/3' : 'w-full'} min-h-0`}>
         {/* Video Stream Container */}
         <div 
           ref={videoContainerRef}
-          className="w-full h-full bg-black"
+          className="w-full h-full bg-black agora-video-container"
           style={{ 
             position: 'relative',
             width: '100%', 
