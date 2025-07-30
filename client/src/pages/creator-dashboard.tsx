@@ -133,12 +133,12 @@ export default function CreatorDashboard() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <Card className="bg-slate-800 border-slate-700">
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="bg-card border-border">
           <CardContent className="p-8 text-center">
-            <h2 className="text-2xl font-bold text-white mb-4">Access Denied</h2>
-            <p className="text-slate-300 mb-6">Please log in to access your creator dashboard.</p>
-            <Button onClick={() => window.location.href = '/creator-login'}>
+            <h2 className="text-2xl font-bold text-foreground mb-4">Access Denied</h2>
+            <p className="text-muted-foreground mb-6">Please log in to access your creator dashboard.</p>
+            <Button onClick={() => window.location.href = '/creator-login'} className="bg-primary hover:bg-primary/90">
               Go to Creator Login
             </Button>
           </CardContent>
@@ -148,23 +148,23 @@ export default function CreatorDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-background">
       <Navbar user={user as any} />
       
       <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Creator Dashboard</h1>
-          <p className="text-slate-300">Welcome back, {(user as any)?.firstName || (user as any)?.username}!</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Creator Dashboard</h1>
+          <p className="text-muted-foreground">Welcome back, {(user as any)?.firstName || (user as any)?.username}!</p>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           {/* Left Column - Streaming & Stats */}
           <div className="xl:col-span-2 space-y-8">
             {/* Main Action Card */}
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-card border-border">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-foreground flex items-center gap-2">
                   <Video className="h-6 w-6" />
                   Live Streaming
                 </CardTitle>
@@ -176,10 +176,10 @@ export default function CreatorDashboard() {
                       <Badge variant="destructive" className="animate-pulse">
                         LIVE
                       </Badge>
-                      <span className="text-white font-semibold">{currentStream.title}</span>
+                      <span className="text-foreground font-semibold">{currentStream.title}</span>
                     </div>
                     
-                    <div className="flex items-center gap-4 text-slate-300">
+                    <div className="flex items-center gap-4 text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Users className="h-4 w-4" />
                         <span>{currentStream.viewerCount} viewers</span>
@@ -193,7 +193,7 @@ export default function CreatorDashboard() {
                     <div className="flex gap-4">
                       <Button 
                         onClick={handleGoLive}
-                        className="bg-purple-600 hover:bg-purple-700"
+                        className="bg-primary hover:bg-primary/90"
                       >
                         <Video className="h-4 w-4 mr-2" />
                         Manage Live Stream
@@ -211,12 +211,12 @@ export default function CreatorDashboard() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <p className="text-slate-300">Ready to start streaming?</p>
+                    <p className="text-muted-foreground">Ready to start streaming?</p>
                     
                     <Button 
                       onClick={handleGoLive}
                       disabled={isStartingStream || startStreamMutation.isPending}
-                      className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 px-6"
+                      className="bg-primary hover:bg-primary/90 text-white font-semibold py-3 px-6"
                       size="lg"
                     >
                       <Play className="h-5 w-5 mr-2" />
@@ -230,48 +230,48 @@ export default function CreatorDashboard() {
             {/* Stats Cards */}
             {stats && (
               <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-                <Card className="bg-slate-800 border-slate-700">
+                <Card className="bg-card border-border">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-slate-400 text-xs">Token Balance</p>
-                        <p className="text-xl font-bold text-white">{(wallet as any)?.balance || 0}</p>
+                        <p className="text-muted-foreground text-xs">Token Balance</p>
+                        <p className="text-xl font-bold text-foreground">{(wallet as any)?.balance || 0}</p>
                       </div>
                       <DollarSign className="h-6 w-6 text-yellow-500" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-slate-800 border-slate-700">
+                <Card className="bg-card border-border">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-slate-400 text-xs">Total Earnings</p>
-                        <p className="text-xl font-bold text-white">{stats.totalEarnings}</p>
+                        <p className="text-muted-foreground text-xs">Total Earnings</p>
+                        <p className="text-xl font-bold text-foreground">{stats.totalEarnings}</p>
                       </div>
                       <DollarSign className="h-6 w-6 text-green-500" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-slate-800 border-slate-700">
+                <Card className="bg-card border-border">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-slate-400 text-xs">Tips Received</p>
-                        <p className="text-xl font-bold text-white">{stats.totalTips}</p>
+                        <p className="text-muted-foreground text-xs">Tips Received</p>
+                        <p className="text-xl font-bold text-foreground">{stats.totalTips}</p>
                       </div>
                       <Gift className="h-6 w-6 text-yellow-500" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-slate-800 border-slate-700">
+                <Card className="bg-card border-border">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-slate-400 text-xs">Total Viewers</p>
-                        <p className="text-xl font-bold text-white">{stats.totalViewers}</p>
+                        <p className="text-muted-foreground text-xs">Total Viewers</p>
+                        <p className="text-xl font-bold text-foreground">{stats.totalViewers}</p>
                       </div>
                       <Users className="h-6 w-6 text-blue-500" />
                     </div>

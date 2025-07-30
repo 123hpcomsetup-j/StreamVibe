@@ -138,55 +138,20 @@ export default function Navbar({ user }: NavbarProps) {
 
   const navItems = getNavItems();
   
-  // Get theme colors based on user role
-  const getThemeColors = () => {
-    switch (user?.role) {
-      case 'creator':
-        return {
-          bg: 'bg-purple-900',
-          border: 'border-purple-800',
-          text: 'text-purple-200',
-          textHover: 'hover:text-white',
-          textActive: 'text-white',
-          bgActive: 'bg-purple-800',
-          searchBg: 'bg-purple-800',
-          searchBorder: 'border-purple-700',
-          searchFocus: 'focus:border-purple-500',
-          badgeBg: 'bg-purple-600',
-          logoColor: 'text-purple-400'
-        };
-      case 'viewer':
-        return {
-          bg: 'bg-blue-900',
-          border: 'border-blue-800', 
-          text: 'text-blue-200',
-          textHover: 'hover:text-white',
-          textActive: 'text-white',
-          bgActive: 'bg-blue-800',
-          searchBg: 'bg-blue-800',
-          searchBorder: 'border-blue-700',
-          searchFocus: 'focus:border-blue-500',
-          badgeBg: 'bg-blue-600',
-          logoColor: 'text-blue-400'
-        };
-      default:
-        return {
-          bg: 'bg-slate-800',
-          border: 'border-slate-700',
-          text: 'text-slate-300',
-          textHover: 'hover:text-white',
-          textActive: 'text-white',
-          bgActive: 'bg-slate-700',
-          searchBg: 'bg-slate-700',
-          searchBorder: 'border-slate-600',
-          searchFocus: 'focus:border-primary',
-          badgeBg: 'bg-slate-600',
-          logoColor: 'text-primary'
-        };
-    }
+  // Consistent white and black theme for all users
+  const theme = {
+    bg: 'bg-white',
+    border: 'border-border',
+    text: 'text-muted-foreground',
+    textHover: 'hover:text-foreground',
+    textActive: 'text-foreground',
+    bgActive: 'bg-primary',
+    searchBg: 'bg-background',
+    searchBorder: 'border-input',
+    searchFocus: 'focus:border-primary',
+    badgeBg: 'bg-primary',
+    logoColor: 'text-primary'
   };
-
-  const theme = getThemeColors();
 
   return (
     <nav className={`${theme.bg} border-b ${theme.border} sticky top-0 z-50`}>
@@ -197,8 +162,8 @@ export default function Navbar({ user }: NavbarProps) {
               <Link href={user?.role === 'admin' ? '/admin-panel' : user?.role === 'creator' ? '/creator-dashboard' : '/user-dashboard'}>
                 <div className="flex items-center space-x-1.5 sm:space-x-2 cursor-pointer">
                   <Video className={`h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 ${theme.logoColor}`} />
-                  <span className="text-lg sm:text-xl lg:text-2xl font-bold text-white">StreamVibe</span>
-                  <Badge variant="secondary" className={`${theme.badgeBg} text-white border-${user?.role === 'creator' ? 'purple' : user?.role === 'viewer' ? 'blue' : 'slate'}-500 hidden sm:flex text-xs`}>
+                  <span className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">StreamVibe</span>
+                  <Badge variant="secondary" className={`${theme.badgeBg} text-primary-foreground hidden sm:flex text-xs`}>
                     {user?.role === 'creator' ? 'Creator' : user?.role === 'viewer' ? 'Viewer' : 'User'}
                   </Badge>
                 </div>
@@ -215,7 +180,7 @@ export default function Navbar({ user }: NavbarProps) {
                   return (
                     <Link key={item.href} href={item.href}>
                       <div className={`${theme.text} ${theme.textHover} px-2 xl:px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center cursor-pointer ${
-                        isActive ? `${theme.bgActive} ${theme.textActive}` : ''
+                        isActive ? `${theme.bgActive} text-primary-foreground` : ''
                       }`}>
                         <Icon className="mr-1.5 xl:mr-2 h-3.5 w-3.5 xl:h-4 xl:w-4" />
                         <span className="hidden xl:inline">{item.label}</span>

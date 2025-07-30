@@ -308,45 +308,45 @@ export default function UserDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white">Loading...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-foreground">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Navigation */}
       {typedUser && <Navbar user={typedUser} />}
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Welcome Section */}
         <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white to-purple-400 bg-clip-text text-transparent">
+          <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
             Welcome back, {typedUser?.firstName || typedUser?.username}!
           </h2>
-          <p className="text-slate-400">
+          <p className="text-muted-foreground">
             Discover amazing live streams and support your favorite creators
           </p>
         </div>
 
         <Tabs defaultValue="streams" className="space-y-4">
-          <TabsList className="bg-slate-800/50 border border-slate-700 w-full justify-start overflow-x-auto scrollbar-hide">
-            <TabsTrigger value="streams" className="data-[state=active]:bg-purple-600 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-4">
+          <TabsList className="bg-card border border-border w-full justify-start overflow-x-auto scrollbar-hide">
+            <TabsTrigger value="streams" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex-shrink-0 text-xs sm:text-sm px-2 sm:px-4">
               <Video className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Live Streams</span>
               <span className="sm:hidden">Streams</span>
             </TabsTrigger>
-            <TabsTrigger value="activity" className="data-[state=active]:bg-purple-600 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-4">
+            <TabsTrigger value="activity" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex-shrink-0 text-xs sm:text-sm px-2 sm:px-4">
               <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">My Activity</span>
               <span className="sm:hidden">Activity</span>
             </TabsTrigger>
-            <TabsTrigger value="profile" className="data-[state=active]:bg-purple-600 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-4">
+            <TabsTrigger value="profile" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex-shrink-0 text-xs sm:text-sm px-2 sm:px-4">
               <UserIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               <span>Profile</span>
             </TabsTrigger>
-            <TabsTrigger value="wallet" className="data-[state=active]:bg-purple-600 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-4">
+            <TabsTrigger value="wallet" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex-shrink-0 text-xs sm:text-sm px-2 sm:px-4">
               <Wallet className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               <span>Wallet</span>
             </TabsTrigger>
@@ -367,11 +367,11 @@ export default function UserDashboard() {
             {streamsLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[1, 2, 3].map((i) => (
-                  <Card key={i} className="bg-slate-800/50 border-slate-700 animate-pulse">
+                  <Card key={i} className="bg-card border-border animate-pulse">
                     <CardContent className="p-6">
-                      <div className="h-40 bg-slate-700 rounded mb-4"></div>
-                      <div className="h-4 bg-slate-700 rounded mb-2"></div>
-                      <div className="h-3 bg-slate-700 rounded w-2/3"></div>
+                      <div className="h-40 bg-muted rounded mb-4"></div>
+                      <div className="h-4 bg-muted rounded mb-2"></div>
+                      <div className="h-3 bg-muted rounded w-2/3"></div>
                     </CardContent>
                   </Card>
                 ))}
@@ -379,11 +379,11 @@ export default function UserDashboard() {
             ) : typedStreams.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {typedStreams.map((stream: any) => (
-                  <Card key={stream.id} className="bg-slate-800/50 border-slate-700 hover:border-purple-500 transition-all transform hover:scale-105 group">
+                  <Card key={stream.id} className="bg-card border-border hover:border-primary transition-all transform hover:scale-105 group">
                     <CardContent className="p-0">
                       {/* Stream Thumbnail */}
                       <div className="relative overflow-hidden">
-                        <div className="h-48 bg-gradient-to-br from-purple-600 via-pink-600 to-purple-600 flex items-center justify-center relative overflow-hidden">
+                        <div className="h-48 bg-gradient-to-br from-primary via-blue-600 to-primary flex items-center justify-center relative overflow-hidden">
                           {stream.creatorProfileImage ? (
                             <img 
                               src={stream.creatorProfileImage} 

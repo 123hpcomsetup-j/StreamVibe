@@ -256,10 +256,10 @@ export default function CreatorLiveStudio() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-semibold mb-4 text-white">Loading...</h1>
-          <p className="text-slate-400">Checking authentication...</p>
+          <h1 className="text-2xl font-semibold mb-4 text-foreground">Loading...</h1>
+          <p className="text-muted-foreground">Checking authentication...</p>
         </div>
       </div>
     );
@@ -267,11 +267,11 @@ export default function CreatorLiveStudio() {
 
   if (!streamId) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-semibold mb-4 text-white">Stream Not Found</h1>
-          <p className="text-slate-400 mb-4">No stream ID provided. Please create a stream first.</p>
-          <Button onClick={() => setLocation('/creator-dashboard')} className="bg-purple-600 hover:bg-purple-700">
+          <h1 className="text-2xl font-semibold mb-4 text-foreground">Stream Not Found</h1>
+          <p className="text-muted-foreground mb-4">No stream ID provided. Please create a stream first.</p>
+          <Button onClick={() => setLocation('/creator-dashboard')} className="bg-primary hover:bg-primary/90">
             Back to Dashboard
           </Button>
         </div>
@@ -280,15 +280,15 @@ export default function CreatorLiveStudio() {
   }
 
   return (
-    <div className="h-screen bg-black flex flex-col">
+    <div className="h-screen bg-background flex flex-col">
       {/* Status Bar */}
-      <div className="bg-slate-900 px-4 py-2 flex items-center justify-between border-b border-slate-700">
+      <div className="bg-card px-4 py-2 flex items-center justify-between border-b border-border">
         <div className="flex items-center space-x-4">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setLocation('/creator-dashboard')}
-            className="text-white hover:bg-slate-700"
+            className="text-foreground hover:bg-muted"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Dashboard
@@ -298,7 +298,7 @@ export default function CreatorLiveStudio() {
             {isStreaming ? 'LIVE' : 'OFFLINE'}
           </Badge>
           
-          <span className="text-white font-medium">Creator Studio</span>
+          <span className="text-foreground font-medium">Creator Studio</span>
         </div>
 
         <div className="flex items-center space-x-4">

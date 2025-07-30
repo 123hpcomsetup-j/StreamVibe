@@ -164,9 +164,9 @@ export default function PublicHome() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-background">
       {/* Navigation - Only show for non-authenticated users */}
-        <nav className="bg-slate-800 border-b border-slate-700 sticky top-0 z-50">
+        <nav className="bg-white border-b border-border sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
             <div className="flex items-center justify-between h-14 sm:h-16">
               <div className="flex items-center flex-1">
@@ -176,17 +176,17 @@ export default function PublicHome() {
                     className="flex items-center space-x-1.5 sm:space-x-2 cursor-pointer"
                   >
                     <Video className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-primary" />
-                    <span className="text-lg sm:text-xl lg:text-2xl font-bold text-white">StreamVibe</span>
+                    <span className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">StreamVibe</span>
                   </button>
                 </div>
                 
                 {/* Desktop Search */}
                 <div className="hidden lg:block ml-6 xl:ml-10 flex-1 max-w-lg">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search streams, creators..."
-                      className="bg-slate-700 border-slate-600 focus:border-primary pl-10"
+                      className="bg-background border-input focus:border-primary pl-10"
                     />
                   </div>
                 </div>
@@ -201,7 +201,7 @@ export default function PublicHome() {
                     setIsLoginMode(true);
                     setShowAuthDialog(true);
                   }}
-                  className="text-slate-300 hover:text-white"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   <LogIn className="w-4 h-4 mr-2" />
                   Login
@@ -212,7 +212,7 @@ export default function PublicHome() {
                     setIsLoginMode(false);
                     setShowAuthDialog(true);
                   }}
-                  className="bg-primary hover:bg-primary/80"
+                  className="bg-primary hover:bg-primary/90"
                 >
                   <UserPlus className="w-4 h-4 mr-2" />
                   Sign Up
@@ -225,7 +225,7 @@ export default function PublicHome() {
                   variant="ghost" 
                   size="sm"
                   onClick={() => setShowAuthDialog(true)}
-                  className="text-slate-300 hover:text-white"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   <Menu className="h-5 w-5" />
                 </Button>
@@ -238,33 +238,33 @@ export default function PublicHome() {
       <div className="relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
+            <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6">
               Live Streaming 
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary"> Community</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-600"> Community</span>
             </h1>
-            <p className="text-xl text-slate-300 mb-8 max-w-3xl mx-auto">
+            <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
               Join thousands of creators and viewers in real-time streaming experiences. Watch live content, chat with creators, and be part of an amazing community.
             </p>
             
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 max-w-2xl mx-auto">
-              <div className="bg-slate-800/50 rounded-lg p-4">
+              <div className="bg-card border border-border rounded-lg p-4">
                 <div className="text-2xl font-bold text-primary mb-1">
                   {displayStreams.length}
                 </div>
-                <div className="text-slate-400 text-sm">Live Streams</div>
+                <div className="text-muted-foreground text-sm">Live Streams</div>
               </div>
-              <div className="bg-slate-800/50 rounded-lg p-4">
+              <div className="bg-card border border-border rounded-lg p-4">
                 <div className="text-2xl font-bold text-green-500 mb-1">
                   {onlineCreators.length}
                 </div>
-                <div className="text-slate-400 text-sm">Online Creators</div>
+                <div className="text-muted-foreground text-sm">Online Creators</div>
               </div>
-              <div className="bg-slate-800/50 rounded-lg p-4">
+              <div className="bg-card border border-border rounded-lg p-4">
                 <div className="text-2xl font-bold text-blue-500 mb-1">
                   {Array.isArray(onlineUsers) ? onlineUsers.length : 0}
                 </div>
-                <div className="text-slate-400 text-sm">Active Users</div>
+                <div className="text-muted-foreground text-sm">Active Users</div>
               </div>
             </div>
 
