@@ -251,7 +251,7 @@ export default function StreamView() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col overflow-hidden">
       {/* Navigation - Use proper Navbar component if authenticated, otherwise show simple navigation */}
       {isAuthenticated && typedUser ? (
         <Navbar user={typedUser} />
@@ -308,12 +308,10 @@ export default function StreamView() {
         </div>
       )}
 
-      {/* Main Content */}
-      <div className="mx-auto px-2 sm:px-4 lg:px-6 py-4">
-        <div className="max-w-7xl mx-auto">
-          
-          {/* Video Stream - Full Screen Container */}
-          <div className="w-full h-[80vh] lg:h-[70vh] bg-black rounded-lg overflow-hidden">
+      {/* Main Content - Full Screen Video */}
+      <div className="flex-1 overflow-hidden">
+        {/* Video Stream - Full Screen Container */}
+        <div className="w-full h-full bg-black overflow-hidden">
             {!streamEnded && typedStream ? (
               <AgoraStreamViewer
                 streamId={typedStream.id}
@@ -344,7 +342,6 @@ export default function StreamView() {
                 </CardContent>
               </Card>
             )}
-          </div>
         </div>
       </div>
 
