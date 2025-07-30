@@ -401,28 +401,7 @@ export default function StreamView() {
             )}
           </div>
 
-          {/* Stream Info Bar */}
-          <div className="bg-slate-800 border-t border-slate-700 p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <h1 className="text-xl font-bold text-white">{typedStream?.title || 'Live Stream'}</h1>
-                
-              </div>
-              
-              <div className="flex items-center space-x-3">
-                {!isAuthenticated && !viewingBlocked && (
-                  <div className="flex items-center space-x-2 bg-slate-700 px-3 py-2 rounded-lg">
-                    <Clock className="h-4 w-4 text-yellow-500" />
-                    <span className="text-white text-sm">
-                      {formatTime(viewingTimeLeft)} remaining
-                    </span>
-                  </div>
-                )}
-                
-                
-              </div>
-            </div>
-          </div>
+          
         </div>
 
         {/* Token Panel */}
