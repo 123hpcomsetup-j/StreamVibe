@@ -276,10 +276,10 @@ export default function PublicHome() {
                   setIsLoginMode(false);
                   setShowAuthDialog(true);
                 }}
-                className="bg-primary hover:bg-primary/80 text-lg px-8 py-3"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-lg font-semibold shadow-lg border border-primary/20"
               >
-                <Play className="mr-2 h-5 w-5" />
-                Start Watching
+                <Play className="mr-3 h-6 w-6" />
+                I Want to Watch
               </Button>
               <Button 
                 size="lg" 
@@ -289,10 +289,10 @@ export default function PublicHome() {
                   setIsLoginMode(false);
                   setShowAuthDialog(true);
                 }}
-                className="border-primary text-primary hover:bg-primary hover:text-white text-lg px-8 py-3"
+                className="border-2 border-primary bg-background text-primary hover:bg-primary hover:text-primary-foreground px-8 py-4 text-lg font-semibold shadow-lg"
               >
-                <Video className="mr-2 h-5 w-5" />
-                Become a Creator
+                <Video className="mr-3 h-6 w-6" />
+                I Want to Create
               </Button>
             </div>
           </div>
@@ -300,10 +300,10 @@ export default function PublicHome() {
       </div>
 
       {/* Live Streams Section */}
-      <div className="py-16 bg-slate-800/30">
+      <div className="py-16 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-3xl font-bold text-white">Live Now</h2>
+            <h2 className="text-3xl font-bold text-foreground">Live Now</h2>
             <Button 
               variant="outline" 
               onClick={() => {
@@ -311,7 +311,7 @@ export default function PublicHome() {
                 setIsLoginMode(true);
                 setShowAuthDialog(true);
               }}
-              className="border-slate-600 text-slate-300 hover:bg-slate-700"
+              className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
             >
               View All <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
@@ -320,29 +320,32 @@ export default function PublicHome() {
           {streamsLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(6)].map((_, i) => (
-                <Card key={i} className="bg-slate-800 animate-pulse">
-                  <div className="aspect-video bg-slate-700 rounded-t-lg"></div>
+                <Card key={i} className="bg-card border-border animate-pulse">
+                  <div className="aspect-video bg-muted rounded-t-lg"></div>
                   <CardContent className="p-4">
-                    <div className="h-4 bg-slate-700 rounded mb-2"></div>
-                    <div className="h-3 bg-slate-700 rounded w-2/3"></div>
+                    <div className="h-4 bg-muted rounded mb-2"></div>
+                    <div className="h-3 bg-muted rounded w-2/3"></div>
                   </CardContent>
                 </Card>
               ))}
             </div>
           ) : displayStreams.length === 0 ? (
-            <div className="text-center py-12">
-              <Video className="h-16 w-16 text-slate-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-slate-300 mb-2">No Live Streams</h3>
-              <p className="text-slate-400 mb-6">Be the first to start streaming today!</p>
-              <Button onClick={() => setLocation("/creator-login")}>
+            <div className="text-center py-12 bg-card rounded-lg border border-border">
+              <Video className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-foreground mb-2">No Live Streams</h3>
+              <p className="text-muted-foreground mb-6">Be the first to start streaming today!</p>
+              <Button 
+                onClick={() => setLocation("/creator-login")}
+                className="bg-primary hover:bg-primary/90"
+              >
                 Start Your Stream
               </Button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {displayStreams.slice(0, 6).map((stream: any) => (
-                <Card key={stream.id} className="bg-slate-800 border-slate-700 hover:bg-slate-800/80 transition-colors cursor-pointer group">
-                  <div className="aspect-video relative bg-slate-700 rounded-t-lg flex items-center justify-center overflow-hidden">
+                <Card key={stream.id} className="bg-card border-border hover:shadow-lg transition-all duration-200 cursor-pointer group">
+                  <div className="aspect-video relative bg-muted rounded-t-lg flex items-center justify-center overflow-hidden">
                     {/* Creator Profile Image as Thumbnail */}
                     {stream.creatorProfileImage ? (
                       <img 
@@ -352,33 +355,33 @@ export default function PublicHome() {
                       />
                     ) : (
                       <div className="text-center">
-                        <Video className="h-12 w-12 text-slate-400 mx-auto mb-2" />
-                        <p className="text-slate-300 text-sm font-medium">Live Stream</p>
-                        <p className="text-slate-500 text-xs">Click to watch</p>
+                        <Video className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-foreground text-sm font-medium">Live Stream</p>
+                        <p className="text-muted-foreground text-xs">Click to watch</p>
                       </div>
                     )}
                     
                     <div className="absolute top-3 left-3">
-                      <Badge className="bg-red-500 text-white">
+                      <Badge className="bg-red-500 text-white border-0">
                         <div className="w-1.5 h-1.5 bg-white rounded-full mr-1 animate-pulse"></div>
                         LIVE
                       </Badge>
                     </div>
                     <div className="absolute top-3 right-3">
-                      <Badge variant="secondary" className="bg-black/50 text-white">
+                      <Badge variant="secondary" className="bg-background/80 text-foreground border border-border">
                         <Users className="mr-1 h-3 w-3" />
                         {stream.viewerCount || 0}
                       </Badge>
                     </div>
                     
                     {/* Hover overlay */}
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute inset-0 bg-primary/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <Button 
                         onClick={() => {
                           // Navigate to stream view as guest
                           setLocation(`/stream/${stream.id}`);
                         }}
-                        className="bg-primary hover:bg-primary/80"
+                        className="bg-background text-primary hover:bg-background/90 border border-primary"
                       >
                         <Play className="mr-2 h-4 w-4" />
                         Watch Stream
@@ -387,7 +390,7 @@ export default function PublicHome() {
                   </div>
                   <CardContent className="p-4">
                     <div className="flex items-center space-x-3 mb-3">
-                      <div className="w-12 h-12 bg-slate-600 rounded-full flex items-center justify-center overflow-hidden">
+                      <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center overflow-hidden">
                         {stream.creatorProfileImage ? (
                           <img 
                             src={stream.creatorProfileImage} 
@@ -395,12 +398,12 @@ export default function PublicHome() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <Video className="h-6 w-6 text-slate-400" />
+                          <Video className="h-6 w-6 text-muted-foreground" />
                         )}
                       </div>
                       <div>
-                        <h4 className="font-semibold text-white">{stream.title}</h4>
-                        <p className="text-slate-400 text-sm">
+                        <h4 className="font-semibold text-foreground">{stream.title}</h4>
+                        <p className="text-muted-foreground text-sm">
                           {stream.creatorFirstName && stream.creatorLastName 
                             ? `${stream.creatorFirstName} ${stream.creatorLastName}` 
                             : stream.creatorName} • {stream.category}
@@ -408,11 +411,11 @@ export default function PublicHome() {
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-accent text-sm font-medium">
+                      <span className="text-primary text-sm font-medium">
                         <Coins className="mr-1 h-3 w-3 inline" />
                         Min: {stream.minTip || 5} tokens
                       </span>
-                      <span className="text-slate-400 text-sm">
+                      <span className="text-muted-foreground text-sm">
                         <Users className="mr-1 h-3 w-3 inline" />
                         {stream.viewerCount || 0} watching
                       </span>
@@ -426,17 +429,17 @@ export default function PublicHome() {
       </div>
 
       {/* Online Creators Section */}
-      <div className="py-16">
+      <div className="py-16 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-3xl font-bold text-white flex items-center">
-              <Users className="mr-3 h-8 w-8 text-green-500" />
+            <h2 className="text-3xl font-bold text-foreground flex items-center">
+              <Users className="mr-3 h-8 w-8 text-primary" />
               Online Creators ({onlineCreators.length})
             </h2>
             <Button 
               variant="outline" 
               onClick={() => setLocation("/user-login")}
-              className="border-slate-600 text-slate-300 hover:bg-slate-700"
+              className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
             >
               Join Community <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
@@ -445,57 +448,60 @@ export default function PublicHome() {
           {usersLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {[...Array(12)].map((_, i) => (
-                <Card key={i} className="bg-slate-800 animate-pulse">
+                <Card key={i} className="bg-card border-border animate-pulse">
                   <CardContent className="p-4 text-center">
-                    <div className="w-16 h-16 bg-slate-700 rounded-full mx-auto mb-3"></div>
-                    <div className="h-4 bg-slate-700 rounded mb-2"></div>
-                    <div className="h-3 bg-slate-700 rounded w-2/3 mx-auto"></div>
+                    <div className="w-16 h-16 bg-muted rounded-full mx-auto mb-3"></div>
+                    <div className="h-4 bg-muted rounded mb-2"></div>
+                    <div className="h-3 bg-muted rounded w-2/3 mx-auto"></div>
                   </CardContent>
                 </Card>
               ))}
             </div>
           ) : onlineCreators.length === 0 ? (
-            <div className="text-center py-12">
-              <Users className="h-16 w-16 text-slate-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-slate-300 mb-2">No Creators Online</h3>
-              <p className="text-slate-400 mb-6">Check back later or become a creator yourself!</p>
-              <Button onClick={() => setLocation("/creator-login")}>
+            <div className="text-center py-12 bg-card rounded-lg border border-border">
+              <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-foreground mb-2">No Creators Online</h3>
+              <p className="text-muted-foreground mb-6">Check back later or become a creator yourself!</p>
+              <Button 
+                onClick={() => setLocation("/creator-login")}
+                className="bg-primary hover:bg-primary/90"
+              >
                 Start Creating
               </Button>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {onlineCreators.map((creator: any) => (
-                <Card key={creator.id} className="bg-slate-800 border-slate-700 hover:bg-slate-800/80 transition-colors">
+                <Card key={creator.id} className="bg-card border-border hover:shadow-lg transition-all duration-200">
                   <CardContent className="p-4 text-center">
                     <div className="relative w-16 h-16 mx-auto mb-3">
                       {creator.profileImageUrl ? (
                         <img 
                           src={creator.profileImageUrl}
                           alt={`${creator.firstName || creator.username || 'Creator'}'s profile`}
-                          className="w-full h-full rounded-full object-cover border-2 border-purple-500"
+                          className="w-full h-full rounded-full object-cover border-2 border-primary"
                         />
                       ) : (
-                        <div className="w-full h-full rounded-full bg-slate-600 border-2 border-purple-500 flex items-center justify-center">
-                          <Users className="h-8 w-8 text-slate-400" />
+                        <div className="w-full h-full rounded-full bg-muted border-2 border-primary flex items-center justify-center">
+                          <Users className="h-8 w-8 text-muted-foreground" />
                         </div>
                       )}
-                      <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 border-slate-800 rounded-full animate-pulse"></div>
+                      <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 border-background rounded-full animate-pulse"></div>
                     </div>
                     
                     <div className="space-y-1">
-                      <h4 className="font-medium text-white text-sm truncate">
+                      <h4 className="font-medium text-foreground text-sm truncate">
                         {creator.firstName && creator.lastName 
                           ? `${creator.firstName} ${creator.lastName}` 
                           : creator.username || 'Creator'}
                       </h4>
                       <Badge 
                         variant="outline" 
-                        className="text-xs border-purple-500 text-purple-400"
+                        className="text-xs border-primary text-primary"
                       >
                         creator
                       </Badge>
-                      <div className="flex items-center justify-center text-xs text-green-400">
+                      <div className="flex items-center justify-center text-xs text-green-500">
                         <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1"></div>
                         Online
                       </div>
@@ -509,12 +515,12 @@ export default function PublicHome() {
       </div>
 
       {/* CTA Section */}
-      <div className="py-16 bg-slate-800/50">
+      <div className="py-16 bg-muted/50">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-white mb-4">
+          <h2 className="text-3xl font-bold text-foreground mb-4">
             Ready to Join StreamVibe?
           </h2>
-          <p className="text-xl text-slate-300 mb-8">
+          <p className="text-xl text-muted-foreground mb-8">
             Choose your path: watch amazing content or start creating your own
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -525,19 +531,22 @@ export default function PublicHome() {
                 setIsLoginMode(false);
                 setShowAuthDialog(true);
               }}
-              className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-3"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-lg font-semibold shadow-lg border border-primary/20"
             >
+              <Play className="mr-3 h-6 w-6" />
               I Want to Watch
             </Button>
             <Button 
               size="lg" 
+              variant="outline"
               onClick={() => {
                 setAuthData({ ...authData, role: "creator" });
                 setIsLoginMode(false);
                 setShowAuthDialog(true);
               }}
-              className="bg-purple-600 hover:bg-purple-700 text-lg px-8 py-3"
+              className="border-2 border-primary bg-background text-primary hover:bg-primary hover:text-primary-foreground px-8 py-4 text-lg font-semibold shadow-lg"
             >
+              <Video className="mr-3 h-6 w-6" />
               I Want to Create
             </Button>
           </div>
@@ -545,11 +554,11 @@ export default function PublicHome() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-slate-900 border-t border-slate-700">
+      <footer className="bg-card border-t border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
             <h3 className="text-2xl font-bold text-primary mb-4">StreamVibe</h3>
-            <p className="text-slate-400 mb-4">
+            <p className="text-muted-foreground mb-4">
               The future of live streaming and creator economy
             </p>
             <div className="flex justify-center space-x-6">
@@ -560,7 +569,7 @@ export default function PublicHome() {
                   setIsLoginMode(false);
                   setShowAuthDialog(true);
                 }}
-                className="text-slate-400 hover:text-white"
+                className="text-muted-foreground hover:text-primary"
               >
                 Watch Streams
               </Button>
