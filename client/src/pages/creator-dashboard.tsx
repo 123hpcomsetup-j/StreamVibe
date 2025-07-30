@@ -159,12 +159,19 @@ export default function CreatorDashboard() {
     if (stream && stream.isLive) {
       setIsStreaming(true);
       setStreamKey(stream.id || '');
-      setStreamData({
-        title: stream.title || "",
-        category: stream.category || "Art & Design",
-        minTip: stream.minTip || 5,
-        tokenPrice: stream.tokenPrice || 1,
-        privateRate: stream.privateRate || 20
+      setStreamData(prev => {
+        const newData = {
+          title: stream.title || "",
+          category: stream.category || "Art & Design",
+          minTip: stream.minTip || 5,
+          tokenPrice: stream.tokenPrice || 1,
+          privateRate: stream.privateRate || 20
+        };
+        // Only update if values are actually different
+        if (JSON.stringify(prev) !== JSON.stringify(newData)) {
+          return newData;
+        }
+        return prev;
       });
     } else {
       setIsStreaming(false);
@@ -181,7 +188,13 @@ export default function CreatorDashboard() {
   // Update local state when creator tips are loaded
   useEffect(() => {
     if (creatorTips && Array.isArray(creatorTips)) {
-      setCustomTips(creatorTips);
+      setCustomTips(prev => {
+        // Only update if the data is actually different
+        if (JSON.stringify(prev) !== JSON.stringify(creatorTips)) {
+          return creatorTips;
+        }
+        return prev;
+      });
     }
   }, [creatorTips]);
 
@@ -394,18 +407,17 @@ export default function CreatorDashboard() {
 
   const handleGoLive = () => {
     const stream = currentStream as any;
-    if (stream?.isLive) {
-      toast({
-        title: "Already Live",
-        description: "You are already broadcasting.",
-      });
-      return;
-    }
-
-    // If we have a stream, open Agora modal directly
+    
+    // If we have a stream (live or not), open Agora modal directly
     if (stream?.id) {
       setStreamKey(stream.id);
       setShowAgoraModal(true);
+      if (stream?.isLive) {
+        toast({
+          title: "Live Studio Opened",
+          description: "You are currently broadcasting. Use the studio to manage your stream.",
+        });
+      }
     } else {
       // Create stream first, then open Agora modal
       if (!streamData.title.trim()) {

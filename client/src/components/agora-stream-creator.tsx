@@ -48,7 +48,7 @@ export default function AgoraStreamCreator({
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Initialize Agora client
+  // Initialize Agora client and check if stream is already live
   useEffect(() => {
     const client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
     clientRef.current = client;
@@ -87,10 +87,37 @@ export default function AgoraStreamCreator({
       console.log("📶 Creator network quality:", stats);
     });
 
+    // Check if this stream is already live and auto-start if needed
+    const checkStreamStatus = async () => {
+      try {
+        const response = await fetch('/api/streams/current', {
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const currentStream = await response.json();
+          if (currentStream && currentStream.isLive && currentStream.id === streamId) {
+            console.log('🔴 DETECTED EXISTING LIVE STREAM - Auto-starting');
+            setIsStreaming(true);
+            setShowPreview(true);
+            toast({
+              title: "Live Stream Detected",
+              description: "Your stream is currently live. Click 'Preview' to see your camera.",
+            });
+          }
+        }
+      } catch (error) {
+        console.log('Could not check stream status:', error);
+      }
+    };
+
+    if (streamId) {
+      checkStreamStatus();
+    }
+
     return () => {
       stopStreaming();
     };
-  }, []);
+  }, [streamId]);
 
   // Setup chat WebSocket connection - connect immediately, not just when streaming
   useEffect(() => {
