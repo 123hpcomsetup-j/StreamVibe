@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { 
@@ -15,10 +17,10 @@ import {
   UserPlus,
   LogIn,
   Coins,
-  X
+  X,
+  Lock,
+  Clock
 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import type { User } from "@shared/schema";
 import AgoraStreamViewer from "@/components/agora-stream-viewer";
 import StreamTokenPanel from "@/components/stream-token-panel";
@@ -35,24 +37,20 @@ export default function StreamView() {
   const [streamEnded, setStreamEnded] = useState(false);
   const [showTokenPanel, setShowTokenPanel] = useState(false);
   
-
+  // Unauthorized user viewing restrictions
+  const [viewingTimeLeft, setViewingTimeLeft] = useState(120); // 2 minutes = 120 seconds
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [loginModalClosed, setLoginModalClosed] = useState(false);
+  const [viewingBlocked, setViewingBlocked] = useState(false);
   
-  // Dialog states
-  const [showSignupDialog, setShowSignupDialog] = useState(false);
-  const [showLoginDialog, setShowLoginDialog] = useState(false);
-  const [loginData, setLoginData] = useState({ username: '', password: '' });
-  
-  // For other live streams section
-  const { data: otherStreams } = useQuery({
-    queryKey: ['/api/streams/live'],
-    refetchInterval: 10000 // Refresh every 10 seconds
-  });
-  
-  const [signupData, setSignupData] = useState({
+  // Login form state
+  const [loginForm, setLoginForm] = useState({
     username: "",
     password: "",
-    confirmPassword: "",
-    role: "viewer" as const
+    isSignup: false,
+    firstName: "",
+    lastName: "",
+    email: ""
   });
 
   const streamId = params?.streamId;
@@ -67,81 +65,125 @@ export default function StreamView() {
   
   // Generate display name for guest/authenticated users
   const displayName = typedUser?.username || `Guest_${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-  
-
-
-  // User registration mutation
-  const signupMutation = useMutation({
-    mutationFn: (userData: typeof signupData) => 
-      apiRequest("POST", "/api/auth/register", userData),
-    onSuccess: () => {
-      toast({
-        title: "Account Created!",
-        description: "Welcome to StreamVibe! You can now enjoy unlimited streaming.",
-      });
-      setShowSignupDialog(false);
-      window.location.reload(); // Refresh to update auth state
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Registration Failed",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    }
-  });
 
   // Login mutation
   const loginMutation = useMutation({
-    mutationFn: (credentials: typeof loginData) => 
-      apiRequest("POST", "/api/auth/login", credentials),
-    onSuccess: () => {
-      toast({
-        title: "Welcome Back!",
-        description: "Successfully logged in to your account.",
-      });
-      setShowLoginDialog(false);
-      window.location.reload(); // Refresh to update auth state
+    mutationFn: async (credentials: any) => {
+      const endpoint = loginForm.isSignup ? "/api/register" : "/api/login";
+      return await apiRequest("POST", endpoint, credentials);
     },
-    onError: (error: any) => {
+    onSuccess: () => {
+      setShowLoginModal(false);
+      setLoginModalClosed(false);
+      setViewingBlocked(false);
+      setViewingTimeLeft(120);
+      setLoginForm({
+        username: "",
+        password: "",
+        isSignup: false,
+        firstName: "",
+        lastName: "",
+        email: ""
+      });
       toast({
-        title: "Login Failed",
-        description: error.message || "Please check your credentials",
+        title: loginForm.isSignup ? "Account Created!" : "Welcome Back!",
+        description: "You can now enjoy unlimited viewing",
+      });
+      // Refresh page to update auth state
+      window.location.reload();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: loginForm.isSignup ? "Signup Failed" : "Login Failed", 
+        description: error.message,
         variant: "destructive",
       });
     }
   });
 
+  // Unauthorized viewing timer effect
+  useEffect(() => {
+    if (!isAuthenticated && !viewingBlocked) {
+      const timer = setInterval(() => {
+        setViewingTimeLeft(prev => {
+          if (prev <= 1) {
+            setViewingBlocked(true);
+            setShowLoginModal(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
 
-
-
-
-  // Form handlers
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (signupData.password !== signupData.confirmPassword) {
-      toast({
-        title: "Passwords Don't Match",
-        description: "Please ensure both passwords are identical",
-        variant: "destructive",
-      });
-      return;
+      return () => clearInterval(timer);
     }
-    signupMutation.mutate(signupData);
-  };
+  }, [isAuthenticated, viewingBlocked]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  // Modal persistence effect - reopens every 3 seconds if closed
+  useEffect(() => {
+    if (!isAuthenticated && viewingBlocked && loginModalClosed) {
+      const reopenTimer = setTimeout(() => {
+        setShowLoginModal(true);
+        setLoginModalClosed(false);
+      }, 3000);
+
+      return () => clearTimeout(reopenTimer);
+    }
+  }, [isAuthenticated, viewingBlocked, loginModalClosed]);
+
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    loginMutation.mutate(loginData);
+    
+    if (loginForm.isSignup) {
+      // Signup validation
+      if (!loginForm.username || !loginForm.password || !loginForm.firstName || !loginForm.lastName) {
+        toast({
+          title: "Missing Information",
+          description: "Please fill in all required fields",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      loginMutation.mutate({
+        username: loginForm.username,
+        password: loginForm.password,
+        firstName: loginForm.firstName,
+        lastName: loginForm.lastName,
+        email: loginForm.email,
+        role: "viewer"
+      });
+    } else {
+      // Login validation
+      if (!loginForm.username || !loginForm.password) {
+        toast({
+          title: "Missing Information",
+          description: "Please enter your username and password",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      loginMutation.mutate({
+        username: loginForm.username,
+        password: loginForm.password,
+      });
+    }
   };
 
+  const handleModalClose = () => {
+    if (!isAuthenticated && viewingBlocked) {
+      setLoginModalClosed(true);
+    }
+    setShowLoginModal(false);
+  };
 
-
-  // Use the existing displayName already defined above
-
-
-
-
+  // Format time display
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   if (isLoading) {
     return (
@@ -184,36 +226,37 @@ export default function StreamView() {
   return (
     <div className="h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col overflow-hidden"
          style={{ height: '100vh' }}>
-      {/* Navigation - Use proper Navbar component if authenticated, otherwise show simple navigation */}
+      
+      {/* Navigation */}
       {isAuthenticated && typedUser ? (
         <Navbar user={typedUser} />
       ) : (
         <div className="border-b border-slate-800">
           <div className="max-w-7xl mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
-              {/* Website Name - Clickable to go home */}
               <button
                 onClick={() => setLocation("/")}
-                className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent hover:from-purple-300 hover:to-pink-300 transition-colors"
+                className="text-2xl font-bold text-white hover:text-purple-400 transition-colors"
               >
                 StreamVibe
               </button>
               
-              {/* Auth Buttons - Only show for non-authenticated users */}
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-4">
+                {!isAuthenticated && !viewingBlocked && (
+                  <div className="flex items-center space-x-2 bg-slate-800 px-3 py-2 rounded-lg">
+                    <Clock className="h-4 w-4 text-yellow-500" />
+                    <span className="text-white text-sm">
+                      Trial: {formatTime(viewingTimeLeft)}
+                    </span>
+                  </div>
+                )}
+                
                 <Button 
-                  variant="ghost"
-                  onClick={() => setShowLoginDialog(true)}
-                  className="text-slate-300 hover:text-white"
+                  onClick={() => setShowLoginModal(true)}
+                  className="bg-purple-600 hover:bg-purple-700"
+                  size="sm"
                 >
                   <LogIn className="mr-2 h-4 w-4" />
-                  Login
-                </Button>
-                <Button 
-                  onClick={() => setShowSignupDialog(true)}
-                  className="bg-primary hover:bg-primary/80"
-                >
-                  <UserPlus className="mr-2 h-4 w-4" />
                   Sign Up
                 </Button>
               </div>
@@ -222,212 +265,208 @@ export default function StreamView() {
         </div>
       )}
 
-
-
-      {/* Main Content - Full Width Video - 80% of viewport height */}
-      <div className="relative" style={{ height: '80vh', minHeight: '80vh', maxHeight: '80vh' }}>
-        {/* Video Stream with Token Panel Overlay */}
-        <div className="absolute inset-0 w-full h-full bg-black overflow-hidden agora-video-container">
-            {!streamEnded && typedStream ? (
-              <AgoraStreamViewer
-                streamId={typedStream.id}
-                userId={typedUser?.id || 'guest'}
-                username={displayName as string}
-                creatorName={typedStream.creatorName || 'Creator'}
-                title={typedStream.title}
-                stream={typedStream}
-              />
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 relative">
+          {/* Video Player */}
+          <div className="relative h-[80vh] bg-black">
+            {viewingBlocked ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/90 z-20">
+                <div className="text-center max-w-md">
+                  <Lock className="h-16 w-16 text-red-500 mx-auto mb-4" />
+                  <h2 className="text-2xl font-bold text-white mb-2">Trial Expired</h2>
+                  <p className="text-slate-300 mb-6">
+                    Your 2-minute trial has ended. Please sign up to continue watching.
+                  </p>
+                  <Button 
+                    onClick={() => setShowLoginModal(true)}
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Sign Up to Continue
+                  </Button>
+                </div>
+              </div>
             ) : (
-              <Card className="bg-slate-800 border-slate-700 h-full flex items-center justify-center">
-                <CardContent className="p-4 sm:p-8">
-                  <div className="text-center">
-                    <AlertTriangle className="h-12 w-12 sm:h-16 sm:w-16 text-yellow-500 mx-auto mb-4" />
-                    <h3 className="text-lg sm:text-xl font-bold text-white mb-2">Stream Ended</h3>
-                    <p className="text-slate-400 mb-4 text-sm sm:text-base">This live stream has ended.</p>
-                    <Button 
-                      onClick={() => setLocation(isAuthenticated ? "/user-dashboard" : "/")} 
-                      className="bg-primary hover:bg-primary/80"
-                    >
-                      Find More Streams
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <AgoraStreamViewer
+                streamId={streamId!}
+                displayName={displayName}
+                onStreamEnd={() => setStreamEnded(true)}
+              />
             )}
+          </div>
+
+          {/* Stream Info Bar */}
+          <div className="bg-slate-800 border-t border-slate-700 p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <h1 className="text-xl font-bold text-white">{typedStream?.title || 'Live Stream'}</h1>
+                <Badge className="bg-red-600 text-white">LIVE</Badge>
+                <div className="flex items-center space-x-2 text-slate-400">
+                  <Users className="h-4 w-4" />
+                  <span>{typedStream?.viewerCount || 0} viewers</span>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                {!isAuthenticated && !viewingBlocked && (
+                  <div className="flex items-center space-x-2 bg-slate-700 px-3 py-2 rounded-lg">
+                    <Clock className="h-4 w-4 text-yellow-500" />
+                    <span className="text-white text-sm">
+                      {formatTime(viewingTimeLeft)} remaining
+                    </span>
+                  </div>
+                )}
+                
+                <Button
+                  onClick={() => setShowTokenPanel(!showTokenPanel)}
+                  className="bg-purple-600 hover:bg-purple-700"
+                  size="sm"
+                >
+                  <Coins className="mr-2 h-4 w-4" />
+                  Support Creator
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Token Panel Toggle Button - Fixed Position */}
-        {!streamEnded && typedStream && (
-          <Button
-            onClick={() => setShowTokenPanel(!showTokenPanel)}
-            className="absolute top-4 right-4 z-30 bg-purple-600 hover:bg-purple-700 text-white rounded-full p-3 shadow-lg"
-          >
-            {showTokenPanel ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <Coins className="h-5 w-5" />
-            )}
-          </Button>
-        )}
-
-        {/* Token Panel Overlay - Mobile-friendly Slide-in */}
-        {showTokenPanel && !streamEnded && typedStream && (
-          <div className="absolute top-0 right-0 w-full sm:w-80 h-full z-20 bg-black/50 sm:bg-transparent">
-            <div className="h-full w-full sm:w-80 bg-slate-900 border-l border-slate-700 overflow-y-auto">
-              <StreamTokenPanel
-                streamId={typedStream.id}
-                creatorName={typedStream.creatorName || 'Creator'}
-                isVisible={showTokenPanel}
-                onToggle={() => setShowTokenPanel(!showTokenPanel)}
-              />
-            </div>
+        {/* Token Panel */}
+        {showTokenPanel && (
+          <div className="w-80 bg-slate-900 border-l border-slate-700 flex flex-col">
+            <StreamTokenPanel
+              streamId={streamId!}
+              creatorName={typedStream?.creator?.username || 'Creator'}
+              isVisible={showTokenPanel}
+              onToggle={() => setShowTokenPanel(!showTokenPanel)}
+            />
           </div>
         )}
       </div>
 
-
-
-      {/* Other Live Streams Section - Show for guests and users */}
-      {otherStreams && Array.isArray(otherStreams) && otherStreams.length > 0 && (
-        <div className="mt-8">
-          <div className="max-w-7xl mx-auto px-4">
-            <h2 className="text-2xl font-bold text-white mb-6">Other Live Streams</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {(otherStreams as any[])
-                .filter((stream: any) => stream.id !== streamId) // Don't show current stream
-                .slice(0, 6) // Show max 6 other streams
-                .map((stream: any) => (
-                <Card key={stream.id} className="bg-slate-800 border-slate-700 hover:border-primary/50 transition-colors">
-                  <CardContent className="p-0">
-                    <div className="relative aspect-video bg-slate-700 rounded-t-lg">
-                      <div className="absolute top-2 left-2">
-                        <Badge className="bg-red-500 text-white">
-                          <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse"></div>
-                          LIVE
-                        </Badge>
-                      </div>
-                      <div className="absolute bottom-2 right-2">
-                        <Badge className="bg-black/50 text-white">
-                          <Users className="mr-1 h-3 w-3" />
-                          {stream.viewerCount?.toString() || '0'}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      <h3 className="font-semibold text-white mb-2">{stream.title}</h3>
-                      <p className="text-slate-400 text-sm mb-3">{stream.category}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-primary font-medium">{stream.creatorName}</span>
-                        <Button
-                          size="sm"
-                          onClick={() => setLocation(`/stream/${stream.id}`)}
-                          className="bg-primary hover:bg-primary/80"
-                        >
-                          Watch
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Sign up dialog */}
-      <Dialog open={showSignupDialog} onOpenChange={setShowSignupDialog}>
-        <DialogContent className="bg-slate-800 border-slate-700 text-white">
+      {/* Login Modal */}
+      <Dialog open={showLoginModal} onOpenChange={handleModalClose}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-md">
           <DialogHeader>
-            <DialogTitle>Create Your Account</DialogTitle>
-            <DialogDescription className="text-slate-400">
-              Join StreamVibe to enjoy unlimited viewing and interact with creators
-            </DialogDescription>
+            <DialogTitle className="text-white flex items-center">
+              {viewingBlocked && (
+                <Lock className="mr-2 h-5 w-5 text-red-500" />
+              )}
+              {loginForm.isSignup ? (
+                <>
+                  <UserPlus className="mr-2 h-5 w-5 text-green-500" />
+                  Create Account
+                </>
+              ) : (
+                <>
+                  <LogIn className="mr-2 h-5 w-5 text-blue-500" />
+                  Login to StreamVibe
+                </>
+              )}
+            </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSignup} className="space-y-4">
-            <div>
-              <Label className="text-slate-300">Username</Label>
-              <Input
-                type="text"
-                value={signupData.username}
-                onChange={(e) => setSignupData({ ...signupData, username: e.target.value })}
-                className="bg-slate-700 border-slate-600 text-white"
-                required
-              />
+          
+          {viewingBlocked && (
+            <div className="bg-red-900/20 border border-red-700 rounded-lg p-3 mb-4">
+              <p className="text-red-200 text-sm">
+                Your 2-minute trial has expired. Sign up now to continue watching unlimited streams!
+              </p>
             </div>
-            
-            <div>
-              <Label className="text-slate-300">Password</Label>
-              <Input
-                type="password"
-                value={signupData.password}
-                onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                className="bg-slate-700 border-slate-600 text-white"
-                required
-              />
-            </div>
-            
-            <div>
-              <Label className="text-slate-300">Confirm Password</Label>
-              <Input
-                type="password"
-                value={signupData.confirmPassword}
-                onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
-                className="bg-slate-700 border-slate-600 text-white"
-                required
-              />
-            </div>
-            
-            <Button 
-              type="submit" 
-              className="w-full bg-primary hover:bg-primary/80"
-              disabled={signupMutation.isPending}
-            >
-              {signupMutation.isPending ? "Creating Account..." : "Sign Up"}
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Login dialog */}
-      <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-        <DialogContent className="bg-slate-800 border-slate-700 text-white">
-          <DialogHeader>
-            <DialogTitle>Login to Your Account</DialogTitle>
-            <DialogDescription className="text-slate-400">
-              Access your account to continue watching
-            </DialogDescription>
-          </DialogHeader>
+          )}
+          
           <form onSubmit={handleLogin} className="space-y-4">
+            {loginForm.isSignup && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-slate-300">First Name</Label>
+                    <Input
+                      value={loginForm.firstName}
+                      onChange={(e) => setLoginForm(prev => ({ ...prev, firstName: e.target.value }))}
+                      className="bg-slate-800 border-slate-600 text-white"
+                      placeholder="John"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-slate-300">Last Name</Label>
+                    <Input
+                      value={loginForm.lastName}
+                      onChange={(e) => setLoginForm(prev => ({ ...prev, lastName: e.target.value }))}
+                      className="bg-slate-800 border-slate-600 text-white"
+                      placeholder="Doe"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-slate-300">Email (Optional)</Label>
+                  <Input
+                    type="email"
+                    value={loginForm.email}
+                    onChange={(e) => setLoginForm(prev => ({ ...prev, email: e.target.value }))}
+                    className="bg-slate-800 border-slate-600 text-white"
+                    placeholder="john@example.com"
+                  />
+                </div>
+              </>
+            )}
+
             <div>
               <Label className="text-slate-300">Username</Label>
               <Input
-                type="text"
-                value={loginData.username}
-                onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
-                className="bg-slate-700 border-slate-600 text-white"
+                value={loginForm.username}
+                onChange={(e) => setLoginForm(prev => ({ ...prev, username: e.target.value }))}
+                className="bg-slate-800 border-slate-600 text-white"
+                placeholder="Enter username"
                 required
               />
             </div>
-            
+
             <div>
               <Label className="text-slate-300">Password</Label>
               <Input
                 type="password"
-                value={loginData.password}
-                onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                className="bg-slate-700 border-slate-600 text-white"
+                value={loginForm.password}
+                onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
+                className="bg-slate-800 border-slate-600 text-white"
+                placeholder="Enter password"
                 required
               />
             </div>
-            
+
             <Button 
-              type="submit" 
-              className="w-full bg-primary hover:bg-primary/80"
+              type="submit"
               disabled={loginMutation.isPending}
+              className="w-full bg-purple-600 hover:bg-purple-700"
             >
-              {loginMutation.isPending ? "Logging in..." : "Login"}
+              {loginMutation.isPending ? (
+                "Please wait..."
+              ) : loginForm.isSignup ? (
+                "Create Account & Continue"
+              ) : (
+                "Login & Continue"
+              )}
             </Button>
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setLoginForm(prev => ({ 
+                  ...prev, 
+                  isSignup: !prev.isSignup,
+                  username: "",
+                  password: "",
+                  firstName: "",
+                  lastName: "",
+                  email: ""
+                }))}
+                className="text-purple-400 hover:text-purple-300 text-sm"
+              >
+                {loginForm.isSignup ? "Already have an account? Login" : "Don't have an account? Sign up"}
+              </button>
+            </div>
           </form>
         </DialogContent>
       </Dialog>
