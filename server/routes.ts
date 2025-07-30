@@ -577,7 +577,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin approval/denial endpoints
+  // Admin approval/denial endpoints (both URL formats for compatibility)
+  app.post('/api/admin/approve-token-purchase/:id', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      const purchaseId = req.params.id;
+      const { adminNote } = req.body;
+      
+      console.log(`🎯 Admin ${userId} approving token purchase ${purchaseId}`);
+      
+      // Update purchase status
+      const purchase = await storage.updateTokenPurchaseStatus(
+        purchaseId, 
+        'approved', 
+        adminNote, 
+        userId
+      );
+      
+      console.log(`📝 Purchase updated:`, purchase);
+      
+      // Ensure user has a wallet first
+      let wallet = await storage.getUserWallet(purchase.userId);
+      if (!wallet) {
+        console.log(`💰 Creating wallet for user ${purchase.userId}`);
+        wallet = await storage.createUserWallet(purchase.userId);
+      }
+      
+      // Add tokens to user wallet
+      const updatedWallet = await storage.updateTokenBalance(purchase.userId, purchase.requestedTokens);
+      console.log(`✅ Updated wallet:`, updatedWallet);
+      
+      res.json({ 
+        message: "Token purchase approved and tokens added to wallet",
+        tokensAdded: purchase.requestedTokens,
+        newBalance: updatedWallet.tokenBalance
+      });
+    } catch (error) {
+      console.error("Error approving token purchase:", error);
+      res.status(500).json({ message: "Failed to approve token purchase" });
+    }
+  });
+
   app.post('/api/admin/token-purchases/:id/approve', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -590,6 +636,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const purchaseId = req.params.id;
       const { adminNote } = req.body;
       
+      console.log(`🎯 Admin ${userId} approving token purchase ${purchaseId}`);
+      
       // Update purchase status
       const purchase = await storage.updateTokenPurchaseStatus(
         purchaseId, 
@@ -598,10 +646,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId
       );
       
-      // Add tokens to user wallet
-      await storage.updateTokenBalance(purchase.userId, purchase.requestedTokens);
+      console.log(`📝 Purchase updated:`, purchase);
       
-      res.json({ message: "Token purchase approved and tokens added to wallet" });
+      // Ensure user has a wallet first
+      let wallet = await storage.getUserWallet(purchase.userId);
+      if (!wallet) {
+        console.log(`💰 Creating wallet for user ${purchase.userId}`);
+        wallet = await storage.createUserWallet(purchase.userId);
+      }
+      
+      // Add tokens to user wallet
+      const updatedWallet = await storage.updateTokenBalance(purchase.userId, purchase.requestedTokens);
+      console.log(`✅ Updated wallet:`, updatedWallet);
+      
+      res.json({ 
+        message: "Token purchase approved and tokens added to wallet",
+        tokensAdded: purchase.requestedTokens,
+        newBalance: updatedWallet.tokenBalance
+      });
     } catch (error) {
       console.error("Error approving token purchase:", error);
       res.status(500).json({ message: "Failed to approve token purchase" });
