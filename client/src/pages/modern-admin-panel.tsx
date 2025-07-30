@@ -338,65 +338,65 @@ export default function ModernAdminPanel() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 flex items-center justify-center">
-        <div className="text-white">Loading...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-foreground">Loading...</div>
       </div>
     );
   }
 
   if (!isAuthenticated || typedUser?.role !== 'admin') {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 flex items-center justify-center">
-        <div className="text-white">Unauthorized Access</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-foreground">Unauthorized Access</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800">
+    <div className="min-h-screen bg-background">
       <AdminNavbar />
       
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
-          <p className="text-slate-400">Manage payments, approvals, and platform oversight</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Admin Dashboard</h1>
+          <p className="text-muted-foreground">Manage payments, approvals, and platform oversight</p>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-slate-400 text-sm">Pending Purchases</p>
-                  <p className="text-2xl font-bold text-white">{pendingTokenPurchases.length}</p>
+                  <p className="text-muted-foreground text-sm">Pending Purchases</p>
+                  <p className="text-2xl font-bold text-foreground">{pendingTokenPurchases.length}</p>
                 </div>
-                <CreditCard className="h-8 w-8 text-blue-500" />
+                <CreditCard className="h-8 w-8 text-primary" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-slate-400 text-sm">Pending Payouts</p>
-                  <p className="text-2xl font-bold text-white">{pendingPayouts.length}</p>
+                  <p className="text-muted-foreground text-sm">Pending Payouts</p>
+                  <p className="text-2xl font-bold text-foreground">{pendingPayouts.length}</p>
                 </div>
-                <Send className="h-8 w-8 text-green-500" />
+                <Send className="h-8 w-8 text-primary" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-slate-400 text-sm">Pending Creators</p>
-                  <p className="text-2xl font-bold text-white">{pendingCreators.length}</p>
+                  <p className="text-muted-foreground text-sm">Pending Creators</p>
+                  <p className="text-2xl font-bold text-foreground">{pendingCreators.length}</p>
                 </div>
-                <Users className="h-8 w-8 text-purple-500" />
+                <Users className="h-8 w-8 text-primary" />
               </div>
             </CardContent>
           </Card>

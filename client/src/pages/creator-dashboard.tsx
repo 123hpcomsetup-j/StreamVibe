@@ -278,14 +278,14 @@ export default function CreatorDashboard() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-slate-800 border-slate-700">
+                <Card className="bg-card border-border">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-slate-400 text-xs">Active Streams</p>
-                        <p className="text-xl font-bold text-white">{stats.activeStreams}</p>
+                        <p className="text-muted-foreground text-xs">Active Streams</p>
+                        <p className="text-xl font-bold text-foreground">{stats.activeStreams}</p>
                       </div>
-                      <Video className="h-6 w-6 text-purple-500" />
+                      <Video className="h-6 w-6 text-primary" />
                     </div>
                   </CardContent>
                 </Card>
@@ -295,9 +295,9 @@ export default function CreatorDashboard() {
 
           {/* Right Column - Token History */}
           <div className="xl:col-span-1">
-            <Card className="bg-slate-800 border-slate-700 h-fit">
+            <Card className="bg-card border-border h-fit">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-foreground flex items-center gap-2">
                   <Gift className="h-5 w-5" />
                   Token History
                 </CardTitle>
@@ -307,30 +307,30 @@ export default function CreatorDashboard() {
                   {tokenHistory && tokenHistory.length > 0 ? (
                     <div className="space-y-2 p-4">
                       {tokenHistory.map((transaction) => (
-                        <div key={transaction.id} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                        <div key={transaction.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-yellow-500/20 rounded-full flex items-center justify-center">
-                              <Gift className="h-4 w-4 text-yellow-500" />
+                            <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
+                              <Gift className="h-4 w-4 text-primary" />
                             </div>
                             <div>
-                              <p className="text-white font-medium text-sm">{transaction.senderUsername}</p>
-                              <p className="text-slate-400 text-xs">
+                              <p className="text-foreground font-medium text-sm">{transaction.senderUsername}</p>
+                              <p className="text-muted-foreground text-xs">
                                 {transaction.streamTitle} • {new Date(transaction.createdAt).toLocaleDateString()}
                               </p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-yellow-500 font-bold">+{transaction.amount}</p>
-                            <p className="text-slate-400 text-xs">{transaction.type}</p>
+                            <p className="text-primary font-bold">+{transaction.amount}</p>
+                            <p className="text-muted-foreground text-xs">{transaction.type}</p>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
                     <div className="p-8 text-center">
-                      <Gift className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-                      <p className="text-slate-400">No tokens received yet</p>
-                      <p className="text-slate-500 text-sm">Start streaming to receive tips!</p>
+                      <Gift className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No tokens received yet</p>
+                      <p className="text-muted-foreground text-sm">Start streaming to receive tips!</p>
                     </div>
                   )}
                 </div>

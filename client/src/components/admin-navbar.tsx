@@ -108,16 +108,16 @@ export default function AdminNavbar() {
   ];
 
   return (
-    <nav className="bg-red-900 border-b border-red-800 sticky top-0 z-50">
+    <nav className="bg-white border-b border-border sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
         <div className="flex items-center justify-between h-14 sm:h-16">
           <div className="flex items-center flex-1">
             <div className="flex-shrink-0">
               <Link href="/admin-panel">
                 <div className="flex items-center space-x-1.5 sm:space-x-2 cursor-pointer">
-                  <Shield className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-red-400" />
-                  <span className="text-lg sm:text-xl lg:text-2xl font-bold text-white">StreamVibe</span>
-                  <Badge variant="destructive" className="bg-red-600 text-white border-red-500 hidden sm:flex text-xs">
+                  <Shield className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-primary" />
+                  <span className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">StreamVibe</span>
+                  <Badge variant="secondary" className="bg-primary text-primary-foreground hidden sm:flex text-xs">
                     Admin
                   </Badge>
                 </div>

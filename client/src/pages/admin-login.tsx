@@ -69,50 +69,50 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="mx-auto w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mb-4">
-            <Shield className="w-8 h-8 text-white" />
+          <div className="mx-auto w-16 h-16 bg-primary rounded-full flex items-center justify-center mb-4">
+            <Shield className="w-8 h-8 text-primary-foreground" />
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">Admin Portal</h1>
-          <p className="text-slate-400">StreamVibe Administration</p>
+          <h1 className="text-4xl font-bold text-foreground mb-2">Admin Portal</h1>
+          <p className="text-muted-foreground">StreamVibe Administration</p>
         </div>
 
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-center text-white">Admin Login</CardTitle>
+            <CardTitle className="text-center text-foreground">Admin Login</CardTitle>
           </CardHeader>
 
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-slate-300">Admin Username</Label>
+                <Label htmlFor="username" className="text-muted-foreground">Admin Username</Label>
                 <Input
                   id="username"
                   type="text"
                   placeholder="Enter admin username"
                   value={loginData.username}
                   onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
-                  className="bg-slate-700 border-slate-600 text-white"
+                  className="bg-background border-input text-foreground"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-slate-300">Admin Password</Label>
+                <Label htmlFor="password" className="text-muted-foreground">Admin Password</Label>
                 <Input
                   id="password"
                   type="password"
                   placeholder="Enter admin password"
                   value={loginData.password}
                   onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                  className="bg-slate-700 border-slate-600 text-white"
+                  className="bg-background border-input text-foreground"
                 />
               </div>
               
               <Button 
                 type="submit" 
-                className="w-full bg-red-600 hover:bg-red-700"
+                className="w-full bg-primary hover:bg-primary/90"
                 disabled={loginMutation.isPending}
               >
                 {loginMutation.isPending ? "Verifying..." : "Admin Sign In"}

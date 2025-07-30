@@ -302,12 +302,12 @@ export default function CreatorLiveStudio() {
         </div>
 
         <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2 text-white">
+          <div className="flex items-center space-x-2 text-foreground">
             <Users className="h-4 w-4" />
             <span className="text-sm">{viewerCount}</span>
           </div>
           
-          <div className="flex items-center space-x-2 text-yellow-400">
+          <div className="flex items-center space-x-2 text-primary">
             <span className="text-xs">💰</span>
             <span className="text-sm font-medium">{(wallet as any)?.balance || 0} tokens</span>
           </div>
@@ -332,7 +332,7 @@ export default function CreatorLiveStudio() {
                   <p className="text-sm text-gray-400 mb-6">Start your stream to begin broadcasting</p>
                   <Button 
                     onClick={startStream}
-                    className="bg-red-600 hover:bg-red-700 text-white"
+                    className="bg-primary hover:bg-primary/90"
                     size="lg"
                   >
                     <Play className="h-5 w-5 mr-2" />
@@ -377,13 +377,13 @@ export default function CreatorLiveStudio() {
           </div>
           
           {/* Chat Section - Below Video */}
-          <div className="h-[35vh] min-h-[400px] bg-slate-900 border-t border-slate-700">
+          <div className="h-[35vh] min-h-[400px] bg-card border-t border-border">
             <div className="flex flex-col h-full">
               {/* Chat Header */}
-              <div className="p-3 border-b border-slate-700">
+              <div className="p-3 border-b border-border">
                 <div className="flex items-center space-x-2">
-                  <MessageCircle className="h-4 w-4 text-gray-400" />
-                  <span className="text-white font-medium text-sm">Live Chat</span>
+                  <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-foreground font-medium text-sm">Live Chat</span>
                   <Badge variant="secondary" className="text-xs">
                     {chatMessages.length}
                   </Badge>
@@ -394,7 +394,7 @@ export default function CreatorLiveStudio() {
               <ScrollArea className="flex-1 p-3">
                 <div className="space-y-2">
                   {chatMessages.length === 0 ? (
-                    <div className="text-center text-gray-400 text-sm py-8">
+                    <div className="text-center text-muted-foreground text-sm py-8">
                       <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
                       <p>No messages yet</p>
                       <p className="text-xs">Chat will appear here when viewers send messages</p>
@@ -404,16 +404,16 @@ export default function CreatorLiveStudio() {
                       <div key={msg.id} className="text-sm">
                         <div className="flex items-start space-x-2">
                           <span className={`font-medium text-xs ${
-                            msg.senderRole === 'creator' ? 'text-yellow-400' : 'text-blue-400'
+                            msg.senderRole === 'creator' ? 'text-primary' : 'text-primary'
                           }`}>
                             {msg.senderName}:
                           </span>
                         </div>
-                        <div className="text-gray-300 text-xs mt-1 break-words">
+                        <div className="text-foreground text-xs mt-1 break-words">
                           {msg.message}
                         </div>
                         {msg.tipAmount > 0 && (
-                          <div className="text-green-400 text-xs mt-1">
+                          <div className="text-primary text-xs mt-1">
                             💰 Tipped {msg.tipAmount} tokens
                           </div>
                         )}
@@ -425,20 +425,20 @@ export default function CreatorLiveStudio() {
               </ScrollArea>
 
               {/* Chat Input */}
-              <div className="p-3 border-t border-slate-700">
+              <div className="p-3 border-t border-border">
                 <div className="flex space-x-2">
                   <Input
                     placeholder="Type a message..."
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                    className="flex-1 bg-slate-800 border-slate-600 text-white placeholder-gray-400 text-sm"
+                    className="flex-1 bg-background border-input text-foreground placeholder-muted-foreground text-sm"
                   />
                   <Button
                     onClick={sendMessage}
                     size="sm"
                     disabled={!message.trim()}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-primary hover:bg-primary/90"
                   >
                     <Send className="h-4 w-4" />
                   </Button>

@@ -451,12 +451,12 @@ export default function StreamView() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-        <Card className="bg-slate-800 border-slate-700">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="bg-card border-border">
           <CardContent className="p-8">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-white text-lg">Loading stream...</p>
+              <p className="text-foreground text-lg">Loading stream...</p>
             </div>
           </CardContent>
         </Card>
@@ -466,13 +466,13 @@ export default function StreamView() {
 
   if (error || !typedStream) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-        <Card className="bg-slate-800 border-slate-700">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="bg-card border-border">
           <CardContent className="p-8">
             <div className="text-center">
-              <AlertTriangle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-white mb-2">Stream Not Found</h2>
-              <p className="text-slate-400 mb-6">This stream may have ended or doesn't exist.</p>
+              <AlertTriangle className="h-16 w-16 text-primary mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-foreground mb-2">Stream Not Found</h2>
+              <p className="text-muted-foreground mb-6">This stream may have ended or doesn't exist.</p>
               <Button 
                 onClick={() => setLocation("/")} 
                 className="bg-primary hover:bg-primary/80"
@@ -488,28 +488,28 @@ export default function StreamView() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col"
+    <div className="min-h-screen bg-background flex flex-col"
          style={{ minHeight: '100vh' }}>
       
       {/* Navigation */}
       {isAuthenticated && typedUser ? (
         <Navbar user={typedUser} />
       ) : (
-        <div className="border-b border-slate-800">
+        <div className="border-b border-border">
           <div className="max-w-7xl mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <button
                 onClick={() => setLocation("/")}
-                className="text-2xl font-bold text-white hover:text-purple-400 transition-colors"
+                className="text-2xl font-bold text-foreground hover:text-primary transition-colors"
               >
                 StreamVibe
               </button>
               
               <div className="flex items-center space-x-4">
                 {!isAuthenticated && !viewingBlocked && (
-                  <div className="flex items-center space-x-2 bg-slate-800 px-3 py-2 rounded-lg">
-                    <Clock className="h-4 w-4 text-yellow-500" />
-                    <span className="text-white text-sm">
+                  <div className="flex items-center space-x-2 bg-card px-3 py-2 rounded-lg border">
+                    <Clock className="h-4 w-4 text-primary" />
+                    <span className="text-foreground text-sm">
                       Trial: {formatTime(viewingTimeLeft)}
                     </span>
                   </div>
@@ -517,7 +517,7 @@ export default function StreamView() {
                 
                 <Button 
                   onClick={() => setShowLoginModal(true)}
-                  className="bg-purple-600 hover:bg-purple-700"
+                  className="bg-primary hover:bg-primary/90"
                   size="sm"
                 >
                   <LogIn className="mr-2 h-4 w-4" />
