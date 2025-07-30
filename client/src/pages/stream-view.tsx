@@ -91,6 +91,7 @@ export default function StreamView() {
   // Update chat messages when data changes - keep only last 10 messages
   useEffect(() => {
     if (messages && Array.isArray(messages)) {
+      console.log('📩 Loading initial chat messages:', messages.length);
       const lastTenMessages = messages.slice(-10);
       setChatMessages(lastTenMessages);
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -127,33 +128,34 @@ export default function StreamView() {
         console.log('🔥 REAL-TIME: Viewer received chat message:', data);
         setChatMessages(prev => {
           console.log('🔥 REAL-TIME: Current chat messages:', prev.length);
-          // Avoid duplicates by checking message ID first, then timestamp
-          const exists = prev.some(msg => 
-            msg.id === data.id || (
-              msg.senderName === data.senderName && 
-              msg.message === data.message &&
-              Math.abs(new Date(msg.createdAt).getTime() - new Date(data.createdAt || data.timestamp).getTime()) < 2000
-            )
-          );
+          // Avoid duplicates by checking message ID first
+          const exists = prev.some(msg => msg.id === data.id);
           if (!exists) {
             const newMessage = {
-              ...data,
-              createdAt: data.createdAt || data.timestamp || new Date().toISOString()
+              id: data.id,
+              senderName: data.senderName,
+              senderRole: data.senderRole,
+              message: data.message,
+              tipAmount: data.tipAmount || 0,
+              createdAt: data.createdAt || new Date().toISOString(),
+              username: data.username,
+              userRole: data.userRole,
+              isCreator: data.isCreator || false
             };
             const newMessages = [...prev, newMessage];
             console.log('🔥 REAL-TIME: Adding new message, total will be:', newMessages.length);
             // Keep only last 10 messages
             const limitedMessages = newMessages.slice(-10);
             console.log('🔥 REAL-TIME: Final message count after limit:', limitedMessages.length);
-            return limitedMessages;
+            // Force re-render by returning new array
+            setTimeout(() => {
+              chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 50);
+            return [...limitedMessages];
           }
           console.log('🔥 REAL-TIME: Message already exists, skipping');
           return prev;
         });
-        // Auto-scroll to new message
-        setTimeout(() => {
-          chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
       });
 
       // Listen for tip notifications
@@ -231,13 +233,10 @@ export default function StreamView() {
         tipAmount: 0
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/streams", streamId, "chat"] });
+    onSuccess: (data) => {
+      // Don't invalidate queries since WebSocket handles real-time updates
       setNewMessage("");
-      toast({
-        title: "Message Sent!",
-        description: "Your message has been sent to the streamer",
-      });
+      // The message will appear via WebSocket, no need to manually add
     },
     onError: (error: Error) => {
       toast({
