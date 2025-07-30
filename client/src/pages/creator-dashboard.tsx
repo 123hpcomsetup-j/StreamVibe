@@ -16,7 +16,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { DollarSign, Users, Clock, Heart, Play, Settings, Phone, Mail, UserIcon, Video, Plus, Trash2, Edit, CheckCircle, XCircle, Square } from "lucide-react";
 import PrivateCallRequests from "@/components/private-call-requests";
 import StreamModal from "@/components/stream-modal";
-import AgoraStreamCreator from "@/components/agora-stream-creator";
 
 export default function CreatorDashboard() {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -47,7 +46,6 @@ export default function CreatorDashboard() {
     profileImageUrl: "",
   });
   const [showStreamModal, setShowStreamModal] = useState(false);
-  const [showAgoraModal, setShowAgoraModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [streamKey, setStreamKey] = useState<string>("");
   
@@ -273,15 +271,13 @@ export default function CreatorDashboard() {
       return response.json();
     },
     onSuccess: (data) => {
-      setStreamKey(data.id);
-      setIsStreaming(true);
       queryClient.invalidateQueries({ queryKey: ["/api/streams/current"] });
+      // Redirect to full-screen live studio
+      window.location.href = `/creator-live-studio?streamId=${data.id}`;
       toast({
         title: "Stream Created!",
-        description: "Opening streaming studio...",
+        description: "Redirecting to Live Studio...",
       });
-      // Automatically open Agora modal after creating stream
-      setTimeout(() => setShowAgoraModal(true), 500);
     },
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
@@ -408,18 +404,11 @@ export default function CreatorDashboard() {
   const handleGoLive = () => {
     const stream = currentStream as any;
     
-    // If we have a stream (live or not), open Agora modal directly
+    // If we have a stream (live or not), open full-screen live studio
     if (stream?.id) {
-      setStreamKey(stream.id);
-      setShowAgoraModal(true);
-      if (stream?.isLive) {
-        toast({
-          title: "Live Studio Opened",
-          description: "You are currently broadcasting. Use the studio to manage your stream.",
-        });
-      }
+      window.location.href = `/creator-live-studio?streamId=${stream.id}`;
     } else {
-      // Create stream first, then open Agora modal
+      // Create stream first, then redirect to live studio
       if (!streamData.title.trim()) {
         toast({
           title: "Title Required",
@@ -456,11 +445,9 @@ export default function CreatorDashboard() {
         description: "No stream to stop.",
         variant: "destructive",
       });
-      setShowAgoraModal(false);
       return;
     }
     stopStreamMutation.mutate();
-    setShowAgoraModal(false);
   };
 
   const handleCreateStream = () => {
@@ -1171,37 +1158,7 @@ export default function CreatorDashboard() {
         streamKey={streamKey}
       />
       
-      {/* Agora Streaming Modal */}
-      {showAgoraModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-white">Live Stream Studio</h2>
-              <Button 
-                onClick={() => setShowAgoraModal(false)}
-                variant="ghost"
-                className="text-slate-400 hover:text-white"
-              >
-                ✕
-              </Button>
-            </div>
-            
-            <AgoraStreamCreator
-              streamId={(currentStream as any)?.id || streamKey}
-              userId={typedUser?.id || ''}
-              username={typedUser?.username || 'Creator'}
-              onStreamStart={(streamId) => {
-                console.log('Agora stream started:', streamId);
-              }}
-              onStreamStop={() => {
-                console.log('Agora stream stopped');
-                setShowAgoraModal(false);
-                handleStopStream();
-              }}
-            />
-          </div>
-        </div>
-      )}
+
 
       {/* Payout Request Dialog */}
       <Dialog open={showPayoutDialog} onOpenChange={setShowPayoutDialog}>

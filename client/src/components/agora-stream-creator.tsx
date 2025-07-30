@@ -563,26 +563,14 @@ export default function AgoraStreamCreator({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 space-y-4">
-        {/* Video Preview - Always visible */}
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center justify-between">
-              <span>Stream Preview</span>
-              {isStreaming && (
-                <Badge variant="secondary" className="bg-red-600 text-white">
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse mr-2"></div>
-                  LIVE
-                </Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div 
-              ref={videoContainerRef}
-              className="relative w-full h-64 md:h-80 lg:h-96 bg-black rounded-lg overflow-hidden"
-            >
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-screen">
+      <div className="lg:col-span-3 relative">
+        {/* Full-Screen Video Preview */}
+        <div className="bg-slate-800 border-slate-700 h-full flex flex-col">
+          <div 
+            ref={videoContainerRef}
+            className="relative flex-1 bg-black overflow-hidden"
+          >
               {!showPreview && !isStreaming && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center text-slate-400">
@@ -684,8 +672,7 @@ export default function AgoraStreamCreator({
                 </>
               )}
             </div>
-          </CardContent>
-        </Card>
+        </div>
 
         {/* Quick Start Controls - Only show when not streaming or previewing */}
         {!isStreaming && !showPreview && (

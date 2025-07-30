@@ -326,28 +326,17 @@ export default function StreamMessageOverlay({
             {!showMessageInput ? (
               // Collapsed state - Quick tip buttons and message button
               <div className="flex items-center justify-between pointer-events-auto">
-              {/* Quick tip buttons */}
+              {/* Tip button only */}
               <div className="flex items-center space-x-2">
                 {!isGuest && (
-                  <>
-                    <Button
-                      size="sm"
-                      onClick={() => handleQuickTip(minTip)}
-                      className="bg-yellow-500/90 hover:bg-yellow-600 text-black backdrop-blur-sm"
-                      disabled={sendTipMutation.isPending}
-                    >
-                      <Coins className="h-3 w-3 mr-1" />
-                      {minTip}
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => setShowTipDialog(true)}
-                      className="bg-orange-500/90 hover:bg-orange-600 text-white backdrop-blur-sm"
-                    >
-                      <Heart className="h-3 w-3 mr-1" />
-                      Tip
-                    </Button>
-                  </>
+                  <Button
+                    size="sm"
+                    onClick={() => setShowTipDialog(true)}
+                    className="bg-orange-500/90 hover:bg-orange-600 text-white backdrop-blur-sm"
+                  >
+                    <Heart className="h-3 w-3 mr-1" />
+                    Tip
+                  </Button>
                 )}
               </div>
 

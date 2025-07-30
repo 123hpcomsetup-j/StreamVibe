@@ -17,6 +17,7 @@ import ModernAdminPanel from "@/pages/modern-admin-panel";
 import AdminProfile from "@/pages/admin-profile";
 import StreamView from "@/pages/stream-view";
 import UserDashboard from "@/pages/user-dashboard";
+import CreatorLiveStudio from "@/pages/creator-live-studio";
 import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
@@ -59,6 +60,7 @@ function Router() {
       <Route path="/home" component={Home} />
       <Route path="/user-dashboard" component={UserDashboard} />
       <Route path="/creator-dashboard" component={CreatorDashboard} />
+      <Route path="/creator-live-studio" component={CreatorLiveStudio} />
       <Route path="/admin-panel" component={ModernAdminPanel} />
       <Route path="/admin-profile" component={AdminProfile} />
       
