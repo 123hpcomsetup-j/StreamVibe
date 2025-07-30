@@ -172,11 +172,17 @@ export function StreamChat({
             {messages.length === 0 ? (
               <div className="text-center text-slate-400 py-8">
                 <MessageCircle className="h-8 w-8 mx-auto mb-3 opacity-50" />
-                <p className="text-sm">No messages yet</p>
+                <p className="text-sm">No recent messages</p>
                 <p className="text-xs opacity-75">Start the conversation!</p>
               </div>
             ) : (
-              messages.map((msg, index) => (
+              <>
+                {messages.length >= 6 && (
+                  <div className="text-center text-slate-500 text-xs py-2 border-b border-slate-700 mb-2">
+                    Last 6 messages • Real-time updates
+                  </div>
+                )}
+                {messages.map((msg, index) => (
                 <div key={msg.id || index} className="bg-slate-800 rounded-lg p-3 border border-slate-700">
                   <div className="flex flex-col space-y-1">
                     <div className="flex items-center justify-between">
@@ -212,7 +218,8 @@ export function StreamChat({
                     )}
                   </div>
                 </div>
-              ))
+                ))}
+              </>
             )}
             <div ref={chatEndRef} />
           </div>

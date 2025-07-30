@@ -90,14 +90,16 @@ export default function StreamView() {
     queryKey: ["/api/streams", streamId, "chat"],
     enabled: !!streamId,
     refetchInterval: false, // Disable polling, use WebSocket for real-time updates
+    staleTime: 30000, // Keep data fresh for 30 seconds for better real-time performance
   });
   
-  // Update chat messages when data changes - keep only last 10 messages
+  // Update chat messages when data changes - keep only last 6 messages for real-time performance
   useEffect(() => {
     if (messages && Array.isArray(messages)) {
       console.log('📩 Loading initial chat messages:', messages.length);
-      const lastTenMessages = messages.slice(-10);
-      setChatMessages(lastTenMessages);
+      const recentMessages = messages.slice(-6);
+      console.log('📩 Showing last 6 messages for real-time performance:', recentMessages.length);
+      setChatMessages(recentMessages);
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
@@ -148,8 +150,8 @@ export default function StreamView() {
             };
             const newMessages = [...prev, newMessage];
             console.log('🔥 REAL-TIME: Adding new message, total will be:', newMessages.length);
-            // Keep only last 10 messages
-            const limitedMessages = newMessages.slice(-10);
+            // Keep only last 6 messages for better real-time performance
+            const limitedMessages = newMessages.slice(-6);
             console.log('🔥 REAL-TIME: Final message count after limit:', limitedMessages.length);
             // Force re-render by returning new array
             setTimeout(() => {
