@@ -168,6 +168,33 @@ export const payouts = pgTable("payouts", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Creator settings for private calls and stream pricing
+export const creatorSettings = pgTable("creator_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  creatorId: varchar("creator_id").references(() => users.id).notNull().unique(),
+  privateCallEnabled: boolean("private_call_enabled").default(true),
+  privateCallTokenPrice: integer("private_call_token_price").default(500), // tokens per 5 minutes
+  minimumCallDuration: integer("minimum_call_duration").default(5), // minutes
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Private call requests between viewers and creators
+export const privateCallRequests = pgTable("private_call_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  requesterId: varchar("requester_id").references(() => users.id).notNull(),
+  creatorId: varchar("creator_id").references(() => users.id).notNull(),
+  streamId: varchar("stream_id").references(() => streams.id).notNull(),
+  tokenAmount: integer("token_amount").notNull(), // tokens to be deducted
+  duration: integer("duration").default(5), // duration in minutes
+  status: varchar("status").default('pending'), // 'pending', 'accepted', 'rejected', 'active', 'completed', 'cancelled'
+  agoraChannelName: varchar("agora_channel_name"), // for private call
+  requestMessage: text("request_message"),
+  startedAt: timestamp("started_at"),
+  endedAt: timestamp("ended_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many, one }) => ({
   streams: many(streams),
@@ -177,6 +204,9 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   receivedTransactions: many(transactions, { relationName: "receivedTransactions" }),
   tokenPurchases: many(tokenPurchases),
   payouts: many(payouts),
+  creatorSettings: one(creatorSettings),
+  sentPrivateCallRequests: many(privateCallRequests, { relationName: "sentPrivateCallRequests" }),
+  receivedPrivateCallRequests: many(privateCallRequests, { relationName: "receivedPrivateCallRequests" }),
 }));
 
 export const userWalletsRelations = relations(userWallets, ({ one }) => ({
@@ -221,6 +251,16 @@ export const guestSessionsRelations = relations(guestSessions, ({ one }) => ({
   stream: one(streams, { fields: [guestSessions.streamId], references: [streams.id] }),
 }));
 
+export const creatorSettingsRelations = relations(creatorSettings, ({ one }) => ({
+  creator: one(users, { fields: [creatorSettings.creatorId], references: [users.id] }),
+}));
+
+export const privateCallRequestsRelations = relations(privateCallRequests, ({ one }) => ({
+  requester: one(users, { fields: [privateCallRequests.requesterId], references: [users.id], relationName: "sentPrivateCallRequests" }),
+  creator: one(users, { fields: [privateCallRequests.creatorId], references: [users.id], relationName: "receivedPrivateCallRequests" }),
+  stream: one(streams, { fields: [privateCallRequests.streamId], references: [streams.id] }),
+}));
+
 // Type exports for all tables
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -256,6 +296,12 @@ export type InsertGuestSession = typeof guestSessions.$inferInsert;
 export type Payout = typeof payouts.$inferSelect;
 export type InsertPayout = typeof payouts.$inferInsert;
 
+export type CreatorSettings = typeof creatorSettings.$inferSelect;
+export type InsertCreatorSettings = typeof creatorSettings.$inferInsert;
+
+export type PrivateCallRequest = typeof privateCallRequests.$inferSelect;
+export type InsertPrivateCallRequest = typeof privateCallRequests.$inferInsert;
+
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users);
 export const insertStreamSchema = createInsertSchema(streams);
@@ -268,4 +314,6 @@ export const insertTransactionSchema = createInsertSchema(transactions);
 export const insertChatMessageSchema = createInsertSchema(chatMessages);
 export const insertGuestSessionSchema = createInsertSchema(guestSessions);
 export const insertPayoutSchema = createInsertSchema(payouts);
+export const insertCreatorSettingsSchema = createInsertSchema(creatorSettings);
+export const insertPrivateCallRequestSchema = createInsertSchema(privateCallRequests);
 

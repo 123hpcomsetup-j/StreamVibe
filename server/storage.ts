@@ -10,6 +10,8 @@ import {
   chatMessages,
   guestSessions,
   payouts,
+  creatorSettings,
+  privateCallRequests,
   type User,
   type UpsertUser,
   type Stream,
@@ -32,6 +34,10 @@ import {
   type InsertGuestSession,
   type Payout,
   type InsertPayout,
+  type CreatorSettings,
+  type InsertCreatorSettings,
+  type PrivateCallRequest,
+  type InsertPrivateCallRequest,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -112,6 +118,19 @@ export interface IStorage {
   getAllPayouts(): Promise<Payout[]>;
   updatePayoutStatus(id: string, status: string, adminNote?: string, processedBy?: string): Promise<Payout>;
   getCreatorEarnings(creatorId: string): Promise<{ totalEarnings: number; availableBalance: number; pendingWithdrawals: number }>;
+
+  // Creator settings operations
+  getCreatorSettings(creatorId: string): Promise<CreatorSettings | undefined>;
+  createCreatorSettings(settings: InsertCreatorSettings): Promise<CreatorSettings>;
+  updateCreatorSettings(creatorId: string, updates: Partial<InsertCreatorSettings>): Promise<CreatorSettings>;
+
+  // Private call operations
+  createPrivateCallRequest(request: InsertPrivateCallRequest): Promise<PrivateCallRequest>;
+  getPrivateCallRequest(id: string): Promise<PrivateCallRequest | undefined>;
+  getCreatorPrivateCallRequests(creatorId: string): Promise<PrivateCallRequest[]>;
+  getUserPrivateCallRequests(userId: string): Promise<PrivateCallRequest[]>;
+  updatePrivateCallRequestStatus(id: string, status: string, agoraChannelName?: string): Promise<PrivateCallRequest>;
+  getActivePrivateCall(creatorId: string): Promise<PrivateCallRequest | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
