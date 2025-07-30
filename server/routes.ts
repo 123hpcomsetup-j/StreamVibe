@@ -14,6 +14,10 @@ import path from "path";
 import { 
   insertStreamSchema,
   insertReportSchema,
+  insertTokenPurchaseSchema,
+  insertCreatorActivitySchema,
+  insertTransactionSchema,
+  insertUpiConfigSchema,
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -335,6 +339,377 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error generating Agora token:', error);
       res.status(500).json({ message: 'Failed to generate token' });
+    }
+  });
+
+  // ========================
+  // TOKEN SYSTEM ENDPOINTS
+  // ========================
+
+  // Wallet endpoints
+  app.get('/api/wallet', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      let wallet = await storage.getUserWallet(userId);
+      
+      if (!wallet) {
+        wallet = await storage.createUserWallet(userId);
+      }
+      
+      res.json(wallet);
+    } catch (error) {
+      console.error("Error fetching wallet:", error);
+      res.status(500).json({ message: "Failed to fetch wallet" });
+    }
+  });
+
+  // Creator activities endpoints
+  app.get('/api/creator/activities', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role !== 'creator') {
+        return res.status(403).json({ message: "Creator access required" });
+      }
+      
+      const activities = await storage.getCreatorActivities(userId);
+      res.json(activities);
+    } catch (error) {
+      console.error("Error fetching creator activities:", error);
+      res.status(500).json({ message: "Failed to fetch activities" });
+    }
+  });
+
+  app.post('/api/creator/activities', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role !== 'creator') {
+        return res.status(403).json({ message: "Creator access required" });
+      }
+
+      // Check if creator already has 10 activities
+      const existingActivities = await storage.getCreatorActivities(userId);
+      if (existingActivities.length >= 10) {
+        return res.status(400).json({ message: "Maximum 10 activities allowed per creator" });
+      }
+      
+      const validatedData = insertCreatorActivitySchema.parse({
+        ...req.body,
+        creatorId: userId,
+      });
+      
+      const activity = await storage.createCreatorActivity(validatedData);
+      res.status(201).json(activity);
+    } catch (error) {
+      console.error("Error creating activity:", error);
+      res.status(500).json({ message: "Failed to create activity" });
+    }
+  });
+
+  app.put('/api/creator/activities/:id', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role !== 'creator') {
+        return res.status(403).json({ message: "Creator access required" });
+      }
+      
+      const activityId = req.params.id;
+      const updates = req.body;
+      
+      const activity = await storage.updateCreatorActivity(activityId, updates);
+      res.json(activity);
+    } catch (error) {
+      console.error("Error updating activity:", error);
+      res.status(500).json({ message: "Failed to update activity" });
+    }
+  });
+
+  app.delete('/api/creator/activities/:id', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role !== 'creator') {
+        return res.status(403).json({ message: "Creator access required" });
+      }
+      
+      const activityId = req.params.id;
+      await storage.deleteCreatorActivity(activityId);
+      res.json({ message: "Activity deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting activity:", error);
+      res.status(500).json({ message: "Failed to delete activity" });
+    }
+  });
+
+  // Get creator activities for stream viewers
+  app.get('/api/streams/:streamId/activities', async (req, res) => {
+    try {
+      const streamId = req.params.streamId;
+      const stream = await storage.getStreamById(streamId);
+      
+      if (!stream) {
+        return res.status(404).json({ message: "Stream not found" });
+      }
+      
+      const activities = await storage.getCreatorActivities(stream.creatorId);
+      res.json(activities);
+    } catch (error) {
+      console.error("Error fetching stream activities:", error);
+      res.status(500).json({ message: "Failed to fetch activities" });
+    }
+  });
+
+  // UPI configuration endpoints (Admin only)
+  app.get('/api/admin/upi-config', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      const config = await storage.getUpiConfig();
+      res.json(config || { upiId: '', qrCodeUrl: '', isActive: false });
+    } catch (error) {
+      console.error("Error fetching UPI config:", error);
+      res.status(500).json({ message: "Failed to fetch UPI config" });
+    }
+  });
+
+  app.post('/api/admin/upi-config', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      const validatedData = insertUpiConfigSchema.parse(req.body);
+      const config = await storage.updateUpiConfig(validatedData);
+      
+      res.json(config);
+    } catch (error) {
+      console.error("Error updating UPI config:", error);
+      res.status(500).json({ message: "Failed to update UPI config" });
+    }
+  });
+
+  // Public UPI config for token purchases
+  app.get('/api/upi-config', async (req, res) => {
+    try {
+      const config = await storage.getUpiConfig();
+      if (!config) {
+        return res.status(404).json({ message: "UPI not configured" });
+      }
+      
+      // Only return public info
+      res.json({
+        upiId: config.upiId,
+        qrCodeUrl: config.qrCodeUrl
+      });
+    } catch (error) {
+      console.error("Error fetching public UPI config:", error);
+      res.status(500).json({ message: "Failed to fetch UPI config" });
+    }
+  });
+
+  // Token purchase endpoints
+  app.post('/api/token-purchase', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const validatedData = insertTokenPurchaseSchema.parse({
+        ...req.body,
+        userId,
+      });
+      
+      const purchase = await storage.createTokenPurchase(validatedData);
+      res.status(201).json(purchase);
+    } catch (error) {
+      console.error("Error creating token purchase:", error);
+      res.status(500).json({ message: "Failed to create token purchase request" });
+    }
+  });
+
+  app.get('/api/token-purchases', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role === 'admin') {
+        // Admin sees all purchases
+        const purchases = await storage.getAllTokenPurchases();
+        res.json(purchases);
+      } else {
+        // Users see only their own purchases
+        const purchases = await storage.getAllTokenPurchases();
+        const userPurchases = purchases.filter(p => p.userId === userId);
+        res.json(userPurchases);
+      }
+    } catch (error) {
+      console.error("Error fetching token purchases:", error);
+      res.status(500).json({ message: "Failed to fetch token purchases" });
+    }
+  });
+
+  // Admin approval/denial endpoints
+  app.post('/api/admin/token-purchases/:id/approve', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      const purchaseId = req.params.id;
+      const { adminNote } = req.body;
+      
+      // Update purchase status
+      const purchase = await storage.updateTokenPurchaseStatus(
+        purchaseId, 
+        'approved', 
+        adminNote, 
+        userId
+      );
+      
+      // Add tokens to user wallet
+      await storage.updateTokenBalance(purchase.userId, purchase.requestedTokens);
+      
+      res.json({ message: "Token purchase approved and tokens added to wallet" });
+    } catch (error) {
+      console.error("Error approving token purchase:", error);
+      res.status(500).json({ message: "Failed to approve token purchase" });
+    }
+  });
+
+  app.post('/api/admin/token-purchases/:id/deny', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      const purchaseId = req.params.id;
+      const { adminNote } = req.body;
+      
+      await storage.updateTokenPurchaseStatus(
+        purchaseId, 
+        'denied', 
+        adminNote, 
+        userId
+      );
+      
+      res.json({ message: "Token purchase denied" });
+    } catch (error) {
+      console.error("Error denying token purchase:", error);
+      res.status(500).json({ message: "Failed to deny token purchase" });
+    }
+  });
+
+  // Transaction endpoints (tips and activities)
+  app.post('/api/transactions/tip', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { streamId, amount, message } = req.body;
+      
+      // Check user has enough tokens
+      const wallet = await storage.getUserWallet(userId);
+      if (!wallet || wallet.tokenBalance < amount) {
+        return res.status(400).json({ message: "Insufficient tokens" });
+      }
+      
+      // Get stream to find creator
+      const stream = await storage.getStreamById(streamId);
+      if (!stream) {
+        return res.status(404).json({ message: "Stream not found" });
+      }
+      
+      // Create transaction
+      const transaction = await storage.createTransaction({
+        fromUserId: userId,
+        toUserId: stream.creatorId,
+        streamId,
+        type: 'tip',
+        amount,
+        message,
+      });
+      
+      // Update wallet balances
+      await storage.updateTokenBalance(userId, -amount); // Deduct from tipper
+      await storage.updateTokenBalance(stream.creatorId, amount); // Add to creator
+      
+      res.status(201).json(transaction);
+    } catch (error) {
+      console.error("Error processing tip:", error);
+      res.status(500).json({ message: "Failed to process tip" });
+    }
+  });
+
+  app.post('/api/transactions/activity', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { streamId, activityId } = req.body;
+      
+      // Get activity details
+      const activities = await storage.getCreatorActivities(''); // We'll get it from stream
+      const stream = await storage.getStreamById(streamId);
+      if (!stream) {
+        return res.status(404).json({ message: "Stream not found" });
+      }
+      
+      const creatorActivities = await storage.getCreatorActivities(stream.creatorId);
+      const activity = creatorActivities.find(a => a.id === activityId);
+      if (!activity || !activity.isActive) {
+        return res.status(404).json({ message: "Activity not found or inactive" });
+      }
+      
+      // Check user has enough tokens
+      const wallet = await storage.getUserWallet(userId);
+      if (!wallet || wallet.tokenBalance < activity.tokenCost) {
+        return res.status(400).json({ message: "Insufficient tokens" });
+      }
+      
+      // Create transaction
+      const transaction = await storage.createTransaction({
+        fromUserId: userId,
+        toUserId: stream.creatorId,
+        streamId,
+        type: 'activity',
+        amount: activity.tokenCost,
+        activityId,
+        message: `Used activity: ${activity.name}`,
+      });
+      
+      // Update wallet balances
+      await storage.updateTokenBalance(userId, -activity.tokenCost);
+      await storage.updateTokenBalance(stream.creatorId, activity.tokenCost);
+      
+      res.status(201).json(transaction);
+    } catch (error) {
+      console.error("Error processing activity:", error);
+      res.status(500).json({ message: "Failed to process activity" });
+    }
+  });
+
+  // Get stream transactions (for creators to see their earnings)
+  app.get('/api/streams/:streamId/transactions', requireAuth, async (req: any, res) => {
+    try {
+      const streamId = req.params.streamId;
+      const transactions = await storage.getStreamTransactions(streamId);
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching stream transactions:", error);
+      res.status(500).json({ message: "Failed to fetch transactions" });
     }
   });
 

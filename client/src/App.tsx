@@ -20,6 +20,7 @@ import UserDashboard from "@/pages/user-dashboard";
 import CreatorLiveStudio from "@/pages/creator-live-studio";
 import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
+import BuyTokens from "@/pages/buy-tokens";
 import { useEffect } from "react";
 import { io } from "socket.io-client";
 
@@ -63,6 +64,7 @@ function Router() {
       <Route path="/creator-live-studio" component={CreatorLiveStudio} />
       <Route path="/admin-panel" component={ModernAdminPanel} />
       <Route path="/admin-profile" component={AdminProfile} />
+      <Route path="/buy-tokens" component={BuyTokens} />
       
       <Route component={NotFound} />
     </Switch>

@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { DollarSign, Users, Clock, Heart, Play, Settings, Phone, Mail, UserIcon, Video, Plus, Trash2, Edit, CheckCircle, XCircle, Square } from "lucide-react";
 import PrivateCallRequests from "@/components/private-call-requests";
 import StreamModal from "@/components/stream-modal";
+import CreatorActivities from "@/components/creator-activities";
 
 export default function CreatorDashboard() {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -920,6 +921,9 @@ export default function CreatorDashboard() {
             )}
           </CardContent>
         </Card>
+
+        {/* Creator Activities Management */}
+        <CreatorActivities />
 
         {/* Custom Tips Management */}
         <Card className="bg-slate-800 border-slate-700">

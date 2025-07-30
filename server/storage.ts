@@ -2,12 +2,27 @@ import {
   users,
   streams,
   reports,
+  userWallets,
+  creatorActivities,
+  upiConfig,
+  tokenPurchases,
+  transactions,
   type User,
   type UpsertUser,
   type Stream,
   type InsertStream,
   type Report,
   type InsertReport,
+  type UserWallet,
+  type InsertUserWallet,
+  type CreatorActivity,
+  type InsertCreatorActivity,
+  type UpiConfig,
+  type InsertUpiConfig,
+  type TokenPurchase,
+  type InsertTokenPurchase,
+  type Transaction,
+  type InsertTransaction,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -45,6 +60,32 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   getPendingCreators(): Promise<User[]>;
   approveCreator(userId: string): Promise<User>;
+  
+  // Wallet operations
+  getUserWallet(userId: string): Promise<UserWallet | undefined>;
+  createUserWallet(userId: string): Promise<UserWallet>;
+  updateTokenBalance(userId: string, amount: number): Promise<UserWallet>;
+  
+  // Creator activities operations
+  getCreatorActivities(creatorId: string): Promise<CreatorActivity[]>;
+  createCreatorActivity(activity: InsertCreatorActivity): Promise<CreatorActivity>;
+  updateCreatorActivity(id: string, updates: Partial<InsertCreatorActivity>): Promise<CreatorActivity>;
+  deleteCreatorActivity(id: string): Promise<void>;
+  
+  // UPI configuration operations
+  getUpiConfig(): Promise<UpiConfig | undefined>;
+  updateUpiConfig(config: InsertUpiConfig): Promise<UpiConfig>;
+  
+  // Token purchase operations
+  createTokenPurchase(purchase: InsertTokenPurchase): Promise<TokenPurchase>;
+  getPendingTokenPurchases(): Promise<TokenPurchase[]>;
+  getAllTokenPurchases(): Promise<TokenPurchase[]>;
+  updateTokenPurchaseStatus(id: string, status: string, adminNote?: string, processedBy?: string): Promise<TokenPurchase>;
+  
+  // Transaction operations
+  createTransaction(transaction: InsertTransaction): Promise<Transaction>;
+  getStreamTransactions(streamId: string): Promise<Transaction[]>;
+  getUserTransactions(userId: string): Promise<Transaction[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -192,6 +233,145 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
     return user;
+  }
+
+  // Wallet operations
+  async getUserWallet(userId: string): Promise<UserWallet | undefined> {
+    const [wallet] = await db.select().from(userWallets).where(eq(userWallets.userId, userId));
+    return wallet;
+  }
+
+  async createUserWallet(userId: string): Promise<UserWallet> {
+    const [wallet] = await db
+      .insert(userWallets)
+      .values({ userId, tokenBalance: 0, totalPurchased: 0, totalSpent: 0 })
+      .returning();
+    return wallet;
+  }
+
+  async updateTokenBalance(userId: string, amount: number): Promise<UserWallet> {
+    const [wallet] = await db
+      .update(userWallets)
+      .set({ 
+        tokenBalance: sql`${userWallets.tokenBalance} + ${amount}`,
+        totalPurchased: amount > 0 ? sql`${userWallets.totalPurchased} + ${amount}` : userWallets.totalPurchased,
+        totalSpent: amount < 0 ? sql`${userWallets.totalSpent} + ${Math.abs(amount)}` : userWallets.totalSpent,
+        updatedAt: new Date()
+      })
+      .where(eq(userWallets.userId, userId))
+      .returning();
+    return wallet;
+  }
+
+  // Creator activities operations
+  async getCreatorActivities(creatorId: string): Promise<CreatorActivity[]> {
+    return await db
+      .select()
+      .from(creatorActivities)
+      .where(and(eq(creatorActivities.creatorId, creatorId), eq(creatorActivities.isActive, true)))
+      .orderBy(creatorActivities.position);
+  }
+
+  async createCreatorActivity(activity: InsertCreatorActivity): Promise<CreatorActivity> {
+    const [newActivity] = await db
+      .insert(creatorActivities)
+      .values(activity)
+      .returning();
+    return newActivity;
+  }
+
+  async updateCreatorActivity(id: string, updates: Partial<InsertCreatorActivity>): Promise<CreatorActivity> {
+    const [activity] = await db
+      .update(creatorActivities)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(creatorActivities.id, id))
+      .returning();
+    return activity;
+  }
+
+  async deleteCreatorActivity(id: string): Promise<void> {
+    await db.delete(creatorActivities).where(eq(creatorActivities.id, id));
+  }
+
+  // UPI configuration operations
+  async getUpiConfig(): Promise<UpiConfig | undefined> {
+    const [config] = await db.select().from(upiConfig).where(eq(upiConfig.isActive, true));
+    return config;
+  }
+
+  async updateUpiConfig(config: InsertUpiConfig): Promise<UpiConfig> {
+    // Deactivate all existing configs
+    await db.update(upiConfig).set({ isActive: false });
+    
+    // Insert new active config
+    const [newConfig] = await db
+      .insert(upiConfig)
+      .values({ ...config, isActive: true })
+      .returning();
+    return newConfig;
+  }
+
+  // Token purchase operations
+  async createTokenPurchase(purchase: InsertTokenPurchase): Promise<TokenPurchase> {
+    const [newPurchase] = await db
+      .insert(tokenPurchases)
+      .values(purchase)
+      .returning();
+    return newPurchase;
+  }
+
+  async getPendingTokenPurchases(): Promise<TokenPurchase[]> {
+    return await db
+      .select()
+      .from(tokenPurchases)
+      .where(eq(tokenPurchases.status, 'pending'))
+      .orderBy(desc(tokenPurchases.createdAt));
+  }
+
+  async getAllTokenPurchases(): Promise<TokenPurchase[]> {
+    return await db
+      .select()
+      .from(tokenPurchases)
+      .orderBy(desc(tokenPurchases.createdAt));
+  }
+
+  async updateTokenPurchaseStatus(id: string, status: string, adminNote?: string, processedBy?: string): Promise<TokenPurchase> {
+    const [purchase] = await db
+      .update(tokenPurchases)
+      .set({ 
+        status, 
+        adminNote, 
+        processedBy, 
+        processedAt: new Date() 
+      })
+      .where(eq(tokenPurchases.id, id))
+      .returning();
+    return purchase;
+  }
+
+  // Transaction operations
+  async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
+    const [newTransaction] = await db
+      .insert(transactions)
+      .values(transaction)
+      .returning();
+    return newTransaction;
+  }
+
+  async getStreamTransactions(streamId: string): Promise<Transaction[]> {
+    return await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.streamId, streamId))
+      .orderBy(desc(transactions.createdAt));
+  }
+
+  async getUserTransactions(userId: string): Promise<Transaction[]> {
+    return await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.fromUserId, userId))
+      .orderBy(desc(transactions.createdAt));
   }
 }
 

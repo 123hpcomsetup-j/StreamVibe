@@ -13,12 +13,15 @@ import {
   ArrowLeft,
   AlertTriangle,
   UserPlus,
-  LogIn
+  LogIn,
+  Coins,
+  X
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import type { User } from "@shared/schema";
 import AgoraStreamViewer from "@/components/agora-stream-viewer";
+import StreamTokenPanel from "@/components/stream-token-panel";
 import Navbar from "@/components/navbar";
 
 export default function StreamView() {
@@ -30,6 +33,7 @@ export default function StreamView() {
   
   // Simple stream state - Agora handles connections
   const [streamEnded, setStreamEnded] = useState(false);
+  const [showTokenPanel, setShowTokenPanel] = useState(false);
   
 
   
@@ -60,6 +64,9 @@ export default function StreamView() {
   });
   
   const typedStream = stream as any;
+  
+  // Generate display name for guest/authenticated users
+  const displayName = typedUser?.username || `Guest_${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
   
 
 
@@ -130,10 +137,7 @@ export default function StreamView() {
 
 
 
-  // Display name logic
-  const displayName = isAuthenticated 
-    ? typedUser?.username || typedUser?.firstName || 'User'
-    : 'Guest';
+  // Use the existing displayName already defined above
 
 
 
@@ -222,7 +226,7 @@ export default function StreamView() {
 
       {/* Main Content - Full Width Video - 80% of viewport height */}
       <div className="relative" style={{ height: '80vh', minHeight: '80vh', maxHeight: '80vh' }}>
-        {/* Video Stream - Full Container */}
+        {/* Video Stream with Token Panel Overlay */}
         <div className="absolute inset-0 w-full h-full bg-black overflow-hidden agora-video-container">
             {!streamEnded && typedStream ? (
               <AgoraStreamViewer
@@ -251,6 +255,34 @@ export default function StreamView() {
               </Card>
             )}
         </div>
+
+        {/* Token Panel Toggle Button - Fixed Position */}
+        {!streamEnded && typedStream && (
+          <Button
+            onClick={() => setShowTokenPanel(!showTokenPanel)}
+            className="absolute top-4 right-4 z-30 bg-purple-600 hover:bg-purple-700 text-white rounded-full p-3 shadow-lg"
+          >
+            {showTokenPanel ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Coins className="h-5 w-5" />
+            )}
+          </Button>
+        )}
+
+        {/* Token Panel Overlay - Mobile-friendly Slide-in */}
+        {showTokenPanel && !streamEnded && typedStream && (
+          <div className="absolute top-0 right-0 w-full sm:w-80 h-full z-20 bg-black/50 sm:bg-transparent">
+            <div className="h-full w-full sm:w-80 bg-slate-900 border-l border-slate-700 overflow-y-auto">
+              <StreamTokenPanel
+                streamId={typedStream.id}
+                creatorName={typedStream.creatorName || 'Creator'}
+                isVisible={showTokenPanel}
+                onToggle={() => setShowTokenPanel(!showTokenPanel)}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
 
