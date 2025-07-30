@@ -383,6 +383,18 @@ export default function AgoraStreamViewer({
       // TEST: Log existing remote users immediately upon joining
       if (clientRef.current.remoteUsers.length > 0) {
         console.log("🎉 FOUND EXISTING REMOTE USERS:", clientRef.current.remoteUsers.map(u => ({ uid: u.uid, hasVideo: !!u.videoTrack, hasAudio: !!u.audioTrack })));
+        // Try to subscribe to existing users immediately
+        for (const user of clientRef.current.remoteUsers) {
+          if (user.videoTrack) {
+            console.log("🔄 Auto-subscribing to existing video from:", user.uid);
+            try {
+              await clientRef.current.subscribe(user, "video");
+              console.log("✅ Auto-subscribed to existing video");
+            } catch (error) {
+              console.log("❌ Failed to auto-subscribe to existing video:", error);
+            }
+          }
+        }
       } else {
         console.log("📭 No remote users currently in channel - waiting for creator to broadcast");
       }
