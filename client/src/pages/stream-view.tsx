@@ -607,9 +607,6 @@ export default function StreamView() {
                 <div className="flex items-center space-x-2">
                   <MessageCircle className="h-5 w-5 text-purple-400" />
                   <h3 className="text-white font-semibold">Live Chat</h3>
-                  <Badge variant="secondary" className="text-xs">
-                    {chatMessages.length}
-                  </Badge>
                 </div>
                 {isAuthenticated ? (
                   <Button
