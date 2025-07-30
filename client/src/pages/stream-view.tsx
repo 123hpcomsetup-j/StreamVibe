@@ -413,7 +413,6 @@ export default function StreamView() {
           <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
             {/* Tip Buttons */}
             <div className="flex items-center space-x-2">
-              <span className="text-slate-300 text-sm font-medium">Quick Tip:</span>
               <Button 
                 size="sm"
                 className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 text-xs sm:text-sm"
