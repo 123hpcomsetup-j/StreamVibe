@@ -1,20 +1,9 @@
-import { useState, useEffect, useRef } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/useAuth";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-
-import { Video, VideoOff, Mic, MicOff, Users, MessageCircle, Send, Wifi } from "lucide-react";
-import { io, Socket } from 'socket.io-client';
+import { Card, CardContent } from "@/components/ui/card";
+import { Users, AlertTriangle } from "lucide-react";
 
 interface LiveStreamControlsProps {
   streamId?: string;
@@ -23,51 +12,14 @@ interface LiveStreamControlsProps {
 }
 
 export default function LiveStreamControls({ streamId, onStreamStart, onStreamStop }: LiveStreamControlsProps) {
-  const { user } = useAuth();
-  const typedUser = user as any;
   const { toast } = useToast();
-  
-  // WebRTC state
-  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
-  const [isVideoEnabled, setIsVideoEnabled] = useState(true);
-  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [viewerCount, setViewerCount] = useState(0);
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
-  const [socket, setSocket] = useState<Socket | null>(null);
   const [currentStreamId, setCurrentStreamId] = useState<string | null>(null);
-  const [streamQuality, setStreamQuality] = useState<'720p' | '1080p'>('720p');
 
-  // Refs
-  const localVideoRef = useRef<HTMLVideoElement>(null);
-  const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
-  
-  // Chat state
-  const [chatMessages, setChatMessages] = useState<any[]>([]);
-  const [newChatMessage, setNewChatMessage] = useState('');
+  // DISABLED: WebRTC implementation replaced by Agora components
 
-  // WebRTC configuration with STUN servers
-  const rtcConfiguration = {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' }
-    ]
-  };
-
-  // Initialize components when stream ID is available
-  useEffect(() => {
-    if (streamId) {
-      setCurrentStreamId(streamId);
-      setIsStreaming(true);
-      
-      // Start media stream immediately
-      getMediaStream().catch(console.error);
-      
-      // Load chat messages
-      loadChatMessages();
-    }
-  }, [streamId]);
+  if (streamId) {
+    setCurrentStreamId(streamId);
+  }
 
   // Initialize socket connection
   useEffect(() => {

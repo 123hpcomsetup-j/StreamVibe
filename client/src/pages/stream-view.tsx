@@ -608,7 +608,7 @@ export default function StreamView() {
         </div>
       </div>
 
-      {/* Main Content - Simplified Layout */}
+      {/* Main Content */}
       <div className="mx-auto px-2 sm:px-4 lg:px-6 py-4">
         <div className="flex flex-col lg:grid lg:grid-cols-3 lg:gap-6 lg:max-w-7xl lg:mx-auto">
           
@@ -619,7 +619,7 @@ export default function StreamView() {
                 <AgoraStreamViewer
                   streamId={typedStream.id}
                   userId={typedUser?.id || guestSessionId || ''}
-                  username={displayName}
+                  username={displayName as string}
                   creatorName={typedStream.creatorName || 'Creator'}
                   title={typedStream.title}
                 />
