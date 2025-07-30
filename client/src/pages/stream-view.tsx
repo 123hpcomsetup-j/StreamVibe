@@ -604,7 +604,7 @@ export default function StreamView() {
           <div className="min-h-[40vh] bg-slate-900 border-t border-slate-700">
             <div className="h-full flex flex-col">
               {/* Chat Header */}
-              <div className="flex items-center justify-between p-4 border-b border-slate-700">
+              <div className="flex items-center justify-between p-6 border-b border-slate-700 min-h-[80px]">
                 <div className="flex items-center space-x-2">
                   <MessageCircle className="h-5 w-5 text-purple-400" />
                   <h3 className="text-white font-semibold">Live Chat</h3>
