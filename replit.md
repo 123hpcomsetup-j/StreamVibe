@@ -10,6 +10,12 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (July 30, 2025)
 
+**TOKEN PURCHASE ADMIN PANEL ISSUE RESOLVED - System Working Correctly (July 30, 2025):**
+Investigated and resolved token purchase visibility issue in admin panel. Root cause: all existing token purchases had already been approved, leaving no pending purchases to display. Token purchase system confirmed fully functional with comprehensive testing: customer purchase creation works correctly, admin API returns proper pending purchase data, database operations complete successfully, and authentication/authorization working as expected. Admin panel now displays pending purchases correctly when new purchases are submitted by customers.
+
+**TIP AND ACTIVITY BROADCASTING ENHANCED - Creator Overlay Real-Time Notifications (July 30, 2025):**
+Successfully implemented real-time tip and activity broadcasting to creator's live stream overlay. Enhanced WebSocket event system to broadcast both tip notifications (with golden coin icons, 15-second display) and creator activity usage to all stream participants including the creator. Fixed global io variable usage across server routes with proper TypeScript declarations. Creator overlay now displays all viewer interactions including tips, activities, and chat messages in real-time during live streaming.
+
 **CREATOR VIDEO DISPLAY FIXED - Self-View Now Working (July 30, 2025):**
 Fixed critical issue where creators couldn't see their own video feed while streaming. Enhanced video playback logic to ensure proper video element styling and positioning within the creator live studio. Added comprehensive CSS rules for Agora video elements with !important declarations to override any conflicting styles. Implemented multiple-attempt styling with timeouts to ensure video elements remain visible. Added detailed logging to track video container setup and styling application. Creators can now see themselves clearly while streaming with proper 100% width/height coverage and object-fit styling.
 
