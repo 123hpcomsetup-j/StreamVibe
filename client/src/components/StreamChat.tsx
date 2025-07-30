@@ -177,9 +177,9 @@ export function StreamChat({
               </div>
             ) : (
               <>
-                {messages.length >= 6 && (
+                {messages.length >= 4 && (
                   <div className="text-center text-slate-500 text-xs py-2 border-b border-slate-700 mb-2">
-                    Last 6 messages • Real-time updates
+                    Last 4 messages • Real-time updates
                   </div>
                 )}
                 {messages.map((msg, index) => (

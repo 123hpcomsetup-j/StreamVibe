@@ -93,12 +93,12 @@ export default function StreamView() {
     staleTime: 30000, // Keep data fresh for 30 seconds for better real-time performance
   });
   
-  // Update chat messages when data changes - keep only last 6 messages for real-time performance
+  // Update chat messages when data changes - keep only last 4 messages for perfect screen fit
   useEffect(() => {
     if (messages && Array.isArray(messages)) {
       console.log('📩 Loading initial chat messages:', messages.length);
-      const recentMessages = messages.slice(-6);
-      console.log('📩 Showing last 6 messages for real-time performance:', recentMessages.length);
+      const recentMessages = messages.slice(-4);
+      console.log('📩 Showing last 4 messages for perfect screen fit:', recentMessages.length);
       setChatMessages(recentMessages);
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
@@ -150,8 +150,8 @@ export default function StreamView() {
             };
             const newMessages = [...prev, newMessage];
             console.log('🔥 REAL-TIME: Adding new message, total will be:', newMessages.length);
-            // Keep only last 6 messages for better real-time performance
-            const limitedMessages = newMessages.slice(-6);
+            // Keep only last 4 messages for perfect screen fit
+            const limitedMessages = newMessages.slice(-4);
             console.log('🔥 REAL-TIME: Final message count after limit:', limitedMessages.length);
             // Force re-render by returning new array
             setTimeout(() => {
