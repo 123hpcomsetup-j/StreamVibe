@@ -85,10 +85,11 @@ export default function StreamView() {
     refetchInterval: 2000, // Refresh every 2 seconds for better real-time experience
   });
   
-  // Update chat messages when data changes
+  // Update chat messages when data changes - keep only last 10 messages
   useEffect(() => {
     if (messages) {
-      setChatMessages(messages);
+      const lastTenMessages = messages.slice(-10);
+      setChatMessages(lastTenMessages);
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
@@ -129,10 +130,12 @@ export default function StreamView() {
             Math.abs(new Date(msg.createdAt).getTime() - new Date(data.createdAt || data.timestamp).getTime()) < 1000
           );
           if (!exists) {
-            return [...prev, {
+            const newMessages = [...prev, {
               ...data,
               createdAt: data.createdAt || data.timestamp || new Date().toISOString()
             }];
+            // Keep only last 10 messages
+            return newMessages.slice(-10);
           }
           return prev;
         });
@@ -153,7 +156,11 @@ export default function StreamView() {
           tipAmount: data.amount,
           createdAt: new Date().toISOString()
         };
-        setChatMessages(prev => [...prev, tipNotification]);
+        setChatMessages(prev => {
+          const newMessages = [...prev, tipNotification];
+          // Keep only last 10 messages
+          return newMessages.slice(-10);
+        });
         setTimeout(() => {
           chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }, 100);
