@@ -34,7 +34,7 @@ export default function AdminNavbar() {
   const typedUser = user as User | undefined;
   
   // Ensure location is always a string to prevent errors
-  const currentLocation = location || '/admin-panel';
+  const currentLocation = typeof location === 'string' ? location : '/admin-panel';
 
   // Fetch pending approvals for notifications
   const { data: pendingCreators = [] } = useQuery({
@@ -130,7 +130,7 @@ export default function AdminNavbar() {
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = (currentLocation === '/admin-panel' && item.tab === 'dashboard') ||
-                    currentLocation.includes(`tab=${item.tab}`);
+                    (currentLocation && currentLocation.includes(`tab=${item.tab}`));
                   
                   return (
                     <button
