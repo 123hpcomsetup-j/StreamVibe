@@ -13,18 +13,8 @@ import { eq } from "drizzle-orm";
 import path from "path";
 import { 
   insertStreamSchema,
-  insertTransactionSchema,
-  insertTokenPurchaseSchema,
   insertReportSchema,
-  insertPayoutSchema,
   insertChatMessageSchema,
-  insertCreatorActionPresetSchema,
-  insertPrivateCallRequestSchema,
-  insertAdminTipMenuSchema,
-  creatorActionPresets,
-  privateCallRequests,
-  guestSessions,
-  adminTipMenu
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -267,58 +257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/streams/:id/settings', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const streamId = req.params.id;
-      const { minTip, tokenPrice, privateRate, customActions } = req.body;
-      
-      const stream = await storage.getStreamById(streamId);
-      if (!stream || stream.creatorId !== userId) {
-        return res.status(403).json({ message: "Unauthorized" });
-      }
 
-      // Update stream settings including custom actions
-      const updatedStream = await storage.updateStream(streamId, {
-        minTip: parseInt(minTip) || 5,
-        tokenPrice: parseFloat(tokenPrice) || 1,
-        privateRate: parseInt(privateRate) || 20,
-        customActions: customActions || [],
-      });
-      
-      res.json(updatedStream);
-    } catch (error) {
-      console.error("Error updating stream settings:", error);
-      res.status(400).json({ message: "Failed to update stream settings" });
-    }
-  });
-
-  // PATCH version for the frontend
-  app.patch('/api/streams/:id/settings', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const streamId = req.params.id;
-      const { minTip, tokenPrice, privateRate, customActions } = req.body;
-      
-      const stream = await storage.getStreamById(streamId);
-      if (!stream || stream.creatorId !== userId) {
-        return res.status(403).json({ message: "Unauthorized" });
-      }
-
-      // Update stream settings including custom actions
-      const updatedStream = await storage.updateStream(streamId, {
-        minTip: parseInt(minTip) || 5,
-        tokenPrice: parseFloat(tokenPrice) || 1,
-        privateRate: parseInt(privateRate) || 20,
-        customActions: customActions || [],
-      });
-      
-      res.json(updatedStream);
-    } catch (error) {
-      console.error("Error updating stream settings:", error);
-      res.status(400).json({ message: "Failed to update stream settings" });
-    }
-  });
 
   app.delete('/api/streams/:id', requireAuth, async (req: any, res) => {
     try {
@@ -368,66 +307,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Transaction routes
-  app.post('/api/transactions', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
-      if (!user || (user.walletBalance || 0) < req.body.tokenAmount) {
-        return res.status(400).json({ message: "Insufficient wallet balance" });
-      }
 
-      const validatedData = insertTransactionSchema.parse({
-        ...req.body,
-        fromUserId: userId,
-      });
-
-      // Create transaction
-      const transaction = await storage.createTransaction(validatedData);
-      
-      // Update sender's wallet
-      await storage.updateUserWallet(userId, -validatedData.tokenAmount);
-      
-      // Update receiver's wallet if applicable
-      if (validatedData.toUserId) {
-        await storage.updateUserWallet(validatedData.toUserId, validatedData.tokenAmount);
-      }
-
-      res.json(transaction);
-    } catch (error) {
-      console.error("Error creating transaction:", error);
-      res.status(400).json({ message: "Failed to create transaction" });
-    }
-  });
-
-  app.get('/api/transactions', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const transactions = await storage.getTransactionsByUser(userId);
-      res.json(transactions);
-    } catch (error) {
-      console.error("Error fetching transactions:", error);
-      res.status(500).json({ message: "Failed to fetch transactions" });
-    }
-  });
-
-  // Token purchase routes
-  app.post('/api/token-purchases', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const validatedData = insertTokenPurchaseSchema.parse({
-        ...req.body,
-        userId,
-      });
-
-      const purchase = await storage.createTokenPurchase(validatedData);
-      res.json(purchase);
-    } catch (error) {
-      console.error("Error creating token purchase:", error);
-      res.status(400).json({ message: "Failed to create token purchase" });
-    }
-  });
 
   // Report routes
   app.post('/api/reports', requireAuth, async (req: any, res) => {
@@ -446,64 +326,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Creator statistics
-  app.get('/api/creator/stats', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
-      if (user?.role !== 'creator') {
-        return res.status(403).json({ message: "Creator access required" });
-      }
 
-      const stats = await storage.getCreatorStats(userId);
-      res.json(stats);
-    } catch (error) {
-      console.error("Error fetching creator stats:", error);
-      res.status(500).json({ message: "Failed to fetch stats" });
-    }
-  });
 
-  // Creator tips
-  app.get('/api/creator/tips', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
-      if (user?.role !== 'creator') {
-        return res.status(403).json({ message: "Creator access required" });
-      }
 
-      const tips = await storage.getCreatorTips(userId);
-      res.json(tips);
-    } catch (error) {
-      console.error("Error fetching creator tips:", error);
-      res.status(500).json({ message: "Failed to fetch tips" });
-    }
-  });
-
-  // Payout routes
-  app.post('/api/payouts', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
-      if (user?.role !== 'creator') {
-        return res.status(403).json({ message: "Only creators can request payouts" });
-      }
-
-      const validatedData = insertPayoutSchema.parse({
-        ...req.body,
-        creatorId: userId,
-      });
-
-      const payout = await storage.createPayout(validatedData);
-      res.json(payout);
-    } catch (error) {
-      console.error("Error creating payout:", error);
-      res.status(400).json({ message: "Failed to create payout" });
-    }
-  });
 
   // Chat routes  
   app.get('/api/streams/:streamId/chat', async (req, res) => {
@@ -522,66 +347,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/streams/:streamId/chat', async (req: any, res) => {
     try {
       const { streamId } = req.params;
-      const { message, tipAmount = 0, senderName, isPrivate = false } = req.body;
+      const { message, senderName, isPrivate = false } = req.body;
       const sessionId = req.headers['x-session-id'] as string;
       
-      // Check for authenticated user session
-      if (req.session?.userId && !req.user) {
-        const user = await storage.getUser(req.session.userId);
-        if (user) {
-          req.user = user;
-        }
-      }
-      
-      // Check if this is a guest session
-      if (sessionId && !req.user) {
-        const guestSession = await storage.getGuestSession(streamId, sessionId);
-        if (!guestSession) {
-          return res.status(404).json({ message: "Guest session not found" });
-        }
-        
-        if ((guestSession.tokensRemaining || 0) <= 0) {
-          return res.status(403).json({ message: "No chat tokens remaining. Sign up to continue chatting!" });
-        }
-        
-        // Get stream info to check minimum requirements
-        const stream = await storage.getStreamById(streamId);
-        
-        // Check if message meets private message requirements
-        if (isPrivate) {
-          return res.status(403).json({ 
-            message: "Guests cannot send private messages. Please sign up to access private messaging!" 
-          });
-        }
-        
-        // Create chat message for guest with auto-generated name
-        const chatMessage = await storage.createChatMessage({
-          streamId,
-          userId: null, // Guests don't have user IDs
-          guestSessionId: guestSession.id, // Use guest session ID instead
-          message,
-          tipAmount: 0, // Guests can't tip
-          senderName: guestSession.guestName || 'Guest', // Use auto-generated guest name
-          isPrivate: false, // Guests can only send public messages
-        });
-        
-        // Decrement guest tokens (1 token per message regardless of creator price)
-        const newTokensRemaining = Math.max(0, (guestSession.tokensRemaining || 0) - 1);
-        await storage.updateGuestSession(guestSession.id, {
-          tokensRemaining: newTokensRemaining
-        });
-        
-        // Include updated tokens in response for client
-        const responseMessage = {
-          ...chatMessage,
-          tokensRemaining: newTokensRemaining
-        };
-        
-        // Broadcast message to WebSocket for real-time delivery
-        global.io?.to(`stream-${streamId}`).emit('chat-message', responseMessage);
-        
-        return res.json(responseMessage);
-      }
+
       
       // Regular authenticated user flow
       if (!req.user) {
@@ -601,47 +370,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Stream not found" });
       }
       
-      // Check private message minimum token requirement
-      if (isPrivate) {
-        const minPrivateTokens = stream.privateRate || 20;
-        if (tipAmount < minPrivateTokens) {
-          return res.status(400).json({ 
-            message: `Private messages require a minimum tip of ${minPrivateTokens} tokens`,
-            minRequired: minPrivateTokens
-          });
-        }
-      }
-      
-      // Handle tip if provided
-      if (tipAmount > 0) {
-        if ((user.walletBalance || 0) < tipAmount) {
-          return res.status(400).json({ message: "Insufficient wallet balance" });
-        }
-        
-        // Create transaction for tip
-        await storage.createTransaction({
-          fromUserId: userId,
-          toUserId: stream.creatorId,
-          tokenAmount: tipAmount,
-          purpose: isPrivate ? 'private_message' : 'tip',
-          streamId: streamId,
-        });
-        
-        // Update wallets
-        await storage.updateUserWallet(userId, -tipAmount);
-        await storage.updateUserWallet(stream.creatorId, tipAmount);
-      }
-      
       // Get user's real name for authenticated users
-      const userForName = await storage.getUser(userId);
-      const realSenderName = userForName ? `${userForName.firstName || ''} ${userForName.lastName || ''}`.trim() || userForName.username : 'User';
+      const realSenderName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username : 'User';
 
       // Create chat message
       const chatMessage = await storage.createChatMessage({
         streamId,
         userId,
         message,
-        tipAmount,
         senderName: realSenderName || 'Anonymous',
         isPrivate: isPrivate || false,
       });
@@ -769,7 +505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/admin/pending-reports', requireAuth, async (req: any, res) => {
+  app.get('/api/admin/reports', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
@@ -778,30 +514,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const reports = await storage.getPendingReports();
+      const reports = await storage.getReports();
       res.json(reports);
     } catch (error) {
       console.error("Error fetching reports:", error);
       res.status(500).json({ message: "Failed to fetch reports" });
     }
-  });
 
-  app.get('/api/admin/pending-payouts', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
-      if (user?.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-
-      const payouts = await storage.getPendingPayouts();
-      res.json(payouts);
-    } catch (error) {
-      console.error("Error fetching payouts:", error);
-      res.status(500).json({ message: "Failed to fetch payouts" });
-    }
-  });
 
   app.get('/api/admin/pending-token-purchases', requireAuth, async (req: any, res) => {
     try {

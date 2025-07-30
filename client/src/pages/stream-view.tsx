@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { 
-  Coins, 
   Users, 
   ArrowLeft,
   AlertTriangle,
@@ -136,40 +135,7 @@ export default function StreamView() {
     ? typedUser?.username || typedUser?.firstName || 'User'
     : 'Guest';
 
-  // Tip functionality
-  const handleTip = async (amount: number) => {
-    if (!isAuthenticated) {
-      toast({
-        title: "Account Required",
-        description: "Sign up to tip creators!",
-        variant: "destructive",
-      });
-      setShowSignupDialog(true);
-      return;
-    }
 
-    try {
-      const response = await apiRequest("POST", "/api/tips", {
-        streamId: streamId,
-        amount: amount,
-        message: `Tipped ${amount} tokens!`,
-        recipientId: typedStream?.creatorId
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Tip Sent!",
-          description: `You tipped ${amount} tokens to ${typedStream?.creatorName}`,
-        });
-      }
-    } catch (error: any) {
-      toast({
-        title: "Tip Failed",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
 
 
 
@@ -287,41 +253,7 @@ export default function StreamView() {
         </div>
       </div>
 
-      {/* Tip Buttons and Private Call - Below Video */}
-      <div className="bg-slate-800 border-t border-slate-700 px-4 py-3">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
-            {/* Tip Buttons */}
-            <div className="flex items-center space-x-2">
-              <Button 
-                size="sm"
-                className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 text-xs sm:text-sm"
-                onClick={() => handleTip(10)}
-              >
-                <Coins className="mr-1 h-3 w-3" />
-                10 tokens
-              </Button>
-              <Button 
-                size="sm"
-                className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 text-xs sm:text-sm"
-                onClick={() => handleTip(25)}
-              >
-                <Coins className="mr-1 h-3 w-3" />
-                25 tokens
-              </Button>
-              <Button 
-                size="sm"
-                className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 text-xs sm:text-sm"
-                onClick={() => handleTip(50)}
-              >
-                <Coins className="mr-1 h-3 w-3" />
-                50 tokens
-              </Button>
-            </div>
 
-          </div>
-        </div>
-      </div>
 
       {/* Other Live Streams Section - Show for guests and users */}
       {otherStreams && Array.isArray(otherStreams) && otherStreams.length > 0 && (
