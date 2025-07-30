@@ -10,6 +10,9 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (July 30, 2025)
 
+**ENHANCED MESSAGING SYSTEM REMOVED - Simplified Interface (July 30, 2025):**
+Removed complex enhanced messaging system per user request. Returned to clean, simple message overlay interface with basic message input and tip functionality. Eliminated private messaging features, advanced form controls, and complex validation. Guest users retain 5-minute viewing time and 100-token messaging capability with simplified UI.
+
 **CRITICAL DOM ERROR ELIMINATED - Removed All removeChild Conflicts (July 30, 2025):**
 Successfully eliminated all DOM removeChild errors by removing innerHTML clearing operations that conflicted with Agora SDK's internal video element management. Delegated all video container cleanup to Agora SDK to prevent "Failed to execute 'removeChild' on 'Node'" errors. Video streaming now operates without DOM manipulation conflicts while maintaining proper video display functionality.
 

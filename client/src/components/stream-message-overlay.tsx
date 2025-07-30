@@ -4,9 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+
 import { useToast } from "@/hooks/use-toast";
 import { 
   Send, 
@@ -15,7 +13,7 @@ import {
   MessageCircle,
   X,
   Gift,
-  Lock
+
 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -56,18 +54,12 @@ export default function StreamMessageOverlay({
   const typedUser = user as any;
   
   const [message, setMessage] = useState("");
-  const [messageText, setMessageText] = useState("");
   const [overlayMessages, setOverlayMessages] = useState<OverlayMessage[]>([]);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [showTipDialog, setShowTipDialog] = useState(false);
   const [tipAmount, setTipAmount] = useState(0);
   const [quickTipAmount, setQuickTipAmount] = useState(0);
   const [showMessageInput, setShowMessageInput] = useState(false);
-  const [isPrivateMessage, setIsPrivateMessage] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  
-  const messageInputRef = useRef<HTMLTextAreaElement>(null);
 
   // Socket connection for live messages
   useEffect(() => {
@@ -135,52 +127,31 @@ export default function StreamMessageOverlay({
     };
   }, [streamId, creatorName, isGuest, guestSessionId, typedUser?.id]);
 
-  // Enhanced send message mutation supporting private messages and tips
+  // Send regular message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: async (messageData: { message: string; tipAmount?: number; isPrivate?: boolean }) => {
-      const headers: any = {};
-      
+    mutationFn: async (messageData: { message: string; tipAmount?: number }) => {
       if (isGuest && guestSessionId) {
-        headers['x-session-id'] = guestSessionId;
-        // Guest message with tip support
+        // Guest message
         return apiRequest("POST", `/api/streams/${streamId}/chat`, {
           message: messageData.message,
           tipAmount: messageData.tipAmount || 0,
-          isPrivate: messageData.isPrivate || false,
-        }, { headers });
+        });
       } else if (isAuthenticated && typedUser) {
-        // Authenticated user message with private message support
+        // Authenticated user message
         return apiRequest("POST", `/api/streams/${streamId}/chat`, {
           message: messageData.message,
           tipAmount: messageData.tipAmount || 0,
-          isPrivate: messageData.isPrivate || false,
         });
       }
       throw new Error("Not authenticated");
     },
-    onSuccess: (response) => {
+    onSuccess: () => {
       setMessage("");
-      setMessageText("");
-      setTipAmount(0);
-      setIsPrivateMessage(false);
-      setErrorMessage("");
-      
-      // Update guest tokens if applicable
-      if (isGuest && onGuestTokenUpdate) {
-        if (response?.tokensRemaining !== undefined) {
-          onGuestTokenUpdate(response.tokensRemaining);
-        } else if (guestTokens > 0) {
-          onGuestTokenUpdate(guestTokens - 1);
-        }
+      if (isGuest && onGuestTokenUpdate && guestTokens > 0) {
+        onGuestTokenUpdate(guestTokens - 1);
       }
-      
-      toast({
-        title: "Message Sent!",
-        description: isPrivateMessage ? "Private message sent to creator" : "Message posted to chat",
-      });
     },
     onError: (error: any) => {
-      setErrorMessage(error.message || "Could not send message");
       toast({
         title: "Message Failed",
         description: error.message || "Could not send message",
@@ -189,41 +160,31 @@ export default function StreamMessageOverlay({
     },
   });
 
-  // Enhanced tip mutation supporting guest tips
+  // Send tip mutation
   const sendTipMutation = useMutation({
     mutationFn: async (tipData: { amount: number; message?: string }) => {
-      const headers: any = {};
-      
-      if (isGuest && guestSessionId) {
-        // Guest tip using tokens
-        headers['x-session-id'] = guestSessionId;
-        return apiRequest("POST", `/api/streams/${streamId}/chat`, {
-          message: tipData.message || `Tipped ${tipData.amount} tokens!`,
-          tipAmount: tipData.amount,
-          isPrivate: false,
-        }, { headers });
-      } else if (isAuthenticated && typedUser) {
-        // Authenticated user tip
-        if (socket) {
-          socket.emit('tip-message', {
-            streamId,
-            amount: tipData.amount,
-            username: typedUser.username,
-            userId: typedUser.id,
-            message: tipData.message || `Tipped ${tipData.amount} tokens!`
-          });
-        }
-        return { success: true };
+      if (isGuest) {
+        throw new Error("Guests cannot send tips. Please sign up to tip creators!");
       }
       
-      throw new Error("Please log in to send tips");
+      if (!isAuthenticated || !typedUser) {
+        throw new Error("Please log in to send tips");
+      }
+
+      // Send tip via socket
+      if (socket) {
+        socket.emit('tip-message', {
+          streamId,
+          amount: tipData.amount,
+          username: typedUser.username,
+          userId: typedUser.id,
+          message: tipData.message || `Tipped ${tipData.amount} tokens!`
+        });
+      }
+
+      return { success: true };
     },
-    onSuccess: (response) => {
-      // Update guest tokens if applicable
-      if (isGuest && onGuestTokenUpdate && response?.tokensRemaining !== undefined) {
-        onGuestTokenUpdate(response.tokensRemaining);
-      }
-      
+    onSuccess: () => {
       toast({
         title: "Tip Sent!",
         description: `Successfully tipped ${tipAmount} tokens to ${creatorName}`,
@@ -240,50 +201,7 @@ export default function StreamMessageOverlay({
     },
   });
 
-  const handleSendMessage = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    
-    const messageToSend = messageText.trim() || message.trim();
-    if (!messageToSend) return;
-    
-    setIsSubmitting(true);
-    setErrorMessage("");
-    
-    // Check if guest has tokens
-    if (isGuest && guestTokens <= 0) {
-      setErrorMessage("No tokens remaining. Please sign up to continue!");
-      setIsSubmitting(false);
-      return;
-    }
-    
-    // Validate private message requirements
-    if (isPrivateMessage && !isGuest) {
-      const minPrivateTokens = stream?.privateRate || 20;
-      if (tipAmount < minPrivateTokens) {
-        setErrorMessage(`Private messages require a minimum tip of ${minPrivateTokens} tokens`);
-        setIsSubmitting(false);
-        return;
-      }
-    }
-    
-    // Check wallet balance for authenticated users
-    if (!isGuest && tipAmount > 0 && (typedUser?.walletBalance || 0) < tipAmount) {
-      setErrorMessage("Insufficient wallet balance for tip");
-      setIsSubmitting(false);
-      return;
-    }
-
-    sendMessageMutation.mutate({ 
-      message: messageToSend,
-      tipAmount: tipAmount || 0,
-      isPrivate: isPrivateMessage 
-    });
-    
-    setIsSubmitting(false);
-  };
-
-  // Original simple message handler for existing UI
-  const handleSimpleMessage = () => {
+  const handleSendMessage = () => {
     if (!message.trim()) return;
     
     // Check if guest has tokens
@@ -300,11 +218,10 @@ export default function StreamMessageOverlay({
   };
 
   const handleQuickTip = (amount: number) => {
-    // Check if guest has enough tokens
-    if (isGuest && guestTokens < amount) {
+    if (isGuest) {
       toast({
-        title: "Not Enough Tokens",
-        description: `You need ${amount} tokens to send this tip`,
+        title: "Tips Require Account",
+        description: "Please sign up to tip creators",
         variant: "destructive",
       });
       return;
@@ -419,13 +336,13 @@ export default function StreamMessageOverlay({
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder={isGuest ? `Type message (${guestTokens} tokens left)` : "Type your message..."}
                     className="bg-slate-700 border-slate-600 text-white"
-                    onKeyPress={(e) => e.key === 'Enter' && handleSimpleMessage()}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                     disabled={sendMessageMutation.isPending || !canSendMessage}
                     maxLength={200}
                   />
                   <Button
                     size="sm"
-                    onClick={handleSimpleMessage}
+                    onClick={handleSendMessage}
                     disabled={!message.trim() || sendMessageMutation.isPending || !canSendMessage}
                     className="bg-blue-600 hover:bg-blue-700"
                   >
@@ -480,9 +397,7 @@ export default function StreamMessageOverlay({
             
             <div className="flex items-center justify-between text-sm text-slate-400">
               <span>Minimum Tip: {minTip} tokens</span>
-              <span>
-                {isGuest ? `Guest Tokens: ${guestTokens}` : `Your Balance: ${typedUser?.walletBalance || 0} tokens`}
-              </span>
+              <span>Your Balance: {typedUser?.walletBalance || 0} tokens</span>
             </div>
             
             {/* Quick tip buttons */}
@@ -534,140 +449,7 @@ export default function StreamMessageOverlay({
         </DialogContent>
       </Dialog>
 
-      {/* Enhanced Message Form - Fixed position overlay */}
-      <div className="fixed bottom-4 right-4 z-50 pointer-events-auto">
-        <Card className="bg-black/95 backdrop-blur-sm border-purple-500/50 max-w-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2 mb-3">
-              <MessageCircle className="h-4 w-4 text-purple-400" />
-              <span className="text-purple-400 font-medium text-sm">Enhanced Messaging</span>
-            </div>
-            
-            <form onSubmit={handleSendMessage} className="space-y-3">
-              <Textarea
-                ref={messageInputRef}
-                value={messageText}
-                onChange={(e) => setMessageText(e.target.value)}
-                placeholder="Type your message..."
-                className="bg-slate-800 border-slate-600 text-white placeholder-slate-400 text-sm resize-none h-20"
-                disabled={isSubmitting}
-                maxLength={200}
-              />
-              
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-2">
-                  <Label className="text-slate-300 text-xs">Tip Amount</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max={isGuest ? guestTokens : (typedUser?.walletBalance || 0)}
-                    value={tipAmount}
-                    onChange={(e) => setTipAmount(Number(e.target.value))}
-                    placeholder="0"
-                    className="bg-slate-800 border-slate-600 text-white text-sm h-8"
-                    disabled={isSubmitting}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-slate-300 text-xs">Message Type</Label>
-                  <Select 
-                    value={isPrivateMessage ? "private" : "public"} 
-                    onValueChange={(value) => setIsPrivateMessage(value === "private")}
-                    disabled={isSubmitting || isGuest}
-                  >
-                    <SelectTrigger className="bg-slate-800 border-slate-600 text-white text-sm h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600">
-                      <SelectItem value="public" className="text-white">Public</SelectItem>
-                      {!isGuest && (
-                        <SelectItem value="private" className="text-white">
-                          Private (min {stream?.privateRate || 20} tokens)
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              {isPrivateMessage && !isGuest && (
-                <div className="bg-purple-900/20 border border-purple-500/30 rounded p-2">
-                  <div className="flex items-center space-x-1">
-                    <Lock className="h-3 w-3 text-purple-300" />
-                    <p className="text-purple-300 text-xs">
-                      Private messages require a minimum tip of {stream?.privateRate || 20} tokens
-                      and are only visible to {creatorName}.
-                    </p>
-                  </div>
-                </div>
-              )}
-              
-              {isGuest && (
-                <div className="bg-blue-900/20 border border-blue-500/30 rounded p-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-blue-300 text-xs">Guest Tokens:</span>
-                    <span className="text-blue-300 text-xs font-bold">{guestTokens} remaining</span>
-                  </div>
-                  <p className="text-blue-200 text-xs mt-1">
-                    Each message costs 1 token. Tips cost their amount.
-                  </p>
-                </div>
-              )}
-              
-              {!isGuest && (
-                <div className="text-slate-400 text-xs">
-                  Wallet Balance: {(typedUser?.walletBalance || 0)} tokens
-                </div>
-              )}
-              
-              <div className="flex space-x-2">
-                <Button
-                  type="submit"
-                  disabled={!messageText.trim() || isSubmitting || 
-                    (isPrivateMessage && (isGuest || (!isGuest && tipAmount < (stream?.privateRate || 20)))) ||
-                    (tipAmount > 0 && (isGuest ? tipAmount > guestTokens : tipAmount > (typedUser?.walletBalance || 0)))
-                  }
-                  className="flex-1 bg-primary hover:bg-primary/80 text-white text-sm h-8"
-                >
-                  {isSubmitting ? (
-                    <div className="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full" />
-                  ) : (
-                    <>
-                      <Send className="h-3 w-3 mr-1" />
-                      {isPrivateMessage ? (
-                        `Send Private (${tipAmount})`
-                      ) : tipAmount > 0 ? (
-                        `Send + Tip (${tipAmount})`
-                      ) : (
-                        'Send Message'
-                      )}
-                    </>
-                  )}
-                </Button>
-                
-                {tipAmount > 0 && (
-                  <Button
-                    type="button"
-                    onClick={() => setTipAmount(0)}
-                    variant="outline"
-                    className="border-slate-500 text-slate-300 hover:bg-slate-600 text-sm h-8 px-2"
-                    disabled={isSubmitting}
-                  >
-                    Clear Tip
-                  </Button>
-                )}
-              </div>
-              
-              {errorMessage && (
-                <div className="bg-red-900/20 border border-red-500/30 rounded p-2">
-                  <p className="text-red-300 text-xs">{errorMessage}</p>
-                </div>
-              )}
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+
     </>
   );
 }
