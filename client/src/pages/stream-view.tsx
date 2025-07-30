@@ -423,7 +423,13 @@ export default function StreamView() {
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
     
+    console.log('🔍 Client: Attempting to send message:', newMessage);
+    console.log('🔍 Client: Is authenticated:', isAuthenticated);
+    console.log('🔍 Client: User data:', typedUser);
+    console.log('🔍 Client: Stream ID:', streamId);
+    
     if (!isAuthenticated) {
+      console.log('❌ Client: User not authenticated');
       toast({
         title: "Login Required",
         description: "Please login to send messages",
@@ -432,6 +438,7 @@ export default function StreamView() {
       return;
     }
     
+    console.log('✅ Client: Calling sendMessageMutation with message:', newMessage);
     sendMessageMutation.mutate({ message: newMessage });
   };
 

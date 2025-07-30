@@ -954,15 +954,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const { message, tipAmount = 0 } = req.body;
 
+      console.log(`💬 Chat API: Received message request - streamId: ${streamId}, userId: ${userId}, message: "${message}", tipAmount: ${tipAmount}`);
+
       if (!message || !message.trim()) {
+        console.log('❌ Chat API: Empty message rejected');
         return res.status(400).json({ message: "Message content required" });
       }
 
       // Get user info for sender name and role
       const user = await storage.getUser(userId);
       if (!user) {
+        console.log(`❌ Chat API: User ${userId} not found`);
         return res.status(404).json({ message: "User not found" });
       }
+
+      console.log(`👤 Chat API: User found - ${user.username} (${user.role})`);
 
       // Create chat message
       const chatMessage = await storage.createChatMessage({
@@ -975,6 +981,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tipAmount,
       });
 
+      console.log(`✅ Chat API: Message created with ID ${chatMessage.id}`);
+
       // Broadcast message via WebSocket if available
       if (global.io) {
         const messageData = {
@@ -984,13 +992,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isCreator: chatMessage.senderRole === 'creator'
         };
         global.io.to(`stream-${streamId}`).emit('chat-message', messageData);
-        console.log(`💬 Broadcasting chat message to stream-${streamId} room from ${chatMessage.senderName}`);
+        console.log(`📡 Chat API: Broadcasting message to stream-${streamId} room from ${chatMessage.senderName}`);
+      } else {
+        console.log('⚠️ Chat API: WebSocket server not available');
       }
 
       res.status(201).json(chatMessage);
     } catch (error) {
-      console.error("Error sending chat message:", error);
-      res.status(500).json({ message: "Failed to send chat message" });
+      console.error("❌ Error sending chat message:", error);
+      console.error("❌ Error stack:", error.stack);
+      res.status(500).json({ message: "Failed to send chat message", error: error.message });
     }
   });
 
