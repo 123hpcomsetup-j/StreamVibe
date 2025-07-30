@@ -1278,38 +1278,7 @@ export default function CreatorDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Agora Stream Modal */}
-      {showAgoraModal && streamKey && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="w-full h-full max-w-none bg-slate-900">
-            <AgoraStreamCreator
-              streamId={streamKey}
-              userId={typedUser?.id || ''}
-              username={typedUser?.username || ''}
-              onStreamStart={(id) => {
-                console.log('Stream started:', id);
-                setIsStreaming(true);
-              }}
-              onStreamStop={() => {
-                console.log('Stream stopped');
-                handleStopStream();
-              }}
-            />
-            
-            {/* Close button */}
-            <div className="absolute top-4 right-4 z-50">
-              <Button
-                onClick={() => setShowAgoraModal(false)}
-                variant="outline"
-                size="sm"
-                className="bg-slate-800 border-slate-600 text-white hover:bg-slate-700"
-              >
-                Close Studio
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }
