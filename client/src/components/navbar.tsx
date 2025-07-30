@@ -211,7 +211,7 @@ export default function Navbar({ user }: NavbarProps) {
               className={`hidden sm:flex items-center space-x-2 ${theme.searchBg} rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 hover:bg-opacity-80 transition-all duration-200`}
             >
               <Coins className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-400" />
-              <span className="text-xs sm:text-sm font-medium text-white">{currentBalance}</span>
+              <span className="text-xs sm:text-sm font-medium text-primary">{currentBalance}</span>
               <span className="hidden md:inline text-xs sm:text-sm text-slate-300">tokens</span>
               <Plus className="h-3 w-3 text-green-400 ml-1" />
             </Button>
@@ -242,7 +242,7 @@ export default function Navbar({ user }: NavbarProps) {
                 </div>
                 
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium text-white">{user?.username || 'User'}</span>
+                  <span className="text-sm font-medium text-primary">{user?.username || 'User'}</span>
                   <span className={`text-xs ${user?.role === 'creator' ? 'text-purple-300' : user?.role === 'viewer' ? 'text-blue-300' : 'text-slate-300'}`}>
                     {user?.role === 'creator' ? 'Content Creator' : user?.role === 'viewer' ? 'Viewer' : 'User'}
                   </span>
@@ -301,7 +301,7 @@ export default function Navbar({ user }: NavbarProps) {
                   className={`w-full flex items-center space-x-2 ${theme.searchBg} rounded-lg px-3 py-2 hover:bg-opacity-80 transition-all duration-200`}
                 >
                   <Coins className="h-4 w-4 text-yellow-400" />
-                  <span className="text-sm font-medium text-white">{currentBalance} tokens</span>
+                  <span className="text-sm font-medium text-primary">{currentBalance} tokens</span>
                   <Plus className="h-4 w-4 text-green-400 ml-auto" />
                 </Button>
               </div>
@@ -317,7 +317,7 @@ export default function Navbar({ user }: NavbarProps) {
                     />
                   </div>
                   <div>
-                    <div className="text-white font-medium">{user?.username}</div>
+                    <div className="text-primary font-medium">{user?.username}</div>
                     <div className={`${user?.role === 'creator' ? 'text-purple-300' : user?.role === 'viewer' ? 'text-blue-300' : 'text-slate-400'} text-sm`}>
                       {user?.role === 'creator' ? 'Content Creator' : user?.role === 'viewer' ? 'Viewer' : 'User'}
                     </div>
