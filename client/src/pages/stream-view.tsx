@@ -691,8 +691,8 @@ export default function StreamView() {
                             </Badge>
                           )}
                         </div>
-                      </div>
-                    ))
+                        </div>
+                      ))
                   )}
                   <div ref={chatEndRef} />
                 </div>
