@@ -726,9 +726,6 @@ export default function AgoraStreamCreator({
         {/* Quick Start Controls - Only show when not streaming or previewing */}
         {!isStreaming && !showPreview && (
           <Card className="bg-slate-800 border-slate-700">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-white text-lg">Quick Start</CardTitle>
-            </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-3">
                 <Button 
