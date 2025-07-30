@@ -726,29 +726,24 @@ export default function AgoraStreamCreator({
         {/* Quick Start Controls - Only show when not streaming or previewing */}
         {!isStreaming && !showPreview && (
           <Card className="bg-slate-800 border-slate-700">
-            <CardContent>
-              <div className="grid grid-cols-2 gap-3">
-                <Button 
-                  onClick={startPreview}
-                  size="sm"
-                  className="bg-blue-500 hover:bg-blue-600 h-9"
-                >
-                  <Video className="mr-2 h-4 w-4" />
-                  Preview
-                </Button>
-                <Button 
-                  onClick={startStreaming}
-                  size="sm" 
-                  className="bg-red-500 hover:bg-red-600 h-9"
-                >
-                  <Play className="mr-2 h-4 w-4" />
-                  Go Live
-                </Button>
-              </div>
-              <p className="text-slate-400 text-xs mt-2 text-center">
-                Stream controls will appear on the video when live
-              </p>
-            </CardContent>
+            <div className="grid grid-cols-2 gap-3">
+              <Button 
+                onClick={startPreview}
+                size="sm"
+                className="bg-blue-500 hover:bg-blue-600 h-9"
+              >
+                <Video className="mr-2 h-4 w-4" />
+                Preview
+              </Button>
+              <Button 
+                onClick={startStreaming}
+                size="sm" 
+                className="bg-red-500 hover:bg-red-600 h-9"
+              >
+                <Play className="mr-2 h-4 w-4" />
+                Go Live
+              </Button>
+            </div>
           </Card>
         )}
 
