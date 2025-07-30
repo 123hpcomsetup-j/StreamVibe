@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agora Streaming Debug Test</title>
+    <script src="https://unpkg.com/agora-rtc-sdk-ng@4.21.0/agora-rtc-sdk-ng.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #1a1a1a; color: white; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #444; border-radius: 8px; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #videoContainer { width: 640px; height: 480px; background: #000; border: 1px solid #666; margin: 10px 0; }
+        #logs { background: #222; padding: 10px; height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+        .log-entry { margin: 2px 0; }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .info { color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Agora Streaming Debug Test</h1>
+        <p>This test page helps debug the connection between creators and viewers.</p>
+        
+        <div class="test-section">
+            <h2>📡 Current Live Stream</h2>
+            <p>Stream ID: <span id="streamId">d3dee52e-3b6b-4246-a1b0-4974ad22a501</span></p>
+            <button onclick="testCreatorBroadcast()">🎥 Test as Creator (Broadcast)</button>
+            <button onclick="testViewerWatch()">👁️ Test as Viewer (Watch)</button>
+            <button onclick="disconnect()">🔌 Disconnect</button>
+        </div>
+
+        <div class="test-section">
+            <h2>📺 Video Output</h2>
+            <div id="videoContainer"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>📋 Debug Logs</h2>
+            <div id="logs"></div>
+            <button onclick="clearLogs()">Clear Logs</button>
+        </div>
+    </div>
+
+    <script>
+        const APP_ID = "36411769f91e457a88f142921fbf5c93";
+        const STREAM_ID = "d3dee52e-3b6b-4246-a1b0-4974ad22a501";
+        
+        let client = null;
+        let localVideoTrack = null;
+        let localAudioTrack = null;
+
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logs.appendChild(entry);
+            logs.scrollTop = logs.scrollHeight;
+            console.log(message);
+        }
+
+        async function getToken(role, uid) {
+            try {
+                const response = await fetch('http://localhost:5000/api/agora/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        channelName: STREAM_ID,
+                        uid: uid,
+                        role: role
+                    })
+                });
+                const data = await response.json();
+                log(`✅ Token generated for ${role} (UID: ${uid})`, 'success');
+                return data.token;
+            } catch (error) {
+                log(`❌ Failed to get token: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        async function testCreatorBroadcast() {
+            try {
+                log('🎥 STARTING CREATOR BROADCAST TEST...', 'info');
+                
+                // Create Agora client
+                client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+                client.setClientRole("host");
+                
+                // Get token for host
+                const token = await getToken('host', 12345);
+                
+                // Join channel
+                log(`🔗 Joining channel: ${STREAM_ID}`, 'info');
+                await client.join(APP_ID, STREAM_ID, token, 12345);
+                log('✅ Creator joined channel successfully', 'success');
+                
+                // Create video track
+                log('📹 Creating video track...', 'info');
+                localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+                localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+                
+                // Play video locally
+                localVideoTrack.play('videoContainer');
+                log('📺 Local video preview playing', 'success');
+                
+                // Publish tracks
+                log('📤 Publishing video and audio tracks...', 'info');
+                await client.publish([localVideoTrack, localAudioTrack]);
+                log('🎉 ✅ CREATOR SUCCESSFULLY BROADCASTING!', 'success');
+                log(`👥 Remote users in channel: ${client.remoteUsers.length}`, 'info');
+                
+                // Listen for viewers joining
+                client.on("user-joined", (user) => {
+                    log(`👥 VIEWER JOINED: ${user.uid}`, 'success');
+                });
+                
+            } catch (error) {
+                log(`❌ Creator broadcast failed: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        async function testViewerWatch() {
+            try {
+                log('👁️ STARTING VIEWER WATCH TEST...', 'info');
+                
+                // Create Agora client
+                client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+                client.setClientRole("audience");
+                
+                // Get token for audience
+                const token = await getToken('audience', 54321);
+                
+                // Join channel
+                log(`🔗 Joining channel: ${STREAM_ID}`, 'info');
+                await client.join(APP_ID, STREAM_ID, token, 54321);
+                log('✅ Viewer joined channel successfully', 'success');
+                log(`👥 Remote users in channel: ${client.remoteUsers.length}`, 'info');
+                
+                // Listen for creator's broadcast
+                client.on("user-published", async (user, mediaType) => {
+                    log(`🎉 CREATOR IS BROADCASTING ${mediaType}! (UID: ${user.uid})`, 'success');
+                    
+                    try {
+                        // Subscribe to remote user's track
+                        await client.subscribe(user, mediaType);
+                        log(`✅ Subscribed to ${mediaType} from creator`, 'success');
+                        
+                        if (mediaType === "video") {
+                            const remoteVideoTrack = user.videoTrack;
+                            remoteVideoTrack.play('videoContainer');
+                            log('📺 VIEWING CREATOR\'S VIDEO!', 'success');
+                        }
+                    } catch (subError) {
+                        log(`❌ Failed to subscribe to ${mediaType}: ${subError.message}`, 'error');
+                    }
+                });
+                
+                client.on("user-unpublished", (user, mediaType) => {
+                    log(`📺 Creator stopped ${mediaType}`, 'info');
+                });
+                
+            } catch (error) {
+                log(`❌ Viewer watch failed: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        async function disconnect() {
+            try {
+                if (localVideoTrack) {
+                    localVideoTrack.stop();
+                    localVideoTrack.close();
+                    localVideoTrack = null;
+                }
+                if (localAudioTrack) {
+                    localAudioTrack.stop();
+                    localAudioTrack.close();
+                    localAudioTrack = null;
+                }
+                if (client) {
+                    await client.leave();
+                    client = null;
+                }
+                document.getElementById('videoContainer').innerHTML = '';
+                log('🔌 Disconnected from Agora', 'info');
+            } catch (error) {
+                log(`❌ Disconnect error: ${error.message}`, 'error');
+            }
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        // Initial log
+        log('🔧 Agora Debug Test Ready - Use buttons to test creator/viewer connection', 'info');
+        log(`📡 App ID: ${APP_ID}`, 'info');
+        log(`🆔 Stream Channel: ${STREAM_ID}`, 'info');
+    </script>
+</body>
+</html>

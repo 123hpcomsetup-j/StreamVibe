@@ -620,7 +620,7 @@ export default function StreamView() {
                   streamId={typedStream.id}
                   userId={typedUser?.id || guestSessionId || ''}
                   username={displayName}
-                  creatorName={typedStream.creatorName}
+                  creatorName={typedStream.creatorName || 'Creator'}
                   title={typedStream.title}
                 />
               ) : (
