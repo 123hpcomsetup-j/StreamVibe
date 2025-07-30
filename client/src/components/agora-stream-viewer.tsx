@@ -19,7 +19,7 @@ import AgoraRTC, {
   IRemoteAudioTrack,
   UID
 } from "agora-rtc-sdk-ng";
-import StreamChat from "./stream-chat";
+
 import StreamMessageOverlay from "./stream-message-overlay";
 
 interface AgoraStreamViewerProps {
@@ -53,7 +53,7 @@ export default function AgoraStreamViewer({
   const [viewerCount, setViewerCount] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [hasVideo, setHasVideo] = useState(false);
-  const [showChat, setShowChat] = useState(false);
+
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [socket, setSocket] = useState<Socket | null>(null);
   
@@ -564,17 +564,6 @@ export default function AgoraStreamViewer({
         
         {/* Video Controls */}
         <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 flex items-center space-x-2 z-20">
-          {/* Chat Toggle */}
-          <Button
-            size="sm"
-            variant={showChat ? "default" : "secondary"}
-            className="bg-black/70 hover:bg-black/90 backdrop-blur-sm border-none shadow-lg w-8 h-8 sm:w-auto sm:h-auto p-1 sm:p-2"
-            onClick={() => setShowChat(!showChat)}
-          >
-            <MessageCircle className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden sm:inline ml-1">{showChat ? 'Hide' : 'Chat'}</span>
-          </Button>
-          
           {/* Audio Control */}
           {hasVideo && (
             <Button
@@ -613,26 +602,7 @@ export default function AgoraStreamViewer({
         )}
       </div>
 
-      {/* Chat Panel - Desktop: right side, Mobile: overlay */}
-      {showChat && (
-        <div className={`
-          ${showChat ? 'block' : 'hidden'}
-          absolute lg:relative
-          top-0 right-0 lg:top-auto lg:right-auto
-          w-full lg:w-1/3
-          h-full
-          z-30 lg:z-auto
-          bg-black/95 lg:bg-transparent
-          lg:border-l lg:border-slate-700
-        `}>
-          <StreamChat
-            streamId={streamId}
-            creatorName={creatorName}
-            isVisible={showChat}
-            onToggle={() => setShowChat(false)}
-          />
-        </div>
-      )}
+
     </div>
   );
 }
