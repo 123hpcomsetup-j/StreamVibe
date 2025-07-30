@@ -105,6 +105,8 @@ export default function AgoraStreamCreator({
       console.log('🔗 Creator WebSocket connected successfully');
       console.log('🎯 Socket ID:', newSocket.id);
       console.log('✅ Socket connected status:', newSocket.connected);
+      console.log('🌐 Socket URL:', window.location.origin);
+      console.log('📋 Connection query params:', { userId, role: 'creator' });
       // Join stream room immediately
       newSocket.emit('join-stream', { streamId, userId });
     });
@@ -324,7 +326,7 @@ export default function AgoraStreamCreator({
       onStreamStart?.(streamId);
 
       // IMPORTANT: Only emit live status AFTER successful Agora publishing
-      if (socket) {
+      if (socket && socket.connected) {
         console.log('🚀 Broadcasting live stream status to all clients:', streamId);
         console.log('🔗 Socket connection status:', socket.connected);
         console.log('📡 Emitting start-stream event with data:', { streamId, userId });
@@ -344,6 +346,7 @@ export default function AgoraStreamCreator({
         console.log('✅ WebSocket events emitted successfully');
       } else {
         console.error('❌ No WebSocket connection available - cannot notify server of live status');
+        console.error('❌ Socket details:', { exists: !!socket, connected: socket?.connected || false });
         
         // Try to update stream status via API call as fallback
         try {
