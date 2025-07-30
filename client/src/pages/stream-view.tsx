@@ -463,8 +463,99 @@ export default function StreamView() {
               </>
             )}
           </div>
-
           
+          {/* Chat Section - Below Video */}
+          <div className="h-[20vh] bg-slate-900 border-t border-slate-700">
+            <div className="h-full flex flex-col">
+              {/* Chat Header */}
+              <div className="flex items-center justify-between p-4 border-b border-slate-700">
+                <div className="flex items-center space-x-2">
+                  <MessageCircle className="h-5 w-5 text-purple-400" />
+                  <h3 className="text-white font-semibold">Live Chat</h3>
+                </div>
+                <Badge variant="secondary" className="text-xs">
+                  {chatMessages.length} messages
+                </Badge>
+              </div>
+              
+              {/* Chat Messages */}
+              <div className="flex-1 overflow-hidden">
+                <ScrollArea className="h-full p-4">
+                  <div className="space-y-2">
+                    {chatMessages.length === 0 ? (
+                      <div className="text-center text-slate-400 py-4">
+                        <MessageCircle className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No messages yet</p>
+                        <p className="text-xs">Start the conversation!</p>
+                      </div>
+                    ) : (
+                      chatMessages.map((msg, index) => (
+                        <div key={index} className="text-sm">
+                          <div className="flex items-start space-x-2">
+                            <span className={`font-medium flex-shrink-0 ${
+                              msg.senderRole === 'creator' 
+                                ? 'text-yellow-400' 
+                                : msg.senderRole === 'viewer'
+                                ? 'text-blue-400'
+                                : 'text-gray-400'
+                            }`}>
+                              {msg.senderName}:
+                            </span>
+                            <span className="text-slate-300 break-words">{msg.message}</span>
+                          </div>
+                          {msg.tipAmount > 0 && (
+                            <div className="flex items-center mt-1 ml-2">
+                              <Coins className="h-3 w-3 text-yellow-400 mr-1" />
+                              <span className="text-yellow-400 text-xs font-bold">
+                                Tipped {msg.tipAmount} tokens!
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                    <div ref={chatEndRef} />
+                  </div>
+                </ScrollArea>
+              </div>
+              
+              {/* Chat Input */}
+              <div className="p-4 border-t border-slate-700">
+                {isAuthenticated ? (
+                  <div className="flex space-x-2">
+                    <Input
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                      placeholder={`Message ${typedStream?.creator?.username || 'streamer'}...`}
+                      className="bg-slate-800 border-slate-600 text-white flex-1"
+                      disabled={sendMessageMutation.isPending}
+                    />
+                    <Button 
+                      onClick={handleSendMessage}
+                      disabled={!newMessage.trim() || sendMessageMutation.isPending}
+                      size="sm"
+                      className="bg-purple-600 hover:bg-purple-700 px-3"
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <p className="text-slate-400 text-sm mb-2">Join the conversation</p>
+                    <Button 
+                      onClick={() => setShowLoginModal(true)}
+                      size="sm"
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      <LogIn className="mr-2 h-4 w-4" />
+                      Login to Chat
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Token Panel */}
