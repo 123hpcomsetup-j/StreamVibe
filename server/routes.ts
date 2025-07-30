@@ -319,9 +319,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Agora token generation for streaming
-  app.get('/api/agora/token', async (req, res) => {
+  app.post('/api/agora/token', async (req, res) => {
     try {
-      const { channelName, role, uid } = req.query;
+      const { channelName, role, uid } = req.body;
       
       if (!channelName) {
         return res.status(400).json({ message: 'Channel name is required' });
