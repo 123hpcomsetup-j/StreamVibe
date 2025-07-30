@@ -94,17 +94,27 @@ export default function AgoraStreamCreator({
   useEffect(() => {
     const newSocket = io(window.location.origin, {
       path: '/socket.io',
-      transports: ['websocket', 'polling']
+      transports: ['websocket', 'polling'],
+      query: {
+        userId: userId,
+        role: 'creator'
+      }
     });
 
     newSocket.on('connect', () => {
-      console.log('Creator connected to chat server');
+      console.log('🔗 Creator WebSocket connected successfully');
+      console.log('🎯 Socket ID:', newSocket.id);
+      console.log('✅ Socket connected status:', newSocket.connected);
       // Join stream room immediately
       newSocket.emit('join-stream', { streamId, userId });
     });
 
     newSocket.on('disconnect', () => {
-      console.log('Creator disconnected from chat server');
+      console.log('❌ Creator WebSocket disconnected from chat server');
+    });
+    
+    newSocket.on('connect_error', (error) => {
+      console.error('❌ Creator WebSocket connection error:', error);
     });
 
     // Listen for chat messages from all users (including viewers)

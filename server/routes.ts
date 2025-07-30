@@ -245,6 +245,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Unauthorized" });
       }
 
+      console.log(`🔄 API PATCH: Updating stream ${streamId} with data:`, req.body);
+      
+      // Handle live status specifically
+      if (req.body.isLive !== undefined) {
+        await storage.updateStreamStatus(streamId, req.body.isLive);
+        console.log(`✅ Stream ${streamId} status updated to isLive: ${req.body.isLive}`);
+      }
+      
       const updatedStream = await storage.updateStream(streamId, req.body);
       
       // If stopping stream, set user offline
