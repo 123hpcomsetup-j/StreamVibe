@@ -598,7 +598,7 @@ export default function StreamView() {
           
           {isAuthenticated && (
             <div className="flex items-center space-x-4">
-              <span className="text-slate-300">Welcome, {displayName}!</span>
+              <span className="text-slate-300">Welcome, {String(displayName)}!</span>
               <Badge className="bg-green-500 text-white">
                 <Users className="mr-1 h-3 w-3" />
                 Full Access
