@@ -378,6 +378,14 @@ export default function AgoraStreamViewer({
         uid: clientRef.current.uid,
         remoteUsers: clientRef.current.remoteUsers.length
       });
+      console.log("🎯 VIEWER LISTENING FOR CREATOR ON CHANNEL:", channelName);
+      
+      // TEST: Log existing remote users immediately upon joining
+      if (clientRef.current.remoteUsers.length > 0) {
+        console.log("🎉 FOUND EXISTING REMOTE USERS:", clientRef.current.remoteUsers.map(u => ({ uid: u.uid, hasVideo: !!u.videoTrack, hasAudio: !!u.audioTrack })));
+      } else {
+        console.log("📭 No remote users currently in channel - waiting for creator to broadcast");
+      }
       
       // Set a timeout to show message if no video appears
       setTimeout(() => {

@@ -56,9 +56,10 @@ export default function AgoraStreamCreator({
 
     // Handle user joined/left events
     client.on("user-joined", (user) => {
-      console.log("👥 VIEWER JOINED CHANNEL:", user.uid);
+      console.log("🎉 👥 VIEWER JOINED CHANNEL:", user.uid);
       console.log("🎯 Channel Name:", clientRef.current?.channelName);
       console.log("📺 Creator has published tracks:", clientRef.current?.localTracks?.length || 0);
+      console.log("🔄 Sending published tracks to new viewer...");
       setViewerCount(prev => {
         const newCount = prev + 1;
         console.log("👥 Updated viewer count:", newCount);
@@ -317,6 +318,8 @@ export default function AgoraStreamCreator({
         console.log('🚀 Broadcasting live stream status to all clients:', streamId);
         console.log('🔗 Socket connection status:', socket.connected);
         console.log('📡 Emitting start-stream event with data:', { streamId, userId });
+        console.log('🎯 CREATOR PUBLISHED TO AGORA CHANNEL:', channelName);
+        console.log('👥 Viewers should now be able to see this broadcast');
         
         socket.emit('start-stream', { streamId, userId });
         
@@ -324,7 +327,8 @@ export default function AgoraStreamCreator({
         socket.emit('stream-live-confirmed', { 
           streamId, 
           userId,
-          message: 'Creator is now broadcasting video'
+          channelName,
+          message: 'Creator is now broadcasting video to Agora channel'
         });
         
         console.log('✅ WebSocket events emitted successfully');
