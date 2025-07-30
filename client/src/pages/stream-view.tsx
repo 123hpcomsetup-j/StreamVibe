@@ -31,6 +31,7 @@ import {
 import type { User } from "@shared/schema";
 import AgoraStreamViewer from "@/components/agora-stream-viewer";
 import StreamTokenPanel from "@/components/stream-token-panel";
+import { StreamChat } from "@/components/StreamChat";
 import Navbar from "@/components/navbar";
 
 export default function StreamView() {
@@ -571,160 +572,16 @@ export default function StreamView() {
           
           {/* Chat Section - Below Video */}
           <div className="h-[25vh] bg-slate-900 border-t border-slate-700">
-            <div className="h-full flex flex-col">
-              {/* Chat Header */}
-              <div className="flex items-center justify-between p-4 border-b border-slate-700 h-[60px] flex-shrink-0">
-                <div className="flex items-center space-x-2">
-                  <MessageCircle className="h-5 w-5 text-purple-400" />
-                  <h3 className="text-white font-semibold">Live Chat</h3>
-                </div>
-                <div className="flex items-center space-x-2">
-                  {isAuthenticated ? (
-                    <>
-                      {/* Tip Dropdown */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            size="sm"
-                            className="bg-yellow-600 hover:bg-yellow-700 text-white"
-                          >
-                            <Coins className="mr-2 h-4 w-4" />
-                            Tip
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="bg-slate-800 border-slate-700">
-                          <DropdownMenuItem 
-                            onClick={() => handleQuickTip(5)}
-                            className="text-white hover:bg-slate-700 cursor-pointer"
-                          >
-                            <Coins className="mr-2 h-4 w-4 text-yellow-400" />
-                            5 Tokens
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleQuickTip(10)}
-                            className="text-white hover:bg-slate-700 cursor-pointer"
-                          >
-                            <Coins className="mr-2 h-4 w-4 text-yellow-400" />
-                            10 Tokens
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleQuickTip(15)}
-                            className="text-white hover:bg-slate-700 cursor-pointer"
-                          >
-                            <Coins className="mr-2 h-4 w-4 text-yellow-400" />
-                            15 Tokens
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => setShowCustomTipDialog(true)}
-                            className="text-white hover:bg-slate-700 cursor-pointer"
-                          >
-                            <Gift className="mr-2 h-4 w-4 text-purple-400" />
-                            Custom Amount
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                      
-                      <Button
-                        onClick={handlePrivateCallRequest}
-                        size="sm"
-                        className="bg-pink-600 hover:bg-pink-700 text-white"
-                      >
-                        <Phone className="mr-2 h-4 w-4" />
-                        Private Call
-                      </Button>
-                    </>
-                  ) : (
-                  <Button
-                    onClick={() => setShowLoginModal(true)}
-                    size="sm"
-                    variant="outline"
-                    className="border-slate-600 text-slate-400 hover:bg-slate-700"
-                  >
-                    <LogIn className="mr-2 h-4 w-4" />
-                    Login for Private Calls
-                  </Button>
-                )}
-              </div>
-              
-              {/* Chat Messages */}
-              <div className="flex-1 overflow-hidden min-h-0">
-                <ScrollArea className="h-full p-3">
-                  <div className="space-y-3">
-                    {chatMessages.length === 0 ? (
-                      <div className="text-center text-slate-400 py-8">
-                        <MessageCircle className="h-6 w-6 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">No messages yet</p>
-                        <p className="text-xs">Start the conversation!</p>
-                      </div>
-                    ) : (
-                      chatMessages.map((msg, index) => (
-                        <div key={index} className="bg-slate-700 rounded-lg p-3">
-                          <div className="flex flex-col space-y-1">
-                            <span className={`font-medium text-xs ${
-                              msg.senderRole === 'creator' 
-                                ? 'text-yellow-400' 
-                                : msg.senderRole === 'viewer'
-                                ? 'text-blue-400'
-                                : 'text-gray-400'
-                            }`}>
-                              {msg.senderName}
-                            </span>
-                            <span className="text-slate-200 text-sm break-words leading-relaxed">
-                              {msg.message}
-                            </span>
-                            {msg.tipAmount > 0 && (
-                              <div className="flex items-center mt-1 pt-1 border-t border-slate-600">
-                                <Coins className="h-3 w-3 text-yellow-400 mr-1" />
-                                <span className="text-yellow-400 text-xs font-bold">
-                                  Tipped {msg.tipAmount} tokens!
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))
-                    )}
-                    <div ref={chatEndRef} />
-                  </div>
-                </ScrollArea>
-              </div>
-              
-              {/* Chat Input */}
-              <div className="p-3 border-t border-slate-700 flex-shrink-0">
-                {isAuthenticated ? (
-                  <div className="flex space-x-2">
-                    <Input
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                      placeholder={`Message ${typedStream?.creator?.username || 'streamer'}...`}
-                      className="bg-slate-800 border-slate-600 text-white flex-1"
-                      disabled={sendMessageMutation.isPending}
-                    />
-                    <Button 
-                      onClick={handleSendMessage}
-                      disabled={!newMessage.trim() || sendMessageMutation.isPending}
-                      size="sm"
-                      className="bg-purple-600 hover:bg-purple-700 px-3"
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="text-center">
-                    <p className="text-slate-400 text-sm mb-2">Join the conversation</p>
-                    <Button 
-                      onClick={() => setShowLoginModal(true)}
-                      size="sm"
-                      className="bg-purple-600 hover:bg-purple-700"
-                    >
-                      <LogIn className="mr-2 h-4 w-4" />
-                      Login to Chat
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
+            <StreamChat
+              streamId={streamId!}
+              messages={chatMessages}
+              isAuthenticated={isAuthenticated}
+              onSendMessage={handleSendMessage}
+              onQuickTip={handleQuickTip}
+              onPrivateCall={handlePrivateCallRequest}
+              onLogin={() => setShowLoginModal(true)}
+              isLoading={sendMessageMutation.isPending}
+            />
           </div>
         </div>
 
@@ -984,7 +841,6 @@ export default function StreamView() {
           </div>
         </DialogContent>
       </Dialog>
-      </div>
     </div>
   );
 }
