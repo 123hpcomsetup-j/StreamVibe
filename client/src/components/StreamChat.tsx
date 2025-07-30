@@ -166,9 +166,9 @@ export function StreamChat({
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0" style={{ minHeight: '300px' }}>
         <ScrollArea className="h-full">
-          <div className="p-3 space-y-2">
+          <div className="p-3 space-y-2" style={{ minHeight: '280px' }}>
             {messages.length === 0 ? (
               <div className="text-center text-slate-400 py-8">
                 <MessageCircle className="h-8 w-8 mx-auto mb-3 opacity-50" />

@@ -524,7 +524,7 @@ export default function StreamView() {
       <div className="flex-1 flex">
         <div className="flex-1 relative">
           {/* Video Player */}
-          <div className="relative h-[75vh] bg-black">
+          <div className="relative h-[65vh] bg-black">
             {viewingBlocked ? (
               <div className="absolute inset-0 flex items-center justify-center bg-black/90 z-20">
                 <div className="text-center max-w-md">
@@ -571,7 +571,7 @@ export default function StreamView() {
           </div>
           
           {/* Chat Section - Below Video */}
-          <div className="h-[25vh] bg-slate-900 border-t border-slate-700">
+          <div className="h-[35vh] min-h-[400px] bg-slate-900 border-t border-slate-700">
             <StreamChat
               streamId={streamId!}
               messages={chatMessages}
