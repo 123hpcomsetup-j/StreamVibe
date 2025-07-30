@@ -309,9 +309,9 @@ export default function StreamView() {
       )}
 
       {/* Main Content - Full Width Video */}
-      <div className="flex-1 overflow-hidden">
-        {/* Video Stream - 80% Screen Height Container */}
-        <div className="w-screen h-[80vh] bg-black overflow-hidden -mx-2 sm:-mx-4 lg:-mx-6">
+      <div className="h-[80vh] overflow-hidden">
+        {/* Video Stream - Full Container */}
+        <div className="w-screen h-full bg-black overflow-hidden -mx-2 sm:-mx-4 lg:-mx-6">
             {!streamEnded && typedStream ? (
               <AgoraStreamViewer
                 streamId={typedStream.id}
