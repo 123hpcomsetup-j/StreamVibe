@@ -1,19 +1,34 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Play, Users, Video, Heart, Coins, ChevronRight } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { Play, Users, Video, Heart, Coins, ChevronRight, UserPlus, LogIn } from "lucide-react";
 import { io } from "socket.io-client";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import Navbar from "@/components/navbar";
 import type { User } from "@shared/schema";
 
 export default function PublicHome() {
   const [, setLocation] = useLocation();
   const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
+  
+  // Dialog states
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [authData, setAuthData] = useState({
+    username: "",
+    password: "",
+    confirmPassword: "",
+    role: "viewer" as "viewer" | "creator"
+  });
 
   const { data: liveStreams = [], isLoading: streamsLoading } = useQuery({
     queryKey: ["/api/streams/live"],
@@ -57,6 +72,72 @@ export default function PublicHome() {
     };
   }, []);
 
+  // Authentication mutations
+  const loginMutation = useMutation({
+    mutationFn: (data: { username: string; password: string }) =>
+      apiRequest("POST", "/api/auth/login", data),
+    onSuccess: () => {
+      toast({
+        title: "Welcome back!",
+        description: "You have successfully logged in.",
+      });
+      setShowAuthDialog(false);
+      window.location.reload();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Login Failed",
+        description: error.message || "Invalid credentials",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const signupMutation = useMutation({
+    mutationFn: (data: { username: string; password: string; role: string }) =>
+      apiRequest("POST", "/api/auth/register", data),
+    onSuccess: () => {
+      toast({
+        title: "Account Created!",
+        description: "You can now log in with your credentials.",
+      });
+      setIsLoginMode(true);
+      setAuthData({ username: "", password: "", confirmPassword: "", role: "viewer" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Registration Failed",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Form handlers
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isLoginMode) {
+      loginMutation.mutate({ 
+        username: authData.username, 
+        password: authData.password 
+      });
+    } else {
+      if (authData.password !== authData.confirmPassword) {
+        toast({
+          title: "Passwords Don't Match",
+          description: "Please ensure both passwords are identical",
+          variant: "destructive",
+        });
+        return;
+      }
+      signupMutation.mutate({
+        username: authData.username,
+        password: authData.password,
+        role: authData.role
+      });
+    }
+  };
+
   // Filter only creators who are online
   const onlineCreators = Array.isArray(onlineUsers) ? onlineUsers.filter((user: any) => user.role === 'creator') : [];
 
@@ -65,36 +146,43 @@ export default function PublicHome() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Navigation - use proper Navbar component if authenticated, otherwise show guest navigation */}
+      {/* Navigation - use proper Navbar component if authenticated, otherwise show simple mobile-friendly navigation */}
       {isAuthenticated && user ? (
         <Navbar user={user as User} />
       ) : (
         <nav className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center">
-                <h1 className="text-2xl font-bold text-primary">StreamVibe</h1>
-              </div>
-              <div className="flex items-center space-x-4">
+          <div className="max-w-7xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              {/* Website Name - Clickable to go home */}
+              <button
+                onClick={() => setLocation("/")}
+                className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent hover:from-purple-300 hover:to-pink-300 transition-colors"
+              >
+                StreamVibe
+              </button>
+              
+              {/* Login and Signup Buttons */}
+              <div className="flex items-center space-x-3">
                 <Button 
                   variant="ghost"
-                  onClick={() => setLocation("/user-login")}
+                  onClick={() => {
+                    setIsLoginMode(true);
+                    setShowAuthDialog(true);
+                  }}
                   className="text-slate-300 hover:text-white"
                 >
-                  Watch Streams
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Login
                 </Button>
                 <Button 
-                  variant="ghost"
-                  onClick={() => setLocation("/creator-login")}
-                  className="text-slate-300 hover:text-white"
-                >
-                  Start Creating
-                </Button>
-                <Button 
-                  onClick={() => setLocation("/login")}
+                  onClick={() => {
+                    setIsLoginMode(false);
+                    setShowAuthDialog(true);
+                  }}
                   className="bg-primary hover:bg-primary/80"
                 >
-                  Sign In
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Sign Up
                 </Button>
               </div>
             </div>
@@ -139,7 +227,11 @@ export default function PublicHome() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
                 size="lg" 
-                onClick={() => setLocation("/user-login")}
+                onClick={() => {
+                  setAuthData({ ...authData, role: "viewer" });
+                  setIsLoginMode(false);
+                  setShowAuthDialog(true);
+                }}
                 className="bg-primary hover:bg-primary/80 text-lg px-8 py-3"
               >
                 <Play className="mr-2 h-5 w-5" />
@@ -148,7 +240,11 @@ export default function PublicHome() {
               <Button 
                 size="lg" 
                 variant="outline" 
-                onClick={() => setLocation("/creator-login")}
+                onClick={() => {
+                  setAuthData({ ...authData, role: "creator" });
+                  setIsLoginMode(false);
+                  setShowAuthDialog(true);
+                }}
                 className="border-primary text-primary hover:bg-primary hover:text-white text-lg px-8 py-3"
               >
                 <Video className="mr-2 h-5 w-5" />
@@ -166,7 +262,11 @@ export default function PublicHome() {
             <h2 className="text-3xl font-bold text-white">Live Now</h2>
             <Button 
               variant="outline" 
-              onClick={() => setLocation("/user-login")}
+              onClick={() => {
+                setAuthData({ ...authData, role: "viewer" });
+                setIsLoginMode(true);
+                setShowAuthDialog(true);
+              }}
               className="border-slate-600 text-slate-300 hover:bg-slate-700"
             >
               View All <ChevronRight className="ml-1 h-4 w-4" />
@@ -376,14 +476,22 @@ export default function PublicHome() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               size="lg" 
-              onClick={() => setLocation("/user-login")}
+              onClick={() => {
+                setAuthData({ ...authData, role: "viewer" });
+                setIsLoginMode(false);
+                setShowAuthDialog(true);
+              }}
               className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-3"
             >
               I Want to Watch
             </Button>
             <Button 
               size="lg" 
-              onClick={() => setLocation("/creator-login")}
+              onClick={() => {
+                setAuthData({ ...authData, role: "creator" });
+                setIsLoginMode(false);
+                setShowAuthDialog(true);
+              }}
               className="bg-purple-600 hover:bg-purple-700 text-lg px-8 py-3"
             >
               I Want to Create
@@ -403,14 +511,22 @@ export default function PublicHome() {
             <div className="flex justify-center space-x-6">
               <Button 
                 variant="link" 
-                onClick={() => setLocation("/user-login")}
+                onClick={() => {
+                  setAuthData({ ...authData, role: "viewer" });
+                  setIsLoginMode(false);
+                  setShowAuthDialog(true);
+                }}
                 className="text-slate-400 hover:text-white"
               >
                 Watch Streams
               </Button>
               <Button 
                 variant="link" 
-                onClick={() => setLocation("/creator-login")}
+                onClick={() => {
+                  setAuthData({ ...authData, role: "creator" });
+                  setIsLoginMode(false);
+                  setShowAuthDialog(true);
+                }}
                 className="text-slate-400 hover:text-white"
               >
                 Become Creator
@@ -426,6 +542,120 @@ export default function PublicHome() {
           </div>
         </div>
       </footer>
+
+      {/* Authentication Dialog */}
+      <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+        <DialogContent className="bg-slate-800 border-slate-700 text-white">
+          <DialogHeader>
+            <DialogTitle>
+              {isLoginMode ? "Welcome Back" : "Join StreamVibe"}
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              {isLoginMode 
+                ? "Enter your credentials to access your account" 
+                : "Create your account to start watching and interacting with creators"
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAuth} className="space-y-4">
+            <div>
+              <Label className="text-slate-300">Username</Label>
+              <Input
+                type="text"
+                value={authData.username}
+                onChange={(e) => setAuthData({ ...authData, username: e.target.value })}
+                className="bg-slate-700 border-slate-600 text-white"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label className="text-slate-300">Password</Label>
+              <Input
+                type="password"
+                value={authData.password}
+                onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
+                className="bg-slate-700 border-slate-600 text-white"
+                required
+              />
+            </div>
+            
+            {!isLoginMode && (
+              <>
+                <div>
+                  <Label className="text-slate-300">Confirm Password</Label>
+                  <Input
+                    type="password"
+                    value={authData.confirmPassword}
+                    onChange={(e) => setAuthData({ ...authData, confirmPassword: e.target.value })}
+                    className="bg-slate-700 border-slate-600 text-white"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label className="text-slate-300">I want to</Label>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <Button
+                      type="button"
+                      variant={authData.role === "viewer" ? "default" : "outline"}
+                      onClick={() => setAuthData({ ...authData, role: "viewer" })}
+                      className="h-12"
+                    >
+                      <Play className="mr-2 h-4 w-4" />
+                      Watch Streams
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={authData.role === "creator" ? "default" : "outline"}
+                      onClick={() => setAuthData({ ...authData, role: "creator" })}
+                      className="h-12"
+                    >
+                      <Video className="mr-2 h-4 w-4" />
+                      Create Content
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
+            
+            <div className="flex flex-col space-y-3">
+              <Button 
+                type="submit" 
+                className="bg-primary hover:bg-primary/80"
+                disabled={loginMutation.isPending || signupMutation.isPending}
+              >
+                {isLoginMode ? (
+                  <>
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Sign In
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Create Account
+                  </>
+                )}
+              </Button>
+              
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setIsLoginMode(!isLoginMode);
+                  setAuthData({ username: "", password: "", confirmPassword: "", role: "viewer" });
+                }}
+                className="text-slate-400 hover:text-white"
+              >
+                {isLoginMode 
+                  ? "Don't have an account? Sign up" 
+                  : "Already have an account? Sign in"
+                }
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
