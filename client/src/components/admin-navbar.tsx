@@ -339,18 +339,20 @@ export default function AdminNavbar() {
             <div className="px-2 pt-2 pb-3 space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = location === item.href || 
-                  (item.href.includes('?tab=') && location.includes(item.href.split('?')[1]));
+                const isActiveMobile = (currentLocation === '/admin-panel' && item.tab === 'dashboard') ||
+                  (currentLocation && currentLocation.includes(`tab=${item.tab}`));
                 
                 return (
-                  <Link key={item.href} href={item.href}>
-                    <a className={`text-red-200 hover:text-white hover:bg-red-800 block px-3 py-2 rounded-md text-base font-medium flex items-center transition-colors ${
-                      isActive ? 'bg-red-800 text-white' : ''
-                    }`}>
-                      <Icon className="mr-3 h-5 w-5" />
-                      {item.label}
-                    </a>
-                  </Link>
+                  <button
+                    key={item.tab}
+                    onClick={() => handleNavClick(item.tab)}
+                    className={`text-red-200 hover:text-white hover:bg-red-800 block px-3 py-2 rounded-md text-base font-medium flex items-center transition-colors w-full text-left ${
+                      isActiveMobile ? 'bg-red-800 text-white' : ''
+                    }`}
+                  >
+                    <Icon className="mr-3 h-5 w-5" />
+                    {item.label}
+                  </button>
                 );
               })}
               
