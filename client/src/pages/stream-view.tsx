@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
@@ -583,14 +583,7 @@ export default function StreamView() {
                           <Gift className="mr-1 h-3 w-3" />
                           <span className="hidden sm:inline">More</span>
                         </Button>
-                        <Button
-                          onClick={handlePrivateCallRequest}
-                          className="bg-pink-600/90 hover:bg-pink-700 backdrop-blur-sm text-white px-2 py-2 text-xs md:text-sm md:px-3 md:py-2 md:min-w-[80px]"
-                          size="sm"
-                        >
-                          <Phone className="mr-1 h-3 w-3" />
-                          <span className="hidden sm:inline">Private</span>
-                        </Button>
+
                       </>
                     ) : (
                       <Button
@@ -615,10 +608,30 @@ export default function StreamView() {
                 <div className="flex items-center space-x-2">
                   <MessageCircle className="h-5 w-5 text-purple-400" />
                   <h3 className="text-white font-semibold">Live Chat</h3>
+                  <Badge variant="secondary" className="text-xs">
+                    {chatMessages.length}
+                  </Badge>
                 </div>
-                <Badge variant="secondary" className="text-xs">
-                  {chatMessages.length} messages
-                </Badge>
+                {isAuthenticated ? (
+                  <Button
+                    onClick={handlePrivateCallRequest}
+                    size="sm"
+                    className="bg-pink-600 hover:bg-pink-700 text-white"
+                  >
+                    <Phone className="mr-2 h-4 w-4" />
+                    Private Call
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => setShowLoginModal(true)}
+                    size="sm"
+                    variant="outline"
+                    className="border-slate-600 text-slate-400 hover:bg-slate-700"
+                  >
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Login for Private Calls
+                  </Button>
+                )}
               </div>
               
               {/* Chat Messages */}
