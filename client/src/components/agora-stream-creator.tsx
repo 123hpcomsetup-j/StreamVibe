@@ -378,10 +378,32 @@ export default function AgoraStreamCreator({
         publishedTracksCount: clientRef.current.localTracks.length
       });
 
-      // Play video locally for creator preview
-      if (videoContainerRef.current) {
-        videoTrack.play(videoContainerRef.current);
-        console.log('✅ Creator preview video displayed locally');
+      // Play video locally for creator preview - ensure creator can see themselves
+      if (videoContainerRef.current && videoTrack) {
+        try {
+          // Clear any existing video elements first
+          const videoElements = videoContainerRef.current.querySelectorAll('video');
+          videoElements.forEach(el => el.remove());
+          
+          // Play the video track in the container
+          await videoTrack.play(videoContainerRef.current);
+          console.log('✅ Creator preview video displayed locally');
+          
+          // Apply styles to ensure video fills container and is visible
+          setTimeout(() => {
+            const videoEl = videoContainerRef.current?.querySelector('video');
+            if (videoEl) {
+              videoEl.style.width = '100%';
+              videoEl.style.height = '100%';
+              videoEl.style.objectFit = 'cover';
+              videoEl.style.zIndex = '1';
+              console.log('✅ Creator video styling applied');
+            }
+          }, 100);
+          
+        } catch (error) {
+          console.error('❌ Error playing creator video locally:', error);
+        }
       }
 
       setIsStreaming(true);
@@ -684,13 +706,15 @@ export default function AgoraStreamCreator({
                     </Button>
                   </div>
 
-                  {/* Message Overlay - Creator can see viewer messages */}
-                  <StreamMessageOverlay
-                    streamId={streamId}
-                    creatorName={username}
-                    stream={null}
-                    isCreator={true}
-                  />
+                  {/* Message Overlay - Creator can see viewer messages with transparency */}
+                  <div className="absolute inset-0 pointer-events-none z-20">
+                    <StreamMessageOverlay
+                      streamId={streamId}
+                      creatorName={username}
+                      stream={null}
+                      isCreator={true}
+                    />
+                  </div>
                 </>
               )}
               

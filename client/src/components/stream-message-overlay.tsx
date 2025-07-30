@@ -104,7 +104,7 @@ export default function StreamMessageOverlay({
 
   return (
     <>
-      {/* Message Overlay - Top of video */}
+      {/* Message Overlay - Top of video with high transparency for creators */}
       <div className="absolute top-0 left-0 right-0 z-30 pointer-events-none">
         <div className="p-4 space-y-2 max-h-64 overflow-hidden">
           {overlayMessages.map((msg) => (
@@ -113,23 +113,25 @@ export default function StreamMessageOverlay({
               className={`
                 animate-in slide-in-from-top-2 duration-500
                 ${msg.isTip 
-                  ? 'bg-gradient-to-r from-yellow-500/90 to-orange-500/90' 
+                  ? 'bg-gradient-to-r from-yellow-500/30 to-orange-500/30' 
                   : msg.isCreator 
-                    ? 'bg-purple-600/90' 
-                    : 'bg-black/70'
+                    ? 'bg-purple-600/30' 
+                    : isCreator
+                      ? 'bg-black/20'
+                      : 'bg-black/60'
                 }
-                backdrop-blur-sm rounded-lg p-3 shadow-lg pointer-events-auto
-                max-w-md ml-auto
+                backdrop-blur-sm rounded-lg p-2 shadow-lg pointer-events-auto
+                max-w-sm ml-auto border border-white/10
               `}
             >
-              <div className="flex items-center space-x-2">
-                {msg.isTip && <Gift className="h-4 w-4 text-white animate-pulse" />}
-                {msg.isCreator && <Badge className="bg-purple-700 text-white text-xs">Creator</Badge>}
-                <span className="font-medium text-white text-sm">{msg.username}</span>
+              <div className="flex items-center space-x-1">
+                {msg.isTip && <Gift className="h-3 w-3 text-white animate-pulse" />}
+                {msg.isCreator && <Badge className="bg-purple-700/60 text-white text-xs px-1 py-0">Creator</Badge>}
+                <span className="font-medium text-white text-xs">{msg.username}</span>
               </div>
-              <p className="text-white text-sm mt-1">{msg.message}</p>
+              <p className="text-white/90 text-xs mt-0.5">{msg.message}</p>
               {msg.tipAmount && (
-                <div className="flex items-center mt-2">
+                <div className="flex items-center mt-1">
                   <Coins className="h-3 w-3 text-yellow-300 mr-1" />
                   <span className="text-yellow-300 text-xs font-bold">{msg.tipAmount} tokens</span>
                 </div>
