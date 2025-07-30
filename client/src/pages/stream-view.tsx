@@ -69,11 +69,18 @@ export default function StreamView() {
   
   // Guest session creation
   const createGuestSessionMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/guest-session"),
+    mutationFn: () => {
+      const sessionId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+      return apiRequest("POST", "/api/guest-session", {
+        streamId: streamId,
+        sessionId: sessionId
+      });
+    },
     onSuccess: (data: any) => {
       setGuestSessionId(data.sessionId);
-      setTimeLeft(300); // 5 minutes
-      setTokensLeft(100);
+      setTimeLeft(data.viewTimeRemaining || 300); // 5 minutes
+      setTokensLeft(data.tokensRemaining || 100);
+      console.log("Guest session created:", data);
     },
     onError: (error: any) => {
       console.error("Guest session creation failed:", error);
