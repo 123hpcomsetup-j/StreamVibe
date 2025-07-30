@@ -125,6 +125,13 @@ export default function UserDashboard() {
     enabled: !!typedUser,
   });
 
+  // Fetch user wallet for actual token balance
+  const { data: wallet, refetch: refetchWallet } = useQuery({
+    queryKey: ["/api/wallet"],
+    enabled: !!typedUser,
+    refetchInterval: 10000, // Refresh every 10 seconds to keep balance updated
+  });
+
   const typedStreams = liveStreams as Stream[];
   const typedTransactions = transactions as Transaction[];
 
@@ -142,6 +149,7 @@ export default function UserDashboard() {
       setTokenAmount("");
       setUtrNumber("");
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      refetchWallet(); // Refresh wallet balance after purchase
     },
     onError: (error: any) => {
       toast({
@@ -583,7 +591,7 @@ export default function UserDashboard() {
                         </Badge>
                         <Badge variant="outline" className="border-yellow-500 text-yellow-500">
                           <Wallet className="w-3 h-3 mr-1" />
-                          {typedUser?.walletBalance || 0} Tokens
+                          {(wallet as any)?.tokenBalance || 0} Tokens
                         </Badge>
                       </div>
                     </div>
@@ -607,9 +615,9 @@ export default function UserDashboard() {
                 <CardContent>
                   <div className="text-center py-6">
                     <div className="text-4xl font-bold text-yellow-500 mb-2">
-                      {typedUser?.walletBalance || 0}
+                      {(wallet as any)?.tokenBalance || 0}
                     </div>
-                    <div className="text-slate-400">Available Tokens</div>
+                    <div className="text-slate-400">Available StreamVibe Tokens</div>
                     <Button 
                       className="mt-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
                       onClick={() => setShowBuyTokens(true)}
