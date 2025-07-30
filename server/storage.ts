@@ -131,6 +131,10 @@ export interface IStorage {
   getUserPrivateCallRequests(userId: string): Promise<PrivateCallRequest[]>;
   updatePrivateCallRequestStatus(id: string, status: string, agoraChannelName?: string): Promise<PrivateCallRequest>;
   getActivePrivateCall(creatorId: string): Promise<PrivateCallRequest | undefined>;
+  
+  // Creator dashboard operations
+  getCreatorStats(creatorId: string): Promise<any>;
+  getCreatorTokenHistory(creatorId: string): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -646,6 +650,83 @@ export class DatabaseStorage implements IStorage {
     const [activeCall] = await db.select().from(privateCallRequests)
       .where(and(eq(privateCallRequests.creatorId, creatorId), eq(privateCallRequests.status, 'active')));
     return activeCall;
+  }
+
+  // Creator dashboard operations
+  async getCreatorStats(creatorId: string): Promise<any> {
+    // Get total earnings from transactions
+    const earningsResult = await db
+      .select({ 
+        totalEarnings: sql<number>`COALESCE(SUM(${transactions.amount}), 0)` 
+      })
+      .from(transactions)
+      .where(eq(transactions.toUserId, creatorId));
+    
+    const totalEarnings = earningsResult[0]?.totalEarnings || 0;
+
+    // Get total tips count
+    const tipsResult = await db
+      .select({ 
+        totalTips: sql<number>`COALESCE(COUNT(*), 0)` 
+      })
+      .from(transactions)
+      .where(and(eq(transactions.toUserId, creatorId), eq(transactions.type, 'tip')));
+    
+    const totalTips = tipsResult[0]?.totalTips || 0;
+
+    // Get total viewers from all streams
+    const viewersResult = await db
+      .select({ 
+        totalViewers: sql<number>`COALESCE(SUM(${streams.viewerCount}), 0)` 
+      })
+      .from(streams)
+      .where(eq(streams.creatorId, creatorId));
+    
+    const totalViewers = viewersResult[0]?.totalViewers || 0;
+
+    // Get active streams count
+    const activeStreamsResult = await db
+      .select({ 
+        activeStreams: sql<number>`COALESCE(COUNT(*), 0)` 
+      })
+      .from(streams)
+      .where(and(eq(streams.creatorId, creatorId), eq(streams.isLive, true)));
+    
+    const activeStreams = activeStreamsResult[0]?.activeStreams || 0;
+
+    return {
+      totalEarnings,
+      totalTips,
+      totalViewers,
+      activeStreams
+    };
+  }
+
+  async getCreatorTokenHistory(creatorId: string): Promise<any[]> {
+    const result = await db
+      .select({
+        id: transactions.id,
+        amount: transactions.amount,
+        senderUsername: users.username,
+        streamTitle: streams.title,
+        createdAt: transactions.createdAt,
+        type: transactions.type,
+      })
+      .from(transactions)
+      .innerJoin(users, eq(transactions.fromUserId, users.id))
+      .leftJoin(streams, eq(transactions.streamId, streams.id))
+      .where(eq(transactions.toUserId, creatorId))
+      .orderBy(desc(transactions.createdAt))
+      .limit(50); // Get last 50 transactions
+
+    return result.map(row => ({
+      id: row.id,
+      amount: row.amount,
+      senderUsername: row.senderUsername || 'Anonymous',
+      streamTitle: row.streamTitle || 'Unknown Stream',
+      createdAt: row.createdAt,
+      type: row.type || 'tip'
+    }));
   }
 }
 

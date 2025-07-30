@@ -1028,6 +1028,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get creator stats
+  app.get('/api/creator/stats', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'creator') {
+        return res.status(403).json({ message: "Only creators can access stats" });
+      }
+      
+      const stats = await storage.getCreatorStats(userId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching creator stats:", error);
+      res.status(500).json({ message: "Failed to fetch creator stats" });
+    }
+  });
+
+  // Get creator token transaction history
+  app.get('/api/creator/token-history', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'creator') {
+        return res.status(403).json({ message: "Only creators can access token history" });
+      }
+      
+      const history = await storage.getCreatorTokenHistory(userId);
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching creator token history:", error);
+      res.status(500).json({ message: "Failed to fetch creator token history" });
+    }
+  });
+
   // Request payout
   app.post('/api/creator/payout', requireAuth, async (req: any, res) => {
     try {

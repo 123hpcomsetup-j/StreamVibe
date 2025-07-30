@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/navbar";
 import { apiRequest } from "@/lib/queryClient";
-import { Video, Users, Eye, DollarSign, Play, Square } from "lucide-react";
+import { Video, Users, Eye, DollarSign, Play, Square, Clock, Gift } from "lucide-react";
 
 interface Stream {
   id: string;
@@ -25,6 +25,15 @@ interface CreatorStats {
   activeStreams: number;
 }
 
+interface TokenTransaction {
+  id: string;
+  amount: number;
+  senderUsername: string;
+  streamTitle: string;
+  createdAt: string;
+  type: 'tip' | 'activity';
+}
+
 export default function CreatorDashboard() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
@@ -40,6 +49,12 @@ export default function CreatorDashboard() {
   // Get creator stats
   const { data: stats } = useQuery<CreatorStats>({
     queryKey: ["/api/creator/stats"],
+    enabled: isAuthenticated,
+  });
+
+  // Get token transaction history
+  const { data: tokenHistory } = useQuery<TokenTransaction[]>({
+    queryKey: ["/api/creator/token-history"],
     enabled: isAuthenticated,
   });
 
@@ -130,133 +145,181 @@ export default function CreatorDashboard() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <Navbar user={user as any} />
       
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Creator Dashboard</h1>
           <p className="text-slate-300">Welcome back, {(user as any)?.firstName || (user as any)?.username}!</p>
         </div>
 
-        {/* Main Action Card */}
-        <div className="mb-8">
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Video className="h-6 w-6" />
-                Live Streaming
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {currentStream?.isLive ? (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="destructive" className="animate-pulse">
-                      LIVE
-                    </Badge>
-                    <span className="text-white font-semibold">{currentStream.title}</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-4 text-slate-300">
-                    <div className="flex items-center gap-1">
-                      <Users className="h-4 w-4" />
-                      <span>{currentStream.viewerCount} viewers</span>
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          {/* Left Column - Streaming & Stats */}
+          <div className="xl:col-span-2 space-y-8">
+            {/* Main Action Card */}
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Video className="h-6 w-6" />
+                  Live Streaming
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {currentStream?.isLive ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="destructive" className="animate-pulse">
+                        LIVE
+                      </Badge>
+                      <span className="text-white font-semibold">{currentStream.title}</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Eye className="h-4 w-4" />
-                      <span>{currentStream.category}</span>
+                    
+                    <div className="flex items-center gap-4 text-slate-300">
+                      <div className="flex items-center gap-1">
+                        <Users className="h-4 w-4" />
+                        <span>{currentStream.viewerCount} viewers</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Eye className="h-4 w-4" />
+                        <span>{currentStream.category}</span>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex gap-4">
-                    <Button 
-                      onClick={handleGoLive}
-                      className="bg-purple-600 hover:bg-purple-700"
-                    >
-                      <Video className="h-4 w-4 mr-2" />
-                      Manage Live Stream
-                    </Button>
+                    <div className="flex gap-4">
+                      <Button 
+                        onClick={handleGoLive}
+                        className="bg-purple-600 hover:bg-purple-700"
+                      >
+                        <Video className="h-4 w-4 mr-2" />
+                        Manage Live Stream
+                      </Button>
+                      
+                      <Button 
+                        onClick={handleStopStream}
+                        variant="destructive"
+                        disabled={stopStreamMutation.isPending}
+                      >
+                        <Square className="h-4 w-4 mr-2" />
+                        {stopStreamMutation.isPending ? "Stopping..." : "End Stream"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <p className="text-slate-300">Ready to start streaming?</p>
                     
                     <Button 
-                      onClick={handleStopStream}
-                      variant="destructive"
-                      disabled={stopStreamMutation.isPending}
+                      onClick={handleGoLive}
+                      disabled={isStartingStream || startStreamMutation.isPending}
+                      className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 px-6"
+                      size="lg"
                     >
-                      <Square className="h-4 w-4 mr-2" />
-                      {stopStreamMutation.isPending ? "Stopping..." : "End Stream"}
+                      <Play className="h-5 w-5 mr-2" />
+                      {isStartingStream || startStreamMutation.isPending ? "Starting Stream..." : "Go Live"}
                     </Button>
                   </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <p className="text-slate-300">Ready to start streaming?</p>
-                  
-                  <Button 
-                    onClick={handleGoLive}
-                    disabled={isStartingStream || startStreamMutation.isPending}
-                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 px-6"
-                    size="lg"
-                  >
-                    <Play className="h-5 w-5 mr-2" />
-                    {isStartingStream || startStreamMutation.isPending ? "Starting Stream..." : "Go Live"}
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Stats Cards */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-slate-400 text-sm">Total Earnings</p>
-                    <p className="text-2xl font-bold text-white">{stats.totalEarnings}</p>
-                  </div>
-                  <DollarSign className="h-8 w-8 text-green-500" />
-                </div>
+                )}
               </CardContent>
             </Card>
 
-            <Card className="bg-slate-800 border-slate-700">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-slate-400 text-sm">Tips Received</p>
-                    <p className="text-2xl font-bold text-white">{stats.totalTips}</p>
-                  </div>
-                  <DollarSign className="h-8 w-8 text-yellow-500" />
-                </div>
-              </CardContent>
-            </Card>
+            {/* Stats Cards */}
+            {stats && (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="bg-slate-800 border-slate-700">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-slate-400 text-xs">Total Earnings</p>
+                        <p className="text-xl font-bold text-white">{stats.totalEarnings}</p>
+                      </div>
+                      <DollarSign className="h-6 w-6 text-green-500" />
+                    </div>
+                  </CardContent>
+                </Card>
 
-            <Card className="bg-slate-800 border-slate-700">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-slate-400 text-sm">Total Viewers</p>
-                    <p className="text-2xl font-bold text-white">{stats.totalViewers}</p>
-                  </div>
-                  <Users className="h-8 w-8 text-blue-500" />
-                </div>
-              </CardContent>
-            </Card>
+                <Card className="bg-slate-800 border-slate-700">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-slate-400 text-xs">Tips Received</p>
+                        <p className="text-xl font-bold text-white">{stats.totalTips}</p>
+                      </div>
+                      <Gift className="h-6 w-6 text-yellow-500" />
+                    </div>
+                  </CardContent>
+                </Card>
 
-            <Card className="bg-slate-800 border-slate-700">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-slate-400 text-sm">Active Streams</p>
-                    <p className="text-2xl font-bold text-white">{stats.activeStreams}</p>
-                  </div>
-                  <Video className="h-8 w-8 text-purple-500" />
+                <Card className="bg-slate-800 border-slate-700">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-slate-400 text-xs">Total Viewers</p>
+                        <p className="text-xl font-bold text-white">{stats.totalViewers}</p>
+                      </div>
+                      <Users className="h-6 w-6 text-blue-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-slate-800 border-slate-700">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-slate-400 text-xs">Active Streams</p>
+                        <p className="text-xl font-bold text-white">{stats.activeStreams}</p>
+                      </div>
+                      <Video className="h-6 w-6 text-purple-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column - Token History */}
+          <div className="xl:col-span-1">
+            <Card className="bg-slate-800 border-slate-700 h-fit">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Gift className="h-5 w-5" />
+                  Token History
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="max-h-96 overflow-y-auto">
+                  {tokenHistory && tokenHistory.length > 0 ? (
+                    <div className="space-y-2 p-4">
+                      {tokenHistory.map((transaction) => (
+                        <div key={transaction.id} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-yellow-500/20 rounded-full flex items-center justify-center">
+                              <Gift className="h-4 w-4 text-yellow-500" />
+                            </div>
+                            <div>
+                              <p className="text-white font-medium text-sm">{transaction.senderUsername}</p>
+                              <p className="text-slate-400 text-xs">
+                                {transaction.streamTitle} • {new Date(transaction.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-yellow-500 font-bold">+{transaction.amount}</p>
+                            <p className="text-slate-400 text-xs">{transaction.type}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-8 text-center">
+                      <Gift className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+                      <p className="text-slate-400">No tokens received yet</p>
+                      <p className="text-slate-500 text-sm">Start streaming to receive tips!</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
