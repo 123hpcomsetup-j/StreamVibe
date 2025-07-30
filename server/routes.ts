@@ -933,6 +933,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get stream chat messages
+  app.get('/api/streams/:streamId/chat', async (req, res) => {
+    try {
+      const streamId = req.params.streamId;
+      const messages = await storage.getStreamChatMessages(streamId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching chat messages:", error);
+      res.status(500).json({ message: "Failed to fetch chat messages" });
+    }
+  });
+
+  // Send chat message
+  app.post('/api/streams/:streamId/chat', requireAuth, async (req: any, res) => {
+    try {
+      const streamId = req.params.streamId;
+      const userId = req.user.id;
+      const { message, tipAmount = 0 } = req.body;
+
+      if (!message || !message.trim()) {
+        return res.status(400).json({ message: "Message content required" });
+      }
+
+      // Get user info for sender name and role
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Create chat message
+      const chatMessage = await storage.createChatMessage({
+        streamId,
+        userId,
+        guestSessionId: null,
+        message: message.trim(),
+        senderName: user.username || 'Anonymous',
+        senderRole: user.role || 'viewer',
+        tipAmount,
+      });
+
+      // Broadcast message via WebSocket if available
+      if (global.io) {
+        const messageData = {
+          ...chatMessage,
+          username: chatMessage.senderName,
+          userRole: chatMessage.senderRole,
+          isCreator: chatMessage.senderRole === 'creator'
+        };
+        global.io.to(`stream-${streamId}`).emit('chat-message', messageData);
+        console.log(`💬 Broadcasting chat message to stream-${streamId} room from ${chatMessage.senderName}`);
+      }
+
+      res.status(201).json(chatMessage);
+    } catch (error) {
+      console.error("Error sending chat message:", error);
+      res.status(500).json({ message: "Failed to send chat message" });
+    }
+  });
+
   // Create HTTP server and setup WebRTC
   const server = createServer(app);
   

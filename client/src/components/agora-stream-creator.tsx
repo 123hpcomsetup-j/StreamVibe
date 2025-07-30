@@ -410,11 +410,12 @@ export default function AgoraStreamCreator({
             
             // Check all elements in container
             allElements?.forEach((el, index) => {
+              const htmlEl = el as HTMLElement;
               console.log(`🔍 Element ${index + 1}:`, {
                 tagName: el.tagName,
                 className: el.className,
-                width: el.offsetWidth || 'no width',
-                height: el.offsetHeight || 'no height',
+                width: htmlEl.offsetWidth || 'no width',
+                height: htmlEl.offsetHeight || 'no height',
                 display: getComputedStyle(el).display,
                 visibility: getComputedStyle(el).visibility,
                 opacity: getComputedStyle(el).opacity

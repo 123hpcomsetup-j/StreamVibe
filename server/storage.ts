@@ -7,6 +7,8 @@ import {
   upiConfig,
   tokenPurchases,
   transactions,
+  chatMessages,
+  guestSessions,
   type User,
   type UpsertUser,
   type Stream,
@@ -23,6 +25,10 @@ import {
   type InsertTokenPurchase,
   type Transaction,
   type InsertTransaction,
+  type ChatMessage,
+  type InsertChatMessage,
+  type GuestSession,
+  type InsertGuestSession,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -86,6 +92,15 @@ export interface IStorage {
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
   getStreamTransactions(streamId: string): Promise<Transaction[]>;
   getUserTransactions(userId: string): Promise<Transaction[]>;
+  
+  // Chat message operations
+  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  getStreamChatMessages(streamId: string): Promise<ChatMessage[]>;
+  
+  // Guest session operations
+  createGuestSession(session: InsertGuestSession): Promise<GuestSession>;
+  getGuestSession(streamId: string, sessionId: string): Promise<GuestSession | undefined>;
+  updateGuestSession(id: string, updates: Partial<InsertGuestSession>): Promise<GuestSession>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -398,6 +413,51 @@ export class DatabaseStorage implements IStorage {
       .from(transactions)
       .where(eq(transactions.fromUserId, userId))
       .orderBy(desc(transactions.createdAt));
+  }
+
+  // Chat message operations
+  async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    const [newMessage] = await db
+      .insert(chatMessages)
+      .values(message)
+      .returning();
+    return newMessage;
+  }
+
+  async getStreamChatMessages(streamId: string): Promise<ChatMessage[]> {
+    return await db
+      .select()
+      .from(chatMessages)
+      .where(eq(chatMessages.streamId, streamId))
+      .orderBy(desc(chatMessages.createdAt))
+      .limit(100); // Limit to last 100 messages
+  }
+
+  // Guest session operations
+  async createGuestSession(session: InsertGuestSession): Promise<GuestSession> {
+    const [newSession] = await db
+      .insert(guestSessions)
+      .values(session)
+      .returning();
+    return newSession;
+  }
+
+  async getGuestSession(streamId: string, sessionId: string): Promise<GuestSession | undefined> {
+    const [session] = await db
+      .select()
+      .from(guestSessions)
+      .where(and(eq(guestSessions.streamId, streamId), eq(guestSessions.sessionId, sessionId)))
+      .limit(1);
+    return session;
+  }
+
+  async updateGuestSession(id: string, updates: Partial<InsertGuestSession>): Promise<GuestSession> {
+    const [updatedSession] = await db
+      .update(guestSessions)
+      .set(updates)
+      .where(eq(guestSessions.id, id))
+      .returning();
+    return updatedSession;
   }
 }
 

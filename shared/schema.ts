@@ -116,6 +116,31 @@ export const tokenPurchases = pgTable("token_purchases", {
   processedAt: timestamp("processed_at"),
 });
 
+// Chat messages for stream conversations
+export const chatMessages = pgTable("chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  streamId: varchar("stream_id").references(() => streams.id).notNull(),
+  userId: varchar("user_id").references(() => users.id),
+  guestSessionId: varchar("guest_session_id"),
+  message: text("message").notNull(),
+  senderName: varchar("sender_name").notNull(),
+  senderRole: varchar("sender_role").default('viewer'), // 'creator', 'viewer', 'guest'
+  tipAmount: integer("tip_amount").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Guest sessions for temporary viewers
+export const guestSessions = pgTable("guest_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  streamId: varchar("stream_id").references(() => streams.id).notNull(),
+  sessionId: varchar("session_id").notNull().unique(),
+  tokensRemaining: integer("tokens_remaining").default(100),
+  timeRemaining: integer("time_remaining").default(300), // 5 minutes in seconds
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
 // Tips and activity usage transactions
 export const transactions = pgTable("transactions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -163,6 +188,17 @@ export const tokenPurchasesRelations = relations(tokenPurchases, ({ one }) => ({
 export const streamsRelations = relations(streams, ({ one, many }) => ({
   creator: one(users, { fields: [streams.creatorId], references: [users.id] }),
   transactions: many(transactions),
+  chatMessages: many(chatMessages),
+  guestSessions: many(guestSessions),
+}));
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+  stream: one(streams, { fields: [chatMessages.streamId], references: [streams.id] }),
+  user: one(users, { fields: [chatMessages.userId], references: [users.id] }),
+}));
+
+export const guestSessionsRelations = relations(guestSessions, ({ one }) => ({
+  stream: one(streams, { fields: [guestSessions.streamId], references: [streams.id] }),
 }));
 
 // Type exports for all tables
@@ -191,6 +227,12 @@ export type InsertTransaction = typeof transactions.$inferInsert;
 export type Report = typeof reports.$inferSelect;
 export type InsertReport = typeof reports.$inferInsert;
 
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = typeof chatMessages.$inferInsert;
+
+export type GuestSession = typeof guestSessions.$inferSelect;
+export type InsertGuestSession = typeof guestSessions.$inferInsert;
+
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users);
 export const insertStreamSchema = createInsertSchema(streams);
@@ -200,4 +242,6 @@ export const insertCreatorActivitySchema = createInsertSchema(creatorActivities)
 export const insertUpiConfigSchema = createInsertSchema(upiConfig);
 export const insertTokenPurchaseSchema = createInsertSchema(tokenPurchases);
 export const insertTransactionSchema = createInsertSchema(transactions);
+export const insertChatMessageSchema = createInsertSchema(chatMessages);
+export const insertGuestSessionSchema = createInsertSchema(guestSessions);
 
