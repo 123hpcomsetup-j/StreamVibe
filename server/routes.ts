@@ -557,15 +557,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/token-purchase', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
+      console.log(`💰 User ${userId} creating token purchase request:`, req.body);
+      
       const validatedData = insertTokenPurchaseSchema.parse({
         ...req.body,
         userId,
+        status: 'pending', // Ensure status is set to pending
       });
       
+      console.log(`✅ Validated token purchase data:`, validatedData);
+      
       const purchase = await storage.createTokenPurchase(validatedData);
+      console.log(`🎯 Created token purchase:`, purchase);
+      
       res.status(201).json(purchase);
     } catch (error) {
-      console.error("Error creating token purchase:", error);
+      console.error("❌ Error creating token purchase:", error);
       res.status(500).json({ message: "Failed to create token purchase request" });
     }
   });
@@ -602,6 +609,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const pendingPurchases = await storage.getPendingTokenPurchases();
+      console.log(`📊 Admin ${userId} requested pending purchases, found: ${pendingPurchases.length} items`);
+      console.log('🎯 Pending purchases data:', JSON.stringify(pendingPurchases, null, 2));
       res.json(pendingPurchases);
     } catch (error) {
       console.error("Error fetching pending token purchases:", error);
