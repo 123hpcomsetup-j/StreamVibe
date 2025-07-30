@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import AgoraStreamCreator from "@/components/agora-stream-creator";
 import { useAuth } from "@/hooks/useAuth";
+import Navbar from "@/components/navbar";
 
 export default function CreatorLiveStudio() {
   const [, setLocation] = useLocation();
@@ -74,10 +75,12 @@ export default function CreatorLiveStudio() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top Navigation Bar - Device Friendly */}
-      <nav className="bg-card border-b border-border px-4 py-3">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          {/* Left Section */}
+      {/* Unified Navigation Bar */}
+      {user && <Navbar user={user} />}
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Live Studio Header */}
+        <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Button
               variant="ghost"
@@ -94,11 +97,11 @@ export default function CreatorLiveStudio() {
               <Badge variant="destructive" className="animate-pulse">
                 LIVE
               </Badge>
-              <span className="font-semibold text-sm sm:text-base">Live Studio</span>
+              <span className="font-semibold text-lg">Live Studio</span>
             </div>
           </div>
 
-          {/* Center Section - Stream Info */}
+          {/* Stream Info */}
           <div className="hidden md:flex items-center space-x-4">
             {currentStream && (currentStream as any).title && (
               <div className="text-center">
@@ -108,33 +111,24 @@ export default function CreatorLiveStudio() {
             )}
           </div>
 
-          {/* Right Section */}
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">{onlineCount}</span>
-              <span className="text-xs text-muted-foreground hidden sm:inline">online</span>
-            </div>
-            
-            <div className="flex items-center space-x-1">
-              <div className="text-right">
-                <p className="text-sm font-semibold">{(user as any)?.firstName || (user as any)?.username}</p>
-                <p className="text-xs text-muted-foreground">Creator</p>
-              </div>
-            </div>
+          {/* Viewer Count */}
+          <div className="flex items-center space-x-2">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">{onlineCount}</span>
+            <span className="text-xs text-muted-foreground hidden sm:inline">online</span>
           </div>
         </div>
-      </nav>
 
-      {/* Main Live Studio Content */}
-      <div className="flex-1">
-        <AgoraStreamCreator
-          streamId={streamId}
-          userId={(user as any)?.id}
-          username={(user as any)?.username}
-          onStreamStart={handleStreamStart}
-          onStreamStop={handleStreamStop}
-        />
+        {/* Main Live Studio Content */}
+        <div className="flex-1">
+          <AgoraStreamCreator
+            streamId={streamId}
+            userId={(user as any)?.id}
+            username={(user as any)?.username}
+            onStreamStart={handleStreamStart}
+            onStreamStop={handleStreamStop}
+          />
+        </div>
       </div>
     </div>
   );

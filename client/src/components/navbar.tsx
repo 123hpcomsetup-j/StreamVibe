@@ -214,13 +214,13 @@ export default function Navbar({ user }: NavbarProps) {
                   
                   return (
                     <Link key={item.href} href={item.href}>
-                      <a className={`${theme.text} ${theme.textHover} px-2 xl:px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${
+                      <div className={`${theme.text} ${theme.textHover} px-2 xl:px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center cursor-pointer ${
                         isActive ? `${theme.bgActive} ${theme.textActive}` : ''
                       }`}>
                         <Icon className="mr-1.5 xl:mr-2 h-3.5 w-3.5 xl:h-4 xl:w-4" />
                         <span className="hidden xl:inline">{item.label}</span>
                         <span className="xl:hidden">{item.label.split(' ')[0]}</span>
-                      </a>
+                      </div>
                     </Link>
                   );
                 })}
@@ -306,12 +306,12 @@ export default function Navbar({ user }: NavbarProps) {
                 
                 return (
                   <Link key={item.href} href={item.href}>
-                    <a className={`${theme.text} ${theme.textHover} hover:${theme.bgActive.split(' ')[1]} block px-3 py-2 rounded-md text-base font-medium flex items-center transition-colors ${
+                    <div className={`${theme.text} ${theme.textHover} hover:${theme.bgActive.split(' ')[1]} block px-3 py-2 rounded-md text-base font-medium flex items-center transition-colors cursor-pointer ${
                       isActive ? `${theme.bgActive} ${theme.textActive}` : ''
                     }`}>
                       <Icon className="mr-3 h-5 w-5" />
                       {item.label}
-                    </a>
+                    </div>
                   </Link>
                 );
               })}

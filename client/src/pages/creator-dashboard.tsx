@@ -17,6 +17,7 @@ import { DollarSign, Users, Clock, Heart, Play, Settings, Phone, Mail, UserIcon,
 import PrivateCallRequests from "@/components/private-call-requests";
 import StreamModal from "@/components/stream-modal";
 import CreatorActivities from "@/components/creator-activities";
+import Navbar from "@/components/navbar";
 
 export default function CreatorDashboard() {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -503,114 +504,15 @@ export default function CreatorDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-900">
-      {/* Mobile-Friendly Navbar */}
-      <nav className="bg-slate-800 border-b border-slate-700 px-4 sm:px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2 sm:space-x-4">
-            <h1 className="text-xl sm:text-2xl font-bold text-primary">Creator Studio</h1>
-            <div className="hidden sm:flex items-center space-x-2">
-              <Button 
-                onClick={() => window.location.href = '/'}
-                variant="outline"
-                size="sm"
-                className="text-slate-300 border-slate-600 hover:bg-slate-700"
-              >
-                Home
-              </Button>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-2 sm:space-x-4">
-            {/* Mobile dropdown menu */}
-            <div className="sm:hidden">
-              <Button 
-                onClick={() => setShowMobileMenu(!showMobileMenu)}
-                variant="ghost"
-                size="sm"
-                className="text-slate-300"
-              >
-                ☰
-              </Button>
-            </div>
-            
-            {/* Desktop buttons - REMOVED DUPLICATE STOP STREAM */}
-            <div className="hidden sm:flex items-center space-x-2">
-              <Button 
-                onClick={handleGoLive}
-                className="bg-red-500 hover:bg-red-600"
-                disabled={createStreamMutation.isPending}
-                size="sm"
-              >
-                <Play className="mr-2 h-4 w-4" />
-                {(currentStream as any)?.isLive ? "Live Studio" : "Go Live"}
-              </Button>
-              <Button 
-                onClick={() => window.location.href = '/creator-earnings'}
-                variant="outline"
-                className="border-green-600 text-green-400 hover:bg-green-600 hover:text-white"
-                size="sm"
-              >
-                <DollarSign className="mr-2 h-4 w-4" />
-                Earnings
-              </Button>
-              <Button 
-                onClick={handleLogout}
-                variant="outline"
-                size="sm"
-                className="text-red-400 border-red-600 hover:bg-red-900/20"
-              >
-                Logout
-              </Button>
-            </div>
-
-            {/* Mobile: Only show main action button - REMOVED DUPLICATE STOP STREAM */}
-            <div className="sm:hidden">
-              <Button 
-                onClick={handleGoLive}
-                className="bg-red-500 hover:bg-red-600"
-                disabled={createStreamMutation.isPending}
-                size="sm"
-              >
-                {(currentStream as any)?.isLive ? "Studio" : "Go Live"}
-              </Button>
-            </div>
-          </div>
+      {/* Unified Navigation Bar */}
+      {typedUser && <Navbar user={typedUser} />}
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Creator Studio Content */}
+        <div className="mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Creator Studio</h1>
+          <p className="text-slate-400">Manage your streams, settings, and earnings</p>
         </div>
-
-        {/* Mobile dropdown menu */}
-        {showMobileMenu && (
-          <div className="sm:hidden mt-4 border-t border-slate-700 pt-4">
-            <div className="flex flex-col space-y-2">
-              <Button 
-                onClick={() => window.location.href = '/'}
-                variant="outline"
-                size="sm"
-                className="w-full text-slate-300 border-slate-600 hover:bg-slate-700"
-              >
-                Home
-              </Button>
-              <Button 
-                onClick={() => window.location.href = '/creator-earnings'}
-                className="w-full bg-green-600 hover:bg-green-700"
-                size="sm"
-              >
-                <DollarSign className="mr-2 h-4 w-4" />
-                Earnings Dashboard
-              </Button>
-              <Button 
-                onClick={handleLogout}
-                variant="outline"
-                size="sm"
-                className="w-full text-red-400 border-red-600 hover:bg-red-900/20"
-              >
-                Logout
-              </Button>
-            </div>
-          </div>
-        )}
-      </nav>
-
-      <main className="max-w-7xl mx-auto p-6 space-y-6">
 
 
         {/* Stream Settings */}
@@ -1202,16 +1104,14 @@ export default function CreatorDashboard() {
             </div>
           </CardContent>
         </Card>
-      </main>
-
+      </div>
+      
       {/* RTMP Stream Configuration Modal */}
       <StreamModal 
         isOpen={showStreamModal}
         onClose={() => setShowStreamModal(false)}
         streamKey={streamKey}
       />
-      
-
 
       {/* Payout Request Dialog */}
       <Dialog open={showPayoutDialog} onOpenChange={setShowPayoutDialog}>
