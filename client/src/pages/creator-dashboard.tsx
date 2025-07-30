@@ -403,7 +403,6 @@ export default function CreatorDashboard() {
     }
 
     // If we have a stream, open Agora modal directly
-    const stream = currentStream as any;
     if (stream?.id) {
       setStreamKey(stream.id);
       setShowAgoraModal(true);
