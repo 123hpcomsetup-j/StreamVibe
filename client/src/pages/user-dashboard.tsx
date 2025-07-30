@@ -40,7 +40,8 @@ import {
   Edit,
   User as UserIcon,
   Save,
-  X
+  X,
+  Phone
 } from "lucide-react";
 import type { Stream, User, Transaction } from "@shared/schema";
 
@@ -52,6 +53,11 @@ export default function UserDashboard() {
   const [showBuyTokens, setShowBuyTokens] = useState(false);
   const [tokenAmount, setTokenAmount] = useState("");
   const [utrNumber, setUtrNumber] = useState("");
+  
+  // Private call state
+  const [showPrivateCallDialog, setShowPrivateCallDialog] = useState(false);
+  const [selectedStream, setSelectedStream] = useState<any>(null);
+  const [privateCallMessage, setPrivateCallMessage] = useState("");
   
   // Profile editing state
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -243,6 +249,45 @@ export default function UserDashboard() {
     });
   };
 
+  // Private call request mutation
+  const privateCallMutation = useMutation({
+    mutationFn: async (data: { creatorId: string; streamId: string; requestMessage: string }) => {
+      const response = await apiRequest("POST", "/api/private-call-requests", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      setShowPrivateCallDialog(false);
+      setPrivateCallMessage("");
+      setSelectedStream(null);
+      toast({
+        title: "Private Call Requested",
+        description: "Your request has been sent to the creator.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Request Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handlePrivateCallRequest = (stream: any) => {
+    setSelectedStream(stream);
+    setShowPrivateCallDialog(true);
+  };
+
+  const submitPrivateCallRequest = () => {
+    if (!selectedStream) return;
+    
+    privateCallMutation.mutate({
+      creatorId: selectedStream.creatorId,
+      streamId: selectedStream.id,
+      requestMessage: privateCallMessage
+    });
+  };
+
   const formatDuration = (createdAt: string) => {
     const now = new Date();
     const streamStart = new Date(createdAt);
@@ -399,18 +444,28 @@ export default function UserDashboard() {
                             Min tip: {stream.minTip} tokens
                           </span>
                           <span className="flex items-center">
-                            <Gift className="w-3 h-3 mr-1 text-green-500" />
-                            {stream.tokenPrice} token/msg
+                            <Phone className="w-3 h-3 mr-1 text-pink-500" />
+                            Private calls available
                           </span>
                         </div>
                         
-                        <Button 
-                          onClick={() => handleWatchStream(stream.id)}
-                          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                        >
-                          <Play className="w-4 h-4 mr-2" />
-                          Watch Stream
-                        </Button>
+                        {/* Action Buttons */}
+                        <div className="flex space-x-2">
+                          <Button 
+                            onClick={() => handleWatchStream(stream.id)}
+                            className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                          >
+                            <Play className="w-4 h-4 mr-2" />
+                            Watch
+                          </Button>
+                          <Button 
+                            onClick={() => handlePrivateCallRequest(stream)}
+                            variant="outline"
+                            className="border-pink-600 text-pink-400 hover:bg-pink-600 hover:text-white"
+                          >
+                            <Phone className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -652,7 +707,7 @@ export default function UserDashboard() {
                             </div>
                             <div>
                               <p className="text-sm font-medium text-white">
-                                {transaction.purpose || 'Tip to Creator'}
+                                {transaction.type === 'tip' ? 'Tip to Creator' : 'Activity Purchase'}
                               </p>
                               <p className="text-xs text-slate-400">
                                 {transaction.createdAt ? new Date(transaction.createdAt).toLocaleDateString() : 'N/A'}
@@ -661,7 +716,7 @@ export default function UserDashboard() {
                           </div>
                           <div className="text-right">
                             <p className="text-sm font-medium text-red-400">
-                              -{transaction.tokenAmount} tokens
+                              -{transaction.amount} tokens
                             </p>
                           </div>
                         </div>
@@ -759,6 +814,75 @@ export default function UserDashboard() {
                 <>
                   <ShoppingCart className="w-4 h-4 mr-2" />
                   Buy Tokens
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Private Call Request Dialog */}
+      <Dialog open={showPrivateCallDialog} onOpenChange={setShowPrivateCallDialog}>
+        <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center">
+              <Phone className="w-6 h-6 mr-2 text-pink-500" />
+              Request Private Call
+            </DialogTitle>
+            <DialogDescription>
+              Send a private call request to {selectedStream?.creatorFirstName} {selectedStream?.creatorLastName}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="bg-slate-700/50 p-4 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-slate-400">Cost per call</span>
+                <Badge variant="secondary" className="bg-pink-600">
+                  <Coins className="w-3 h-3 mr-1" />
+                  500 Tokens
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-400">Minimum duration</span>
+                <span className="text-sm text-white">5 minutes</span>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="callMessage">Message (Optional)</Label>
+              <Input
+                id="callMessage"
+                placeholder="Say something to the creator..."
+                value={privateCallMessage}
+                onChange={(e) => setPrivateCallMessage(e.target.value)}
+                className="bg-slate-700 border-slate-600"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowPrivateCallDialog(false)}
+              className="border-slate-600"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={submitPrivateCallRequest}
+              disabled={privateCallMutation.isPending}
+              className="bg-pink-600 hover:bg-pink-700"
+            >
+              {privateCallMutation.isPending ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Requesting...
+                </>
+              ) : (
+                <>
+                  <Phone className="w-4 h-4 mr-2" />
+                  Send Request
                 </>
               )}
             </Button>

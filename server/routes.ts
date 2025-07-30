@@ -18,6 +18,8 @@ import {
   insertCreatorActivitySchema,
   insertTransactionSchema,
   insertUpiConfigSchema,
+  insertCreatorSettingsSchema,
+  insertPrivateCallRequestSchema,
 } from "@shared/schema";
 
 // Global io declaration for WebSocket broadcasting
@@ -807,7 +809,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check user has enough tokens
       const wallet = await storage.getUserWallet(userId);
-      if (!wallet || wallet.tokenBalance < amount) {
+      if (!wallet || (wallet.tokenBalance || 0) < amount) {
         return res.status(400).json({ message: "Insufficient tokens" });
       }
       
@@ -877,7 +879,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check user has enough tokens
       const wallet = await storage.getUserWallet(userId);
-      if (!wallet || wallet.tokenBalance < activity.tokenCost) {
+      if (!wallet || (wallet.tokenBalance || 0) < activity.tokenCost) {
         return res.status(400).json({ message: "Insufficient tokens" });
       }
       
@@ -1097,6 +1099,264 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating payout:", error);
       res.status(500).json({ message: "Failed to update payout" });
+    }
+  });
+
+  // Creator settings routes
+  app.get('/api/creator-settings/:creatorId', requireAuth, async (req: any, res) => {
+    try {
+      const creatorId = req.params.creatorId;
+      let settings = await storage.getCreatorSettings(creatorId);
+      
+      if (!settings) {
+        // Create default settings if they don't exist
+        settings = await storage.createCreatorSettings({
+          creatorId,
+          privateCallEnabled: true,
+          privateCallTokenPrice: 500,
+          minimumCallDuration: 5,
+        });
+      }
+      
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching creator settings:", error);
+      res.status(500).json({ message: "Failed to fetch creator settings" });
+    }
+  });
+
+  app.patch('/api/creator-settings/:creatorId', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const creatorId = req.params.creatorId;
+      
+      // Only allow creators to update their own settings or admins
+      const user = await storage.getUser(userId);
+      if (userId !== creatorId && user?.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const validatedData = insertCreatorSettingsSchema.partial().parse(req.body);
+      const settings = await storage.updateCreatorSettings(creatorId, validatedData);
+      res.json(settings);
+    } catch (error) {
+      console.error("Error updating creator settings:", error);
+      res.status(500).json({ message: "Failed to update creator settings" });
+    }
+  });
+
+  // Private call request routes
+  app.post('/api/private-call-requests', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { creatorId, streamId, requestMessage } = req.body;
+      
+      // Get creator settings to check pricing
+      const creatorSettings = await storage.getCreatorSettings(creatorId);
+      if (!creatorSettings || !creatorSettings.privateCallEnabled) {
+        return res.status(400).json({ message: "Private calls not available for this creator" });
+      }
+      
+      // Check user has enough tokens
+      const wallet = await storage.getUserWallet(userId);
+      if (!wallet || (wallet.tokenBalance || 0) < creatorSettings.privateCallTokenPrice) {
+        return res.status(400).json({ message: "Insufficient tokens for private call" });
+      }
+      
+      // Check if creator is currently in another private call
+      const activeCall = await storage.getActivePrivateCall(creatorId);
+      if (activeCall) {
+        return res.status(400).json({ message: "Creator is currently in another private call" });
+      }
+      
+      const requestData = {
+        requesterId: userId,
+        creatorId,
+        streamId,
+        tokenAmount: creatorSettings.privateCallTokenPrice,
+        duration: creatorSettings.minimumCallDuration,
+        requestMessage: requestMessage || '',
+        status: 'pending'
+      };
+      
+      const validatedData = insertPrivateCallRequestSchema.parse(requestData);
+      const callRequest = await storage.createPrivateCallRequest(validatedData);
+      
+      // Broadcast notification to creator
+      if (global.io) {
+        global.io.to(`user-${creatorId}`).emit('private-call-request', {
+          requestId: callRequest.id,
+          requesterName: req.user.username || 'Anonymous',
+          tokenAmount: creatorSettings.privateCallTokenPrice,
+          message: requestMessage || ''
+        });
+      }
+      
+      res.status(201).json(callRequest);
+    } catch (error) {
+      console.error("Error creating private call request:", error);
+      res.status(500).json({ message: "Failed to create private call request" });
+    }
+  });
+
+  app.get('/api/private-call-requests/creator/:creatorId', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const creatorId = req.params.creatorId;
+      
+      // Only allow creators to see their own requests or admins
+      const user = await storage.getUser(userId);
+      if (userId !== creatorId && user?.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const requests = await storage.getCreatorPrivateCallRequests(creatorId);
+      res.json(requests);
+    } catch (error) {
+      console.error("Error fetching private call requests:", error);
+      res.status(500).json({ message: "Failed to fetch private call requests" });
+    }
+  });
+
+  app.post('/api/private-call-requests/:id/accept', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const requestId = req.params.id;
+      
+      const callRequest = await storage.getPrivateCallRequest(requestId);
+      if (!callRequest) {
+        return res.status(404).json({ message: "Private call request not found" });
+      }
+      
+      // Only creator can accept their requests
+      if (userId !== callRequest.creatorId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      if (callRequest.status !== 'pending') {
+        return res.status(400).json({ message: "Request is no longer pending" });
+      }
+      
+      // Generate unique Agora channel for private call
+      const agoraChannelName = `private-${callRequest.id}-${Date.now()}`;
+      
+      // Deduct tokens from requester
+      await storage.updateTokenBalance(callRequest.requesterId, -callRequest.tokenAmount);
+      await storage.updateTokenBalance(callRequest.creatorId, callRequest.tokenAmount);
+      
+      // Update request status
+      const updatedRequest = await storage.updatePrivateCallRequestStatus(
+        requestId, 
+        'accepted', 
+        agoraChannelName
+      );
+      
+      // Notify both users
+      if (global.io) {
+        global.io.to(`user-${callRequest.requesterId}`).emit('private-call-accepted', {
+          requestId,
+          agoraChannelName,
+          creatorName: req.user.username || 'Creator'
+        });
+        
+        global.io.to(`user-${callRequest.creatorId}`).emit('private-call-started', {
+          requestId,
+          agoraChannelName,
+          requesterName: callRequest.requesterId // We'll get the username from client
+        });
+        
+        // Broadcast to stream that creator went private
+        global.io.to(`stream-${callRequest.streamId}`).emit('creator-went-private', {
+          message: 'Creator went private'
+        });
+      }
+      
+      res.json(updatedRequest);
+    } catch (error) {
+      console.error("Error accepting private call request:", error);
+      res.status(500).json({ message: "Failed to accept private call request" });
+    }
+  });
+
+  app.post('/api/private-call-requests/:id/reject', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const requestId = req.params.id;
+      
+      const callRequest = await storage.getPrivateCallRequest(requestId);
+      if (!callRequest) {
+        return res.status(404).json({ message: "Private call request not found" });
+      }
+      
+      // Only creator can reject their requests
+      if (userId !== callRequest.creatorId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      if (callRequest.status !== 'pending') {
+        return res.status(400).json({ message: "Request is no longer pending" });
+      }
+      
+      const updatedRequest = await storage.updatePrivateCallRequestStatus(requestId, 'rejected');
+      
+      // Notify requester
+      if (global.io) {
+        global.io.to(`user-${callRequest.requesterId}`).emit('private-call-rejected', {
+          requestId,
+          message: 'Creator declined your private call request'
+        });
+      }
+      
+      res.json(updatedRequest);
+    } catch (error) {
+      console.error("Error rejecting private call request:", error);
+      res.status(500).json({ message: "Failed to reject private call request" });
+    }
+  });
+
+  app.post('/api/private-call-requests/:id/end', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const requestId = req.params.id;
+      
+      const callRequest = await storage.getPrivateCallRequest(requestId);
+      if (!callRequest) {
+        return res.status(404).json({ message: "Private call request not found" });
+      }
+      
+      // Either participant can end the call
+      if (userId !== callRequest.creatorId && userId !== callRequest.requesterId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      if (callRequest.status !== 'active') {
+        return res.status(400).json({ message: "Call is not currently active" });
+      }
+      
+      const updatedRequest = await storage.updatePrivateCallRequestStatus(requestId, 'completed');
+      
+      // Notify both participants
+      if (global.io) {
+        global.io.to(`user-${callRequest.requesterId}`).emit('private-call-ended', {
+          requestId,
+          message: 'Private call ended'
+        });
+        
+        global.io.to(`user-${callRequest.creatorId}`).emit('private-call-ended', {
+          requestId,
+          message: 'Private call ended'
+        });
+        
+        // Broadcast to stream that creator is back
+        global.io.to(`stream-${callRequest.streamId}`).emit('creator-back-from-private', {
+          message: 'Creator is back from private call'
+        });
+      }
+      
+      res.json(updatedRequest);
+    } catch (error) {
+      console.error("Error ending private call:", error);
+      res.status(500).json({ message: "Failed to end private call" });
     }
   });
 

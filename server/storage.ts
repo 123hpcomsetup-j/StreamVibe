@@ -575,6 +575,78 @@ export class DatabaseStorage implements IStorage {
       pendingWithdrawals
     };
   }
+
+  // Creator settings operations
+  async getCreatorSettings(creatorId: string): Promise<CreatorSettings | undefined> {
+    const [settings] = await db.select().from(creatorSettings).where(eq(creatorSettings.creatorId, creatorId));
+    return settings;
+  }
+
+  async createCreatorSettings(settings: InsertCreatorSettings): Promise<CreatorSettings> {
+    const [newSettings] = await db
+      .insert(creatorSettings)
+      .values(settings)
+      .returning();
+    return newSettings;
+  }
+
+  async updateCreatorSettings(creatorId: string, updates: Partial<InsertCreatorSettings>): Promise<CreatorSettings> {
+    const [settings] = await db
+      .update(creatorSettings)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(creatorSettings.creatorId, creatorId))
+      .returning();
+    return settings;
+  }
+
+  // Private call operations
+  async createPrivateCallRequest(request: InsertPrivateCallRequest): Promise<PrivateCallRequest> {
+    const [newRequest] = await db
+      .insert(privateCallRequests)
+      .values(request)
+      .returning();
+    return newRequest;
+  }
+
+  async getPrivateCallRequest(id: string): Promise<PrivateCallRequest | undefined> {
+    const [request] = await db.select().from(privateCallRequests).where(eq(privateCallRequests.id, id));
+    return request;
+  }
+
+  async getCreatorPrivateCallRequests(creatorId: string): Promise<PrivateCallRequest[]> {
+    return await db.select().from(privateCallRequests)
+      .where(eq(privateCallRequests.creatorId, creatorId))
+      .orderBy(desc(privateCallRequests.createdAt));
+  }
+
+  async getUserPrivateCallRequests(userId: string): Promise<PrivateCallRequest[]> {
+    return await db.select().from(privateCallRequests)
+      .where(eq(privateCallRequests.requesterId, userId))
+      .orderBy(desc(privateCallRequests.createdAt));
+  }
+
+  async updatePrivateCallRequestStatus(id: string, status: string, agoraChannelName?: string): Promise<PrivateCallRequest> {
+    const updateData: any = { status };
+    if (agoraChannelName) updateData.agoraChannelName = agoraChannelName;
+    if (status === 'active') updateData.startedAt = new Date();
+    if (status === 'completed' || status === 'cancelled') updateData.endedAt = new Date();
+
+    const [request] = await db
+      .update(privateCallRequests)
+      .set(updateData)
+      .where(eq(privateCallRequests.id, id))
+      .returning();
+    return request;
+  }
+
+  async getActivePrivateCall(creatorId: string): Promise<PrivateCallRequest | undefined> {
+    const [activeCall] = await db.select().from(privateCallRequests)
+      .where(and(eq(privateCallRequests.creatorId, creatorId), eq(privateCallRequests.status, 'active')));
+    return activeCall;
+  }
 }
 
 export const storage = new DatabaseStorage();
