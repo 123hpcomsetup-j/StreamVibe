@@ -47,14 +47,25 @@ export default function CreatorLiveStudio() {
     setLocation('/creator-dashboard');
   };
 
-  if (!user || !streamId) {
+  if (!user) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-semibold mb-4">Access Denied</h1>
-          <p className="text-muted-foreground mb-4">You need to be logged in to access the live studio.</p>
-          <Button onClick={() => setLocation('/creator-login')}>
-            Go to Login
+          <h1 className="text-2xl font-semibold mb-4 text-white">Loading...</h1>
+          <p className="text-slate-400">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!streamId) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold mb-4 text-white">Stream Not Found</h1>
+          <p className="text-slate-400 mb-4">No stream ID provided. Please create a stream first.</p>
+          <Button onClick={() => setLocation('/creator-dashboard')} className="bg-purple-600 hover:bg-purple-700">
+            Back to Dashboard
           </Button>
         </div>
       </div>

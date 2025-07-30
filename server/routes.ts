@@ -84,6 +84,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get current stream for authenticated creator
+  app.get('/api/streams/current', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'creator') {
+        return res.status(403).json({ message: "Creator access required" });
+      }
+
+      // Find the latest stream created by this creator
+      const streams = await storage.getStreams();
+      const userStreams = streams.filter(stream => stream.creatorId === userId);
+      
+      if (userStreams.length === 0) {
+        return res.status(404).json({ message: "Stream not found" });
+      }
+
+      // Return the most recent stream (should be the current one)
+      const currentStream = userStreams[0]; // Already ordered by createdAt desc
+      res.json(currentStream);
+    } catch (error) {
+      console.error("Error fetching current stream:", error);
+      res.status(500).json({ message: "Failed to fetch current stream" });
+    }
+  });
+
   app.post('/api/streams', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;

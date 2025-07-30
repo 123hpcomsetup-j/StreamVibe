@@ -190,6 +190,17 @@ export class DatabaseStorage implements IStorage {
     await db.delete(streams).where(eq(streams.id, id));
   }
 
+  // Get current stream by creator
+  async getCurrentStreamByCreator(creatorId: string): Promise<Stream | undefined> {
+    const [stream] = await db
+      .select()
+      .from(streams)
+      .where(eq(streams.creatorId, creatorId))
+      .orderBy(desc(streams.createdAt))
+      .limit(1);
+    return stream;
+  }
+
   // User status operations
   async updateUserOnlineStatus(userId: string, isOnline: boolean): Promise<void> {
     await db

@@ -563,8 +563,8 @@ export default function AgoraStreamCreator({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-screen">
-      <div className="lg:col-span-3 relative">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-screen">
+      <div className="lg:col-span-2 relative">
         {/* Full-Screen Video Preview */}
         <div className="bg-slate-800 border-slate-700 h-full flex flex-col">
           <div 
@@ -741,46 +741,96 @@ export default function AgoraStreamCreator({
         )}
       </div>
 
-      {/* Streaming Analytics - Replaced Chat Section */}
+      {/* Live Chat Panel - Shows live chat and token interactions */}
       <div className="lg:col-span-1">
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-slate-800 border-slate-700 h-full">
           <CardHeader>
             <CardTitle className="text-white flex items-center">
-              <BarChart className="mr-2 h-5 w-5" />
-              Stream Analytics
+              <MessageCircle className="mr-2 h-5 w-5" />
+              Live Chat
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="bg-slate-700 p-4 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-slate-300 text-sm">Current Viewers</span>
-                  <span className="text-white font-bold">{viewerCount}</span>
-                </div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-slate-300 text-sm">Stream Quality</span>
-                  <span className="text-green-400 font-bold">
-                    {networkQuality === 1 ? 'Excellent' : 
-                     networkQuality === 2 ? 'Good' : 
-                     networkQuality === 3 ? 'Fair' : 'Poor'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-300 text-sm">Status</span>
-                  <span className={`font-bold ${isStreaming ? 'text-red-400' : 'text-slate-400'}`}>
-                    {isStreaming ? 'LIVE' : 'OFFLINE'}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="text-center p-4 bg-slate-700/50 rounded-lg">
-                <MessageCircle className="h-8 w-8 text-blue-400 mx-auto mb-2" />
-                <p className="text-slate-300 text-sm font-medium">Messages & Tips</p>
-                <p className="text-slate-400 text-xs mt-1">
-                  View messages and tips on your video overlay during live streams
-                </p>
-              </div>
+          <CardContent className="p-0 h-full">
+            <div className="h-96 border-b border-slate-700">
+              <ScrollArea className="h-full p-4">
+                {chatMessages.length === 0 ? (
+                  <div className="text-center text-slate-400 mt-8">
+                    <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No messages yet</p>
+                    <p className="text-xs mt-1">Chat will appear when viewers join</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {chatMessages.map((msg, index) => (
+                      <div key={index} className="p-2 bg-slate-700/50 rounded text-sm">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <span className="text-blue-400 font-medium">{msg.senderName}</span>
+                            {msg.type === 'tip' && (
+                              <div className="flex items-center mt-1">
+                                <Coins className="h-3 w-3 text-yellow-400 mr-1" />
+                                <span className="text-yellow-400 text-xs font-bold">
+                                  Tipped {msg.tokens} tokens
+                                </span>
+                              </div>
+                            )}
+                            <div className="text-slate-300 mt-1">{msg.message}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    <div ref={chatEndRef} />
+                  </div>
+                )}
+              </ScrollArea>
             </div>
+            
+            {/* Chat Input for Creator */}
+            {isStreaming && (
+              <div className="p-4">
+                <div className="flex space-x-2">
+                  <Input
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="Say something to your viewers..."
+                    className="bg-slate-700 border-slate-600 text-white"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        // Send creator message to chat
+                        if (socket && message.trim()) {
+                          socket.emit('chat-message', {
+                            streamId,
+                            message: message.trim(),
+                            senderName: username,
+                            senderId: userId,
+                            isCreator: true
+                          });
+                          setMessage("");
+                        }
+                      }
+                    }}
+                  />
+                  <Button
+                    onClick={() => {
+                      if (socket && message.trim()) {
+                        socket.emit('chat-message', {
+                          streamId,
+                          message: message.trim(),
+                          senderName: username,
+                          senderId: userId,
+                          isCreator: true
+                        });
+                        setMessage("");
+                      }
+                    }}
+                    size="sm"
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

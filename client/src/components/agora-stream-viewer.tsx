@@ -21,6 +21,7 @@ interface AgoraStreamViewerProps {
   creatorName: string;
   title: string;
   stream?: any;
+  isCreatorInPrivateCall?: boolean;
 }
 
 export default function AgoraStreamViewer({
@@ -29,7 +30,8 @@ export default function AgoraStreamViewer({
   username,
   creatorName,
   title,
-  stream
+  stream,
+  isCreatorInPrivateCall = false
 }: AgoraStreamViewerProps) {
   const { toast } = useToast();
   const [isConnected, setIsConnected] = useState(false);
@@ -480,7 +482,13 @@ export default function AgoraStreamViewer({
         >
           {!hasVideo && (
             <div className="absolute inset-0 flex items-center justify-center text-center text-slate-400 z-10">
-              {isConnected ? (
+              {isCreatorInPrivateCall ? (
+                <div className="space-y-3">
+                  <div className="text-4xl">🔒</div>
+                  <p className="text-lg text-yellow-400">On private call</p>
+                  <p className="text-sm text-slate-500">Wait until the streamer is back live</p>
+                </div>
+              ) : isConnected ? (
                 <div className="space-y-3">
                   <div className="text-4xl">🎥</div>
                   <p className="text-lg">Waiting for {creatorName}...</p>
