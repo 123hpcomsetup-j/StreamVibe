@@ -153,11 +153,12 @@ export default function CreatorDashboard() {
     enabled: !!typedUser,
   });
 
-  // Update streaming state based on current stream
+  // Update streaming state and set stream key
   useEffect(() => {
     const stream = currentStream as any;
     if (stream && stream.isLive) {
       setIsStreaming(true);
+      setStreamKey(stream.id || '');
       setStreamData({
         title: stream.title || "",
         category: stream.category || "Art & Design",
@@ -402,7 +403,9 @@ export default function CreatorDashboard() {
     }
 
     // If we have a stream, open Agora modal directly
-    if (currentStream) {
+    const stream = currentStream as any;
+    if (stream?.id) {
+      setStreamKey(stream.id);
       setShowAgoraModal(true);
     } else {
       // Create stream first, then open Agora modal
@@ -529,11 +532,11 @@ export default function CreatorDashboard() {
               <Button 
                 onClick={handleGoLive}
                 className="bg-red-500 hover:bg-red-600"
-                disabled={createStreamMutation.isPending || (currentStream as any)?.isLive}
+                disabled={createStreamMutation.isPending}
                 size="sm"
               >
                 <Play className="mr-2 h-4 w-4" />
-                {(currentStream as any)?.isLive ? "Live Now" : "Go Live"}
+                {(currentStream as any)?.isLive ? "Live Studio" : "Go Live"}
               </Button>
               <Button 
                 onClick={handleRequestPayout}
@@ -563,10 +566,10 @@ export default function CreatorDashboard() {
               <Button 
                 onClick={handleGoLive}
                 className="bg-red-500 hover:bg-red-600"
-                disabled={createStreamMutation.isPending || (currentStream as any)?.isLive}
+                disabled={createStreamMutation.isPending}
                 size="sm"
               >
-                {(currentStream as any)?.isLive ? "Live" : "Go Live"}
+                {(currentStream as any)?.isLive ? "Studio" : "Go Live"}
               </Button>
             </div>
           </div>
@@ -1275,6 +1278,39 @@ export default function CreatorDashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Agora Stream Modal */}
+      {showAgoraModal && streamKey && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="w-full h-full max-w-none bg-slate-900">
+            <AgoraStreamCreator
+              streamId={streamKey}
+              userId={typedUser?.id || ''}
+              username={typedUser?.username || ''}
+              onStreamStart={(id) => {
+                console.log('Stream started:', id);
+                setIsStreaming(true);
+              }}
+              onStreamStop={() => {
+                console.log('Stream stopped');
+                handleStopStream();
+              }}
+            />
+            
+            {/* Close button */}
+            <div className="absolute top-4 right-4 z-50">
+              <Button
+                onClick={() => setShowAgoraModal(false)}
+                variant="outline"
+                size="sm"
+                className="bg-slate-800 border-slate-600 text-white hover:bg-slate-700"
+              >
+                Close Studio
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
