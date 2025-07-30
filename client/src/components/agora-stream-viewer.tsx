@@ -515,7 +515,7 @@ export default function AgoraStreamViewer({
   }
 
   return (
-    <div className="w-full h-full flex bg-black rounded-lg overflow-hidden">
+    <div className="w-full h-full flex bg-black overflow-hidden">
       {/* Main Video Container - Desktop: left side, Mobile: full width */}
       <div className={`relative flex-1 ${showChat ? 'lg:w-2/3' : 'w-full'} min-h-0`}>
         {/* Video Stream Container */}
