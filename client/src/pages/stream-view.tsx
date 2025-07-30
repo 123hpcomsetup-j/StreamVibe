@@ -344,6 +344,18 @@ export default function StreamView() {
                   stream={typedStream}
                 />
                 
+                {/* Creator Name Overlay - Top Left */}
+                <div className="absolute top-4 left-4 z-20">
+                  <div className="bg-black/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/20">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                      <span className="text-white font-semibold text-sm">
+                        {typedStream?.creator?.username || 'Creator'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
                 {/* Video Overlay Controls - Mobile bottom left, Desktop right side corner */}
                 <div className="absolute bottom-4 left-4 md:top-1/2 md:-translate-y-1/2 md:right-4 md:left-auto md:bottom-auto z-30 flex gap-2 md:flex-col">
                     {/* Quick Tip Buttons */}
