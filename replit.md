@@ -10,6 +10,12 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (July 30, 2025)
 
+**CRITICAL DOM ERROR ELIMINATED - Fixed removeChild Conflicts (July 30, 2025):**
+Successfully eliminated all DOM removeChild errors by removing innerHTML clearing operations that conflicted with Agora SDK's internal video element management. Delegated all video container cleanup to Agora SDK to prevent "Failed to execute 'removeChild' on 'Node'" errors. Video streaming now operates without DOM manipulation conflicts while maintaining proper video display functionality.
+
+**STREAM CHAT OPTIMIZED - Limited to 6 Recent Messages for Real-Time Performance (July 30, 2025):**
+Enhanced chat system to display only the last 6 messages for optimal real-time performance. Updated WebSocket handling to maintain only 6 recent messages in memory for smooth updates. Added visual indicator showing "Last 6 messages • Real-time updates" in chat interface. Fixed timestamp field inconsistency by changing from `msg.timestamp` to `msg.createdAt` to resolve "Invalid date" error. Chat height increased to 35vh (400px minimum) for better message visibility with video section adjusted to 65vh.
+
 **STREAM CHAT SYSTEM COMPLETED - Real-Time Messaging Working Professionally (July 30, 2025):**
 Successfully debugged and fixed complete chat messaging system between viewers and creators. Added WebSocket room joining to stream-view component enabling real-time bidirectional messaging. Enhanced tip notifications in StreamMessageOverlay with golden colors, coin icons, and 15-second display duration as requested. Verified complete message flow: API endpoints storing messages correctly, WebSocket broadcasting functional, both creator and viewer components properly joining stream rooms, and real-time updates working across all participants. Chat system now includes clean interface below video (80% video, 20% chat), message counter badges, role-based styling (creators yellow, viewers blue), auto-scroll functionality, and proper authentication integration.
 

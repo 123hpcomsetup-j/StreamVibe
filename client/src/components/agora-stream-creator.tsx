@@ -384,8 +384,8 @@ export default function AgoraStreamCreator({
         try {
           console.log('📺 Video container found, playing video track...');
           
-          // Clear any existing content to avoid conflicts
-          videoContainerRef.current.innerHTML = '';
+          // Let Agora SDK handle DOM management to avoid removeChild conflicts
+          console.log('📺 Preparing video container for Agora SDK...');
           
           // Play the video track
           await videoTrack.play(videoContainerRef.current);
