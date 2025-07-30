@@ -344,14 +344,14 @@ export default function StreamView() {
                   stream={typedStream}
                 />
                 
-                {/* Video Overlay Controls - Mobile bottom left, Desktop top right */}
-                <div className="absolute bottom-4 left-4 md:top-4 md:right-4 z-30 flex gap-2">
+                {/* Video Overlay Controls - Mobile bottom left, Desktop right side corner */}
+                <div className="absolute bottom-4 left-4 md:top-1/2 md:-translate-y-1/2 md:right-4 md:left-auto md:bottom-auto z-30 flex gap-2 md:flex-col">
                     {/* Quick Tip Buttons */}
                     {isAuthenticated ? (
                       <>
                         <Button
                           onClick={() => handleQuickTip(5)}
-                          className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-2 py-2 text-xs md:text-sm"
+                          className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-2 py-2 text-xs md:text-sm md:px-3 md:py-2 md:min-w-[80px]"
                           size="sm"
                         >
                           <Heart className="mr-1 h-3 w-3" />
@@ -359,7 +359,7 @@ export default function StreamView() {
                         </Button>
                         <Button
                           onClick={() => handleQuickTip(10)}
-                          className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-2 py-2 text-xs md:text-sm"
+                          className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-2 py-2 text-xs md:text-sm md:px-3 md:py-2 md:min-w-[80px]"
                           size="sm"
                         >
                           <Heart className="mr-1 h-3 w-3" />
@@ -367,7 +367,7 @@ export default function StreamView() {
                         </Button>
                         <Button
                           onClick={() => setShowTokenPanel(!showTokenPanel)}
-                          className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-2 py-2 text-xs md:text-sm"
+                          className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-2 py-2 text-xs md:text-sm md:px-3 md:py-2 md:min-w-[80px]"
                           size="sm"
                         >
                           <Gift className="mr-1 h-3 w-3" />
@@ -377,7 +377,7 @@ export default function StreamView() {
                     ) : (
                       <Button
                         onClick={() => setShowLoginModal(true)}
-                        className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-2 py-2 text-xs md:text-sm"
+                        className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-2 py-2 text-xs md:text-sm md:px-3 md:py-2 md:min-w-[80px]"
                         size="sm"
                       >
                         <LogIn className="mr-1 h-3 w-3" />
