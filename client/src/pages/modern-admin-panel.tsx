@@ -611,14 +611,14 @@ export default function ModernAdminPanel() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {users.length === 0 ? (
+                {allUsers.length === 0 ? (
                   <div className="text-center py-8">
                     <Users className="h-12 w-12 text-slate-500 mx-auto mb-4" />
                     <p className="text-slate-400">No users found</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {users.map((user: any) => (
+                    {allUsers.map((user: any) => (
                       <Card key={user.id} className="bg-slate-700 border-slate-600">
                         <CardContent className="p-4">
                           <div className="flex items-center justify-between">
