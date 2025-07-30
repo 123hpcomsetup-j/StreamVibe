@@ -131,8 +131,13 @@ export default function AgoraStreamViewer({
             
             // Clear any existing content in video container safely
             try {
-              while (videoContainerRef.current.firstChild) {
-                videoContainerRef.current.removeChild(videoContainerRef.current.firstChild);
+              try {
+                while (videoContainerRef.current.firstChild) {
+                  videoContainerRef.current.removeChild(videoContainerRef.current.firstChild);
+                }
+              } catch (error) {
+                // DOM node cleanup - ignore removeChild errors
+                videoContainerRef.current.innerHTML = '';
               }
             } catch (clearError) {
               console.log("Note: Could not clear video container, continuing...");
