@@ -559,6 +559,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin-specific endpoint for pending token purchases
+  app.get('/api/admin/pending-token-purchases', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      const pendingPurchases = await storage.getPendingTokenPurchases();
+      res.json(pendingPurchases);
+    } catch (error) {
+      console.error("Error fetching pending token purchases:", error);
+      res.status(500).json({ message: "Failed to fetch pending token purchases" });
+    }
+  });
+
   // Admin approval/denial endpoints
   app.post('/api/admin/token-purchases/:id/approve', requireAuth, async (req: any, res) => {
     try {

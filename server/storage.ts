@@ -320,10 +320,25 @@ export class DatabaseStorage implements IStorage {
     return newPurchase;
   }
 
-  async getPendingTokenPurchases(): Promise<TokenPurchase[]> {
+  async getPendingTokenPurchases(): Promise<any[]> {
     return await db
-      .select()
+      .select({
+        id: tokenPurchases.id,
+        userId: tokenPurchases.userId,
+        requestedTokens: tokenPurchases.requestedTokens,
+        amountPaid: tokenPurchases.amountPaid,
+        utrNumber: tokenPurchases.utrNumber,
+        status: tokenPurchases.status,
+        createdAt: tokenPurchases.createdAt,
+        username: users.username,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        // Frontend expects these field names
+        tokens: tokenPurchases.requestedTokens,
+        amount: tokenPurchases.amountPaid,
+      })
       .from(tokenPurchases)
+      .leftJoin(users, eq(tokenPurchases.userId, users.id))
       .where(eq(tokenPurchases.status, 'pending'))
       .orderBy(desc(tokenPurchases.createdAt));
   }
