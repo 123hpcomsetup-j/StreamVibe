@@ -208,12 +208,12 @@ export default function Navbar({ user }: NavbarProps) {
             <Button
               variant="ghost"
               onClick={() => setShowBuyTokens(true)}
-              className={`hidden sm:flex items-center space-x-2 ${theme.searchBg} rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 hover:bg-opacity-80 transition-all duration-200`}
+              className="hidden sm:flex items-center space-x-2 bg-primary/10 border border-primary/20 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 hover:bg-primary/20 transition-all duration-200"
             >
-              <Coins className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-400" />
+              <Coins className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
               <span className="text-xs sm:text-sm font-medium text-primary">{currentBalance}</span>
-              <span className="hidden md:inline text-xs sm:text-sm text-slate-300">tokens</span>
-              <Plus className="h-3 w-3 text-green-400 ml-1" />
+              <span className="hidden md:inline text-xs sm:text-sm text-primary/70">tokens</span>
+              <Plus className="h-3 w-3 text-primary ml-1" />
             </Button>
             
             {/* Profile and Controls */}
@@ -298,11 +298,11 @@ export default function Navbar({ user }: NavbarProps) {
                 <Button
                   variant="ghost"
                   onClick={() => setShowBuyTokens(true)}
-                  className={`w-full flex items-center space-x-2 ${theme.searchBg} rounded-lg px-3 py-2 hover:bg-opacity-80 transition-all duration-200`}
+                  className="w-full flex items-center space-x-2 bg-primary/10 border border-primary/20 rounded-lg px-3 py-2 hover:bg-primary/20 transition-all duration-200"
                 >
-                  <Coins className="h-4 w-4 text-yellow-400" />
+                  <Coins className="h-4 w-4 text-primary" />
                   <span className="text-sm font-medium text-primary">{currentBalance} tokens</span>
-                  <Plus className="h-4 w-4 text-green-400 ml-auto" />
+                  <Plus className="h-4 w-4 text-primary ml-auto" />
                 </Button>
               </div>
               
