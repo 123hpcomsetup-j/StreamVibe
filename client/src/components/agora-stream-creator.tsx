@@ -312,7 +312,38 @@ export default function AgoraStreamCreator({
       });
       setIsConnected(true);
 
+      // Check browser permissions first
+      try {
+        const permissions = await navigator.permissions.query({ name: 'camera' as PermissionName });
+        console.log('Camera permission status:', permissions.state);
+        
+        const audioPermissions = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+        console.log('Microphone permission status:', audioPermissions.state);
+        
+        if (permissions.state === 'denied' || audioPermissions.state === 'denied') {
+          throw new Error('Camera or microphone permissions denied. Please allow permissions and refresh the page.');
+        }
+      } catch (permError) {
+        console.warn('Permission check failed, attempting device access anyway:', permError);
+      }
+
+      // Test camera and microphone access first
+      console.log('🎥 Testing camera access...');
+      try {
+        const testStream = await navigator.mediaDevices.getUserMedia({ 
+          video: true, 
+          audio: true 
+        });
+        console.log('✅ Camera and microphone access confirmed');
+        // Stop test stream immediately
+        testStream.getTracks().forEach(track => track.stop());
+      } catch (mediaError) {
+        console.error('❌ Media access failed:', mediaError);
+        throw new Error('Cannot access camera or microphone. Please check permissions and try again.');
+      }
+
       // Create and publish video track
+      console.log('🎥 Creating Agora video track...');
       const videoTrack = await AgoraRTC.createCameraVideoTrack({
         encoderConfig: {
           width: 1280,
@@ -323,10 +354,13 @@ export default function AgoraStreamCreator({
         }
       });
       videoTrackRef.current = videoTrack;
+      console.log('✅ Video track created successfully');
 
       // Create and publish audio track
+      console.log('🎤 Creating Agora audio track...');
       const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
       audioTrackRef.current = audioTrack;
+      console.log('✅ Audio track created successfully');
 
       // Publish tracks to Agora
       console.log('📤 Publishing video and audio tracks to Agora...');
@@ -406,17 +440,32 @@ export default function AgoraStreamCreator({
 
     } catch (error: any) {
       console.error("Failed to start streaming:", error);
+      console.error("Error details:", {
+        message: error?.message,
+        code: error?.code,
+        name: error?.name,
+        stack: error?.stack
+      });
       
-      let errorMessage = "Please check camera and microphone permissions.";
+      let errorMessage = "Please check camera and microphone permissions and try again.";
       
-      if (error.code === "CAN_NOT_GET_GATEWAY_SERVER" && error.message.includes("dynamic use static key")) {
+      // Handle specific error types
+      if (error?.message?.includes('Permission denied') || error?.message?.includes('NotAllowedError')) {
+        errorMessage = "Camera/microphone access denied. Please allow permissions in your browser and refresh the page.";
+      } else if (error?.message?.includes('NotFoundError') || error?.message?.includes('DevicesNotFoundError')) {
+        errorMessage = "No camera or microphone found. Please connect a camera/microphone and try again.";
+      } else if (error?.message?.includes('NotReadableError') || error?.message?.includes('TrackingError')) {
+        errorMessage = "Camera/microphone is being used by another application. Please close other apps and try again.";
+      } else if (error?.message?.includes('OverconstrainedError') || error?.message?.includes('ConstraintNotSatisfiedError')) {
+        errorMessage = "Camera/microphone doesn't support the required settings. Please try with a different device.";
+      } else if (error?.code === "CAN_NOT_GET_GATEWAY_SERVER" && error?.message?.includes("dynamic use static key")) {
         errorMessage = "Agora configuration updated successfully! Please try streaming again.";
-      } else if (error.code === "CAN_NOT_GET_GATEWAY_SERVER") {
+      } else if (error?.code === "CAN_NOT_GET_GATEWAY_SERVER") {
         errorMessage = "Agora service temporarily unavailable. Please try again.";
-      } else if (error.code === "INVALID_OPERATION") {
+      } else if (error?.code === "INVALID_OPERATION") {
         errorMessage = "Connection in progress. Please wait a moment and try again.";
-      } else if (error.message.includes("Permission denied")) {
-        errorMessage = "Camera/microphone access denied. Please allow permissions and refresh.";
+      } else if (error?.message?.includes('Cannot access camera or microphone')) {
+        errorMessage = error.message;
       }
       
       // Reset states on error
