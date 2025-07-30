@@ -10,6 +10,9 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (July 30, 2025)
 
+**MOBILE-FRIENDLY AUTHENTICATION DIALOG - Unified Login/Signup System (July 30, 2025):**
+Implemented unified authentication dialog system replacing separate login/registration pages. Main page navigation now shows only "StreamVibe" (clickable to home) with Login and Sign Up buttons. Authentication dialog allows seamless role selection (viewer/creator) and form switching between login/signup modes. Updated all CTA buttons throughout homepage and stream view to use dialog instead of page redirects, creating mobile-optimized experience with consistent navigation patterns.
+
 **SIMPLIFIED STREAM VIEWER NAVIGATION - Clean Interface for Viewers (July 30, 2025):**
 Updated stream viewing navigation bar to show only website name "StreamVibe" and signup button for non-authenticated users. Removed cluttered back button and stream title from navigation, moving guest time/token counters to a dedicated status bar below the main navigation. This creates a cleaner, more focused viewing experience while maintaining essential functionality for guest users.
 

@@ -251,26 +251,37 @@ export default function StreamView() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Simplified Navigation Bar - Only Website Name and Signup */}
+      {/* Simplified Navigation Bar - Website Name and Auth Buttons */}
       <div className="border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            {/* Website Name */}
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                StreamVibe
-              </h1>
-            </div>
+            {/* Website Name - Clickable to go home */}
+            <button
+              onClick={() => setLocation("/")}
+              className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent hover:from-purple-300 hover:to-pink-300 transition-colors"
+            >
+              StreamVibe
+            </button>
             
-            {/* Signup Button - Only show for non-authenticated users */}
+            {/* Auth Buttons - Only show for non-authenticated users */}
             {!isAuthenticated && (
-              <Button 
-                onClick={() => setShowSignupDialog(true)}
-                className="bg-primary hover:bg-primary/80"
-              >
-                <UserPlus className="mr-2 h-4 w-4" />
-                Sign Up
-              </Button>
+              <div className="flex items-center space-x-3">
+                <Button 
+                  variant="ghost"
+                  onClick={() => setShowLoginDialog(true)}
+                  className="text-slate-300 hover:text-white"
+                >
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Login
+                </Button>
+                <Button 
+                  onClick={() => setShowSignupDialog(true)}
+                  className="bg-primary hover:bg-primary/80"
+                >
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Sign Up
+                </Button>
+              </div>
             )}
           </div>
         </div>
