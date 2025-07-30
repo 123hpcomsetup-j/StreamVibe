@@ -105,8 +105,9 @@ export default function AgoraStreamViewer({
 
     // Handle remote user events
     client.on("user-published", async (user, mediaType) => {
-      console.log("🎥 CREATOR BROADCASTING:", mediaType, "from user:", user.uid);
-      console.log("📊 Current client state - connected:", isConnected, "hasVideo:", hasVideo);
+      console.log("🎉 🎥 CREATOR IS BROADCASTING!", mediaType, "from user:", user.uid);
+      console.log("🎯 Channel:", clientRef.current?.channelName);
+      console.log("📊 Current viewer state:", { isConnected, hasVideo, connectionState: clientRef.current?.connectionState });
       
       try {
         // Check if client is still connected before subscribing
@@ -369,13 +370,26 @@ export default function AgoraStreamViewer({
       });
       setIsConnected(true);
       
-      console.log("🟢 Viewer connected to Agora channel:", channelName);
+      console.log("🟢 VIEWER SUCCESSFULLY JOINED AGORA CHANNEL:", channelName);
       console.log("👥 Waiting for creator to start broadcasting...");
+      console.log("🔍 Agora client details:", {
+        connectionState: clientRef.current.connectionState,
+        channelName: clientRef.current.channelName,
+        uid: clientRef.current.uid,
+        remoteUsers: clientRef.current.remoteUsers.length
+      });
       
       // Set a timeout to show message if no video appears
       setTimeout(() => {
         if (!hasVideo) {
-          console.log("⚠️ No video detected after 10 seconds");
+          console.log("⚠️ No video detected after 10 seconds - Creator may not be broadcasting yet");
+          console.log("🔍 Current viewer state:", {
+            isConnected,
+            hasVideo,
+            viewerCount,
+            remoteUsers: clientRef.current?.remoteUsers?.length || 0,
+            connectionState: clientRef.current?.connectionState
+          });
           toast({
             title: "Waiting for Creator",
             description: "The creator hasn't started broadcasting yet. Please wait...",
