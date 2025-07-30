@@ -580,14 +580,14 @@ export default function PublicHome() {
                   setIsLoginMode(false);
                   setShowAuthDialog(true);
                 }}
-                className="text-slate-400 hover:text-white"
+                className="text-muted-foreground hover:text-primary"
               >
                 Become Creator
               </Button>
               <Button 
                 variant="link" 
                 onClick={() => setLocation("/admin")}
-                className="text-slate-400 hover:text-white"
+                className="text-muted-foreground hover:text-primary"
               >
                 Admin
               </Button>
@@ -598,12 +598,12 @@ export default function PublicHome() {
 
       {/* Authentication Dialog */}
       <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
-        <DialogContent className="bg-slate-800 border-slate-700 text-white">
+        <DialogContent className="bg-background border-border text-foreground">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-foreground">
               {isLoginMode ? "Welcome Back" : "Join StreamVibe"}
             </DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               {isLoginMode 
                 ? "Enter your credentials to access your account" 
                 : "Create your account to start watching and interacting with creators"
@@ -612,23 +612,23 @@ export default function PublicHome() {
           </DialogHeader>
           <form onSubmit={handleAuth} className="space-y-4">
             <div>
-              <Label className="text-slate-300">Username</Label>
+              <Label className="text-foreground">Username</Label>
               <Input
                 type="text"
                 value={authData.username}
                 onChange={(e) => setAuthData({ ...authData, username: e.target.value })}
-                className="bg-slate-700 border-slate-600 text-white"
+                className="bg-background border-input text-foreground"
                 required
               />
             </div>
             
             <div>
-              <Label className="text-slate-300">Password</Label>
+              <Label className="text-foreground">Password</Label>
               <Input
                 type="password"
                 value={authData.password}
                 onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
-                className="bg-slate-700 border-slate-600 text-white"
+                className="bg-background border-input text-foreground"
                 required
               />
             </div>
@@ -636,24 +636,24 @@ export default function PublicHome() {
             {!isLoginMode && (
               <>
                 <div>
-                  <Label className="text-slate-300">Confirm Password</Label>
+                  <Label className="text-foreground">Confirm Password</Label>
                   <Input
                     type="password"
                     value={authData.confirmPassword}
                     onChange={(e) => setAuthData({ ...authData, confirmPassword: e.target.value })}
-                    className="bg-slate-700 border-slate-600 text-white"
+                    className="bg-background border-input text-foreground"
                     required
                   />
                 </div>
                 
                 <div>
-                  <Label className="text-slate-300">I want to</Label>
+                  <Label className="text-foreground">I want to</Label>
                   <div className="grid grid-cols-2 gap-2 mt-2">
                     <Button
                       type="button"
                       variant={authData.role === "viewer" ? "default" : "outline"}
                       onClick={() => setAuthData({ ...authData, role: "viewer" })}
-                      className="h-12"
+                      className={`h-12 ${authData.role === "viewer" ? "bg-primary hover:bg-primary/90 text-primary-foreground" : "border-primary text-primary hover:bg-primary hover:text-primary-foreground"}`}
                     >
                       <Play className="mr-2 h-4 w-4" />
                       Watch Streams
@@ -662,7 +662,7 @@ export default function PublicHome() {
                       type="button"
                       variant={authData.role === "creator" ? "default" : "outline"}
                       onClick={() => setAuthData({ ...authData, role: "creator" })}
-                      className="h-12"
+                      className={`h-12 ${authData.role === "creator" ? "bg-primary hover:bg-primary/90 text-primary-foreground" : "border-primary text-primary hover:bg-primary hover:text-primary-foreground"}`}
                     >
                       <Video className="mr-2 h-4 w-4" />
                       Create Content
@@ -675,7 +675,7 @@ export default function PublicHome() {
             <div className="flex flex-col space-y-3">
               <Button 
                 type="submit" 
-                className="bg-primary hover:bg-primary/80"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
                 disabled={loginMutation.isPending || signupMutation.isPending}
               >
                 {isLoginMode ? (
@@ -698,7 +698,7 @@ export default function PublicHome() {
                   setIsLoginMode(!isLoginMode);
                   setAuthData({ username: "", password: "", confirmPassword: "", role: "viewer" });
                 }}
-                className="text-slate-400 hover:text-white"
+                className="text-muted-foreground hover:text-foreground"
               >
                 {isLoginMode 
                   ? "Don't have an account? Sign up" 

@@ -250,46 +250,46 @@ export default function CreatorLogin() {
                     Forgot Password?
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-md bg-slate-800 border-slate-700">
+                <DialogContent className="sm:max-w-md bg-background border-border">
                   <DialogHeader>
-                    <DialogTitle className="text-white">Reset Password</DialogTitle>
-                    <DialogDescription className="text-slate-300">
+                    <DialogTitle className="text-foreground">Reset Password</DialogTitle>
+                    <DialogDescription className="text-muted-foreground">
                       Enter your username and new password to reset your account.
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleReset} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="reset-username" className="text-white">Username</Label>
+                      <Label htmlFor="reset-username" className="text-foreground">Username</Label>
                       <Input
                         id="reset-username"
                         value={resetData.username}
                         onChange={(e) => setResetData({ ...resetData, username: e.target.value })}
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-background border-input text-foreground"
                         placeholder="Enter your username"
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="new-password" className="text-white">New Password</Label>
+                      <Label htmlFor="new-password" className="text-foreground">New Password</Label>
                       <Input
                         id="new-password"
                         type="password"
                         value={resetData.newPassword}
                         onChange={(e) => setResetData({ ...resetData, newPassword: e.target.value })}
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-background border-input text-foreground"
                         placeholder="Enter new password"
                         minLength={6}
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="confirm-new-password" className="text-white">Confirm New Password</Label>
+                      <Label htmlFor="confirm-new-password" className="text-foreground">Confirm New Password</Label>
                       <Input
                         id="confirm-new-password"
                         type="password"
                         value={resetData.confirmPassword}
                         onChange={(e) => setResetData({ ...resetData, confirmPassword: e.target.value })}
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-background border-input text-foreground"
                         placeholder="Confirm new password"
                         minLength={6}
                         required
@@ -298,7 +298,7 @@ export default function CreatorLogin() {
                     <Button
                       type="submit"
                       disabled={resetMutation.isPending}
-                      className="w-full bg-purple-600 hover:bg-purple-700"
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
                       {resetMutation.isPending ? "Resetting..." : "Reset Password"}
                     </Button>
@@ -319,10 +319,10 @@ export default function CreatorLogin() {
                     Create Creator Account
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-md bg-slate-800 border-slate-700">
+                <DialogContent className="sm:max-w-md bg-background border-border">
                   <DialogHeader>
-                    <DialogTitle className="text-white">Create Creator Account</DialogTitle>
-                    <DialogDescription className="text-slate-300">
+                    <DialogTitle className="text-foreground">Create Creator Account</DialogTitle>
+                    <DialogDescription className="text-muted-foreground">
                       Join StreamVibe as a content creator and start monetizing your streams.
                     </DialogDescription>
                   </DialogHeader>
