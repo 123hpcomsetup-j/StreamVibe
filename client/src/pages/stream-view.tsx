@@ -411,14 +411,7 @@ export default function StreamView() {
                   </div>
                 )}
                 
-                <Button
-                  onClick={() => setShowTokenPanel(!showTokenPanel)}
-                  className="bg-purple-600 hover:bg-purple-700"
-                  size="sm"
-                >
-                  <Coins className="mr-2 h-4 w-4" />
-                  Support Creator
-                </Button>
+                
               </div>
             </div>
           </div>
