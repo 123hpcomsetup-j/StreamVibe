@@ -20,6 +20,11 @@ import {
   insertUpiConfigSchema,
 } from "@shared/schema";
 
+// Global io declaration for WebSocket broadcasting
+declare global {
+  var io: any;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Simple session setup with extended persistence
   app.use(session({
@@ -741,6 +746,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Stream not found" });
       }
       
+      // Get user info for display
+      const user = await storage.getUser(userId);
+      
       // Create transaction
       const transaction = await storage.createTransaction({
         fromUserId: userId,
@@ -754,6 +762,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update wallet balances
       await storage.updateTokenBalance(userId, -amount); // Deduct from tipper
       await storage.updateTokenBalance(stream.creatorId, amount); // Add to creator
+      
+      // Broadcast tip to all users in the stream room (including creator)
+      const tipData = {
+        amount: amount,
+        username: user?.username || 'Anonymous',
+        userId: userId,
+        streamId: streamId,
+        message: message || `Tipped ${amount} tokens!`,
+        timestamp: new Date().toISOString()
+      };
+      
+      // Use global io to broadcast tip notification
+      if (global.io) {
+        global.io.to(`stream-${streamId}`).emit('tip-message', tipData);
+        console.log(`💝 Broadcasting tip notification to stream-${streamId} room:`, tipData);
+      }
       
       res.status(201).json(transaction);
     } catch (error) {
@@ -800,6 +824,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update wallet balances
       await storage.updateTokenBalance(userId, -activity.tokenCost);
       await storage.updateTokenBalance(stream.creatorId, activity.tokenCost);
+      
+      // Broadcast activity to all users in the stream room (including creator)
+      const user = await storage.getUser(userId);
+      const activityData = {
+        amount: activity.tokenCost,
+        username: user?.username || 'Anonymous',
+        userId: userId,
+        streamId: streamId,
+        message: `Used activity: ${activity.name}`,
+        activityName: activity.name,
+        timestamp: new Date().toISOString()
+      };
+      
+      // Use global io to broadcast activity notification
+      if (global.io) {
+        global.io.to(`stream-${streamId}`).emit('tip-message', activityData);
+        console.log(`🎯 Broadcasting activity notification to stream-${streamId} room:`, activityData);
+      }
       
       res.status(201).json(transaction);
     } catch (error) {
