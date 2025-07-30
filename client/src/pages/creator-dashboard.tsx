@@ -524,29 +524,17 @@ export default function CreatorDashboard() {
               </Button>
             </div>
             
-            {/* Desktop buttons */}
+            {/* Desktop buttons - REMOVED DUPLICATE STOP STREAM */}
             <div className="hidden sm:flex items-center space-x-2">
-              {(currentStream as any)?.isLive ? (
-                <Button 
-                  onClick={handleStopStream}
-                  className="bg-red-600 hover:bg-red-700"
-                  disabled={stopStreamMutation.isPending}
-                  size="sm"
-                >
-                  <Square className="mr-2 h-4 w-4" />
-                  {stopStreamMutation.isPending ? "Stopping..." : "Stop Stream"}
-                </Button>
-              ) : (
-                <Button 
-                  onClick={handleGoLive}
-                  className="bg-red-500 hover:bg-red-600"
-                  disabled={createStreamMutation.isPending}
-                  size="sm"
-                >
-                  <Play className="mr-2 h-4 w-4" />
-                  Go Live
-                </Button>
-              )}
+              <Button 
+                onClick={handleGoLive}
+                className="bg-red-500 hover:bg-red-600"
+                disabled={createStreamMutation.isPending || (currentStream as any)?.isLive}
+                size="sm"
+              >
+                <Play className="mr-2 h-4 w-4" />
+                {(currentStream as any)?.isLive ? "Live Now" : "Go Live"}
+              </Button>
               <Button 
                 onClick={handleRequestPayout}
                 variant="outline"
@@ -570,27 +558,16 @@ export default function CreatorDashboard() {
               </Button>
             </div>
 
-            {/* Mobile: Only show main action button */}
+            {/* Mobile: Only show main action button - REMOVED DUPLICATE STOP STREAM */}
             <div className="sm:hidden">
-              {(currentStream as any)?.isLive ? (
-                <Button 
-                  onClick={handleStopStream}
-                  className="bg-red-600 hover:bg-red-700"
-                  disabled={stopStreamMutation.isPending}
-                  size="sm"
-                >
-                  {stopStreamMutation.isPending ? "Stop" : "Stop Stream"}
-                </Button>
-              ) : (
-                <Button 
-                  onClick={handleGoLive}
-                  className="bg-red-500 hover:bg-red-600"
-                  disabled={createStreamMutation.isPending}
-                  size="sm"
-                >
-                  {createStreamMutation.isPending ? "Starting" : "Go Live"}
-                </Button>
-              )}
+              <Button 
+                onClick={handleGoLive}
+                className="bg-red-500 hover:bg-red-600"
+                disabled={createStreamMutation.isPending || (currentStream as any)?.isLive}
+                size="sm"
+              >
+                {(currentStream as any)?.isLive ? "Live" : "Go Live"}
+              </Button>
             </div>
           </div>
         </div>

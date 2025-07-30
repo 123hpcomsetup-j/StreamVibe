@@ -63,6 +63,38 @@ export default function StreamMessageOverlay({
   const [quickTipAmount, setQuickTipAmount] = useState(0);
   const [showMessageInput, setShowMessageInput] = useState(false);
 
+  // Load existing messages when creator opens overlay
+  useEffect(() => {
+    if (isCreator) {
+      const loadExistingMessages = async () => {
+        try {
+          const response = await fetch(`/api/streams/${streamId}/chat`);
+          if (response.ok) {
+            const messages = await response.json();
+            console.log('Creator loading existing messages:', messages);
+            
+            // Convert to overlay messages format
+            const overlayMsgs: OverlayMessage[] = messages.slice(-5).map((msg: any) => ({
+              id: msg.id,
+              username: msg.senderName,
+              message: msg.message,
+              tipAmount: msg.tipAmount > 0 ? msg.tipAmount : undefined,
+              timestamp: new Date(msg.createdAt),
+              isTip: msg.tipAmount > 0,
+              isCreator: msg.senderName === creatorName
+            }));
+            
+            setOverlayMessages(overlayMsgs);
+          }
+        } catch (error) {
+          console.error('Failed to load existing messages:', error);
+        }
+      };
+      
+      loadExistingMessages();
+    }
+  }, [streamId, isCreator, creatorName]);
+
   // Socket connection for live messages
   useEffect(() => {
     const newSocket = io('/', {
@@ -71,7 +103,7 @@ export default function StreamMessageOverlay({
     });
 
     newSocket.on('connect', () => {
-      console.log('Overlay: Socket connected');
+      console.log('Overlay: Socket connected for creator view');
       newSocket.emit('join-stream', { 
         streamId, 
         userId: isGuest ? guestSessionId : typedUser?.id || 'anonymous' 

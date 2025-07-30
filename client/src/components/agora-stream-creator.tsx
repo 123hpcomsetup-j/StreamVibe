@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Play, Square, Video, VideoOff, Mic, MicOff, Users, Send, MessageCircle, Coins } from "lucide-react";
+import { Play, Square, Video, VideoOff, Mic, MicOff, Users, Send, MessageCircle, Coins, BarChart } from "lucide-react";
 import { io, Socket } from 'socket.io-client';
 import StreamMessageOverlay from "./stream-message-overlay";
 import AgoraRTC, {
@@ -40,6 +40,7 @@ export default function AgoraStreamCreator({
   const [message, setMessage] = useState("");
   const [socket, setSocket] = useState<Socket | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [networkQuality, setNetworkQuality] = useState(1);
   
   const clientRef = useRef<IAgoraRTCClient | null>(null);
   const videoTrackRef = useRef<ICameraVideoTrack | null>(null);
@@ -705,7 +706,7 @@ export default function AgoraStreamCreator({
           </Card>
         )}
 
-        {/* Stop Stream Controls - Show only when streaming */}
+        {/* Stream Status Info - Show only when streaming */}
         {isStreaming && (
           <Card className="bg-red-900/20 border-red-500/50">
             <CardContent className="p-6">
@@ -714,17 +715,11 @@ export default function AgoraStreamCreator({
                   <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-2"></div>
                   <span className="text-red-400 font-semibold">LIVE STREAMING</span>
                 </div>
-                <Button
-                  onClick={stopStreaming}
-                  size="lg"
-                  variant="destructive"
-                  className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3"
-                >
-                  <Square className="mr-2 h-5 w-5 fill-current" />
-                  End Stream
-                </Button>
-                <p className="text-slate-400 text-sm mt-3">
+                <p className="text-slate-400 text-sm">
                   Viewers: {viewerCount} • Video: {isVideoOn ? 'ON' : 'OFF'} • Audio: {isAudioOn ? 'ON' : 'OFF'}
+                </p>
+                <p className="text-slate-500 text-xs mt-2">
+                  Use overlay controls to manage your stream
                 </p>
               </div>
             </CardContent>
@@ -732,76 +727,44 @@ export default function AgoraStreamCreator({
         )}
       </div>
 
-      {/* Chat Section */}
+      {/* Streaming Analytics - Replaced Chat Section */}
       <div className="lg:col-span-1">
-        <Card className="bg-slate-800 border-slate-700 h-[600px] flex flex-col">
+        <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
             <CardTitle className="text-white flex items-center">
-              <MessageCircle className="mr-2 h-5 w-5" />
-              Live Chat
+              <BarChart className="mr-2 h-5 w-5" />
+              Stream Analytics
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex-1 flex flex-col overflow-hidden">
-            <ScrollArea className="flex-1 pr-4">
-              <div className="space-y-3">
-                {chatMessages.length === 0 ? (
-                  <div className="text-center py-8">
-                    <MessageCircle className="h-8 w-8 text-slate-500 mx-auto mb-2" />
-                    <p className="text-slate-400 text-sm">Chat with your viewers</p>
-                  </div>
-                ) : (
-                  chatMessages.map((msg, index) => (
-                    <div key={index} className={`text-sm rounded-lg p-2 ${(msg as any).tipAmount > 0 ? 'bg-green-900/20 border border-green-500/30' : 'bg-slate-700/30'}`}>
-                      <div className="flex items-start space-x-2">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2">
-                            <span className={`font-medium ${(msg as any).tipAmount > 0 ? 'font-bold text-green-400' : 'text-slate-300'}`}>
-                              {msg.username || 'Anonymous'}
-                            </span>
-                            {msg.userType === 'creator' && (
-                              <Badge variant="outline" className="text-xs text-purple-400 border-purple-400">
-                                Creator
-                              </Badge>
-                            )}
-                            {(msg as any).tipAmount > 0 && (
-                              <Badge className="bg-green-500 text-white text-xs">
-                                <Coins className="mr-1 h-3 w-3" />
-                                {(msg as any).tipAmount}
-                              </Badge>
-                            )}
-                          </div>
-                          {(msg as any).tipAmount > 0 && (
-                            <p className="text-green-300 text-xs font-bold mt-1">
-                              💰 Just tipped {(msg as any).tipAmount} tokens!
-                            </p>
-                          )}
-                          <p className="text-slate-400 mt-1">{msg.message}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-                <div ref={chatEndRef} />
+          <CardContent>
+            <div className="space-y-4">
+              <div className="bg-slate-700 p-4 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-slate-300 text-sm">Current Viewers</span>
+                  <span className="text-white font-bold">{viewerCount}</span>
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-slate-300 text-sm">Stream Quality</span>
+                  <span className="text-green-400 font-bold">
+                    {networkQuality === 1 ? 'Excellent' : 
+                     networkQuality === 2 ? 'Good' : 
+                     networkQuality === 3 ? 'Fair' : 'Poor'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300 text-sm">Status</span>
+                  <span className={`font-bold ${isStreaming ? 'text-red-400' : 'text-slate-400'}`}>
+                    {isStreaming ? 'LIVE' : 'OFFLINE'}
+                  </span>
+                </div>
               </div>
-            </ScrollArea>
-            
-            {/* Chat Input */}
-            <div className="mt-4 pt-4 border-t border-slate-700">
-              <div className="flex space-x-2">
-                <Input
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Send a message to your viewers..."
-                  className="bg-slate-700 border-slate-600 text-white flex-1"
-                />
-                <Button 
-                  onClick={sendMessage}
-                  disabled={!message.trim() || !socket}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
+              
+              <div className="text-center p-4 bg-slate-700/50 rounded-lg">
+                <MessageCircle className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+                <p className="text-slate-300 text-sm font-medium">Messages & Tips</p>
+                <p className="text-slate-400 text-xs mt-1">
+                  View messages and tips on your video overlay during live streams
+                </p>
               </div>
             </div>
           </CardContent>
