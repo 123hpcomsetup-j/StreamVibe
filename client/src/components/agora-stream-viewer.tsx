@@ -146,6 +146,19 @@ export default function AgoraStreamViewer({
             
             try {
               remoteVideoTrack.play(videoContainerRef.current, playConfig);
+              
+              // CRITICAL FIX: Ensure video element is properly styled and visible
+              const videoElement = videoContainerRef.current.querySelector('video');
+              if (videoElement) {
+                videoElement.style.width = '100%';
+                videoElement.style.height = '100%';
+                videoElement.style.objectFit = 'cover';
+                videoElement.style.position = 'relative';
+                videoElement.style.zIndex = '5';
+                videoElement.style.display = 'block';
+                console.log('✅ Video element styling applied - should now be visible');
+              }
+              
               remoteVideoRef.current = remoteVideoTrack;
               setHasVideo(true);
               setIsLoading(false);
@@ -543,7 +556,7 @@ export default function AgoraStreamViewer({
         </div>
         
         {/* Stream Info Overlays */}
-        <div className="absolute top-2 left-2 sm:top-4 sm:left-4 flex items-center space-x-1 sm:space-x-2">
+        <div className="absolute top-2 left-2 sm:top-4 sm:left-4 flex items-center space-x-1 sm:space-x-2 z-20">
           <Badge className="bg-red-600 text-white shadow-lg text-xs">
             <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full mr-1 animate-pulse"></div>
             LIVE
@@ -555,7 +568,7 @@ export default function AgoraStreamViewer({
         </div>
         
         {/* Video Controls */}
-        <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 flex items-center space-x-2">
+        <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 flex items-center space-x-2 z-20">
           {/* Chat Toggle */}
           <Button
             size="sm"
@@ -582,7 +595,7 @@ export default function AgoraStreamViewer({
         
         {/* Connection Status */}
         {isConnected && (
-          <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4">
+          <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 z-20">
             <Badge className="bg-green-600/80 backdrop-blur-sm text-white text-xs">
               <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full mr-1 animate-pulse"></div>
               <span className="hidden sm:inline">Connected</span>
@@ -600,7 +613,7 @@ export default function AgoraStreamViewer({
           top-0 right-0 lg:top-auto lg:right-auto
           w-full lg:w-1/3
           h-full
-          z-50 lg:z-auto
+          z-30 lg:z-auto
           bg-black/95 lg:bg-transparent
           lg:border-l lg:border-slate-700
         `}>
