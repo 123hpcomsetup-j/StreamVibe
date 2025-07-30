@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { 
@@ -21,7 +22,9 @@ import {
   Lock,
   Clock,
   Heart,
-  Gift
+  Gift,
+  MessageCircle,
+  Send
 } from "lucide-react";
 import type { User } from "@shared/schema";
 import AgoraStreamViewer from "@/components/agora-stream-viewer";
@@ -44,6 +47,11 @@ export default function StreamView() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginModalClosed, setLoginModalClosed] = useState(false);
   const [viewingBlocked, setViewingBlocked] = useState(false);
+  
+  // Chat system state
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const chatEndRef = useRef<HTMLDivElement>(null);
   
   // Login form state
   const [loginForm, setLoginForm] = useState({
@@ -69,6 +77,21 @@ export default function StreamView() {
     queryKey: ["/api/wallet"],
     enabled: isAuthenticated,
   });
+  
+  // Fetch chat messages
+  const { data: messages } = useQuery({
+    queryKey: ["/api/streams", streamId, "chat"],
+    enabled: !!streamId,
+    refetchInterval: 3000, // Refresh every 3 seconds
+  });
+  
+  // Update chat messages when data changes
+  useEffect(() => {
+    if (messages) {
+      setChatMessages(messages);
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
   
   const typedStream = stream as any;
   
@@ -104,6 +127,31 @@ export default function StreamView() {
     onError: (error: Error) => {
       toast({
         title: loginForm.isSignup ? "Signup Failed" : "Login Failed", 
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Send message mutation
+  const sendMessageMutation = useMutation({
+    mutationFn: async ({ message }: { message: string }) => {
+      return await apiRequest("POST", `/api/streams/${streamId}/chat`, {
+        message,
+        tipAmount: 0
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/streams", streamId, "chat"] });
+      setNewMessage("");
+      toast({
+        title: "Message Sent!",
+        description: "Your message has been sent to the streamer",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Chat Error",
         description: error.message,
         variant: "destructive",
       });
@@ -222,6 +270,21 @@ export default function StreamView() {
     }
 
     tipMutation.mutate({ amount });
+  };
+  
+  const handleSendMessage = () => {
+    if (!newMessage.trim()) return;
+    
+    if (!isAuthenticated) {
+      toast({
+        title: "Login Required",
+        description: "Please login to send messages",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    sendMessageMutation.mutate({ message: newMessage });
   };
 
   // Format time display
