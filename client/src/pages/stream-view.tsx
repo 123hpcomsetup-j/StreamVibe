@@ -19,7 +19,9 @@ import {
   Coins,
   X,
   Lock,
-  Clock
+  Clock,
+  Heart,
+  Gift
 } from "lucide-react";
 import type { User } from "@shared/schema";
 import AgoraStreamViewer from "@/components/agora-stream-viewer";
@@ -335,52 +337,53 @@ export default function StreamView() {
               <>
                 <AgoraStreamViewer
                   streamId={streamId!}
-                  displayName={displayName}
-                  onStreamEnd={() => setStreamEnded(true)}
+                  userId={typedUser?.id || 'guest'}
+                  username={displayName}
+                  creatorName={typedStream?.creator?.username || 'Creator'}
+                  title={typedStream?.title || 'Live Stream'}
+                  stream={typedStream}
                 />
                 
-                {/* Video Overlay Controls */}
-                <div className="absolute top-4 right-4 z-30">
-                  <div className="flex flex-col space-y-3">
+                {/* Video Overlay Controls - Mobile bottom left, Desktop top right */}
+                <div className="absolute bottom-4 left-4 md:top-4 md:right-4 z-30 flex gap-2">
                     {/* Quick Tip Buttons */}
                     {isAuthenticated ? (
-                      <div className="flex flex-col space-y-2">
+                      <>
                         <Button
                           onClick={() => handleQuickTip(5)}
-                          className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-3 py-2 text-sm"
+                          className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-2 py-2 text-xs md:text-sm"
                           size="sm"
                         >
                           <Heart className="mr-1 h-3 w-3" />
-                          Tip 5
+                          <span className="hidden sm:inline">Tip </span>5
                         </Button>
                         <Button
                           onClick={() => handleQuickTip(10)}
-                          className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-3 py-2 text-sm"
+                          className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-2 py-2 text-xs md:text-sm"
                           size="sm"
                         >
                           <Heart className="mr-1 h-3 w-3" />
-                          Tip 10
+                          <span className="hidden sm:inline">Tip </span>10
                         </Button>
                         <Button
                           onClick={() => setShowTokenPanel(!showTokenPanel)}
-                          className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-3 py-2 text-sm"
+                          className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-2 py-2 text-xs md:text-sm"
                           size="sm"
                         >
                           <Gift className="mr-1 h-3 w-3" />
-                          More
+                          <span className="hidden sm:inline">More</span>
                         </Button>
-                      </div>
+                      </>
                     ) : (
                       <Button
                         onClick={() => setShowLoginModal(true)}
-                        className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-3 py-2 text-sm"
+                        className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-2 py-2 text-xs md:text-sm"
                         size="sm"
                       >
                         <LogIn className="mr-1 h-3 w-3" />
-                        Login to Tip
+                        <span className="hidden sm:inline">Login to </span>Tip
                       </Button>
                     )}
-                  </div>
                 </div>
               </>
             )}
