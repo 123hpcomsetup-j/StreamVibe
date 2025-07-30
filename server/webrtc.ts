@@ -66,11 +66,17 @@ export function setupWebRTC(server: Server) {
       const { streamId, userId } = data;
       
       try {
-        console.log(`Attempting to start stream ${streamId} for user ${userId}`);
+        console.log(`🚀 RECEIVED start-stream event for stream ${streamId} from user ${userId}`);
+        console.log(`📊 Socket ID: ${socket.id}, Data:`, data);
         
-        // Update stream status in database
+        // Update stream status in database with detailed logging
+        console.log(`🔄 Updating stream ${streamId} to live in database...`);
         await storage.updateStreamStatus(streamId, true);
-        console.log(`Stream ${streamId} marked as live in database`);
+        console.log(`✅ Stream ${streamId} marked as live in database`);
+        
+        // Verify the database update worked
+        const updatedStream = await storage.getStreamById(streamId);
+        console.log(`🔍 Database verification - Stream isLive:`, updatedStream?.isLive);
         
         // Create stream room
         activeStreams.set(streamId, {
@@ -82,25 +88,34 @@ export function setupWebRTC(server: Server) {
 
         socket.join(`stream-${streamId}`);
         
-        console.log(`Creator ${userId} started stream ${streamId}`);
+        console.log(`👥 Creator ${userId} started stream ${streamId} - room created`);
         
         // Notify all users about new live stream with real-time update
         io.emit('stream-status-changed', { 
           streamId, 
           creatorId: userId, 
           isLive: true,
-          viewerCount: 0
+          viewerCount: 0,
+          message: 'Stream is now live!'
         });
+        
+        console.log(`📡 Broadcasted stream-status-changed to all connected clients`);
         
         // Send confirmation back to creator
         socket.emit('stream-started', { 
           streamId, 
-          success: true 
+          success: true,
+          message: 'Stream is now live and visible to viewers'
         });
         
+        console.log(`✅ Stream ${streamId} successfully started and all notifications sent`);
+        
       } catch (error) {
-        console.error('Error starting stream:', error);
-        socket.emit('stream-error', { message: 'Failed to start stream' });
+        console.error('❌ Error starting stream:', error);
+        socket.emit('stream-error', { 
+          message: 'Failed to start stream', 
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
       }
     });
 
@@ -412,39 +427,7 @@ export function setupWebRTC(server: Server) {
       }
     });
 
-    // Handle stream start - when creator successfully starts broadcasting
-    socket.on('start-stream', async (data: { streamId: string, userId: string }) => {
-      const { streamId, userId } = data;
-      
-      try {
-        console.log(`🚀 Creator ${userId} started broadcasting stream ${streamId}`);
-        
-        // Mark stream as live in database
-        await storage.updateStreamStatus(streamId, true);
-        
-        // Update active streams tracking
-        activeStreams.set(streamId, {
-          streamId,
-          creatorSocketId: socket.id,
-          viewers: new Set()
-        });
-        
-        // Broadcast to ALL clients that stream is now live and available
-        io.emit('stream-status-changed', { 
-          streamId, 
-          creatorId: userId, 
-          isLive: true,
-          viewerCount: 0,
-          message: 'Creator started broadcasting'
-        });
-        
-        console.log(`✅ Stream ${streamId} is now live and visible to all users`);
-        
-      } catch (error) {
-        console.error('Error starting stream:', error);
-        socket.emit('stream-error', { message: 'Failed to start stream' });
-      }
-    });
+    // Handle stream start - when creator successfully starts broadcasting (DUPLICATE REMOVED)
 
     // Handle stream end
     socket.on('end-stream', async (data: { streamId: string }) => {

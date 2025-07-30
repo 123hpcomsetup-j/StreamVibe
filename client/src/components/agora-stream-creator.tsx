@@ -301,6 +301,9 @@ export default function AgoraStreamCreator({
       // IMPORTANT: Only emit live status AFTER successful Agora publishing
       if (socket) {
         console.log('🚀 Broadcasting live stream status to all clients:', streamId);
+        console.log('🔗 Socket connection status:', socket.connected);
+        console.log('📡 Emitting start-stream event with data:', { streamId, userId });
+        
         socket.emit('start-stream', { streamId, userId });
         
         // Also notify about stream being truly live with video
@@ -309,6 +312,23 @@ export default function AgoraStreamCreator({
           userId,
           message: 'Creator is now broadcasting video'
         });
+        
+        console.log('✅ WebSocket events emitted successfully');
+      } else {
+        console.error('❌ No WebSocket connection available - cannot notify server of live status');
+        
+        // Try to update stream status via API call as fallback
+        try {
+          await fetch(`/api/streams/${streamId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ isLive: true })
+          });
+          console.log('✅ Stream status updated via API fallback');
+        } catch (apiError) {
+          console.error('❌ Failed to update stream status via API:', apiError);
+        }
       }
 
       toast({
