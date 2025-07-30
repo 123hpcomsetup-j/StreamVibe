@@ -684,18 +684,18 @@ export default function StreamView() {
                               )}
                               <p className="text-slate-300 mt-1 text-xs lg:text-sm">{msg.message}</p>
                             </div>
-                          {(msg.tipAmount && msg.tipAmount > 0) && (
-                            <Badge className="bg-green-500 text-white ml-2">
-                              <Coins className="mr-1 h-3 w-3" />
-                              {msg.tipAmount}
-                            </Badge>
-                          )}
-                        </div>
+                            {(msg.tipAmount && msg.tipAmount > 0) && (
+                              <Badge className="bg-green-500 text-white ml-2">
+                                <Coins className="mr-1 h-3 w-3" />
+                                {msg.tipAmount}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       ))
-                  )}
-                  <div ref={chatEndRef} />
-                </div>
+                    )}
+                    <div ref={chatEndRef} />
+                  </div>
                 
                 {/* Scroll to bottom button */}
                 {showScrollToBottom && (
