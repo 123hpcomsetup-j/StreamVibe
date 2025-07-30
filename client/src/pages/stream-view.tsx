@@ -251,56 +251,48 @@ export default function StreamView() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Header */}
+      {/* Simplified Navigation Bar - Only Website Name and Signup */}
       <div className="border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              onClick={() => setLocation(isAuthenticated ? "/user-dashboard" : "/")}
-              className="text-slate-300 hover:text-white"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Home
-            </Button>
-            
-            <div className="text-center flex-1 mx-4">
-              <h1 className="text-xl sm:text-2xl font-bold text-white">{typedStream.title}</h1>
-              <p className="text-slate-400 text-sm">{typedStream.category}</p>
+            {/* Website Name */}
+            <div className="flex items-center">
+              <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                StreamVibe
+              </h1>
             </div>
             
-            {!isAuthenticated && !isGuestExpired && (
-              <div className="flex items-center space-x-2">
-                <Badge variant="outline" className="text-yellow-500 border-yellow-500">
-                  <Clock className="mr-1 h-3 w-3" />
-                  {formatTime(timeLeft)} left
-                </Badge>
-                <Badge variant="outline" className="text-blue-500 border-blue-500">
-                  <Coins className="mr-1 h-3 w-3" />
-                  {tokensLeft} tokens
-                </Badge>
-                <Button 
-                  onClick={() => setShowSignupDialog(true)}
-                  className="bg-primary hover:bg-primary/80"
-                >
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Sign Up for Unlimited
-                </Button>
-              </div>
-            )}
-            
-            {isAuthenticated && (
-              <div className="flex items-center space-x-4">
-                <span className="text-slate-300">Welcome, {String(displayName) || 'User'}!</span>
-                <Badge className="bg-green-500 text-white">
-                  <Users className="mr-1 h-3 w-3" />
-                  Full Access
-                </Badge>
-              </div>
+            {/* Signup Button - Only show for non-authenticated users */}
+            {!isAuthenticated && (
+              <Button 
+                onClick={() => setShowSignupDialog(true)}
+                className="bg-primary hover:bg-primary/80"
+              >
+                <UserPlus className="mr-2 h-4 w-4" />
+                Sign Up
+              </Button>
             )}
           </div>
         </div>
       </div>
+
+      {/* Guest Status Bar - Show time and tokens for guests */}
+      {!isAuthenticated && !isGuestExpired && (
+        <div className="bg-slate-800/50 border-b border-slate-700">
+          <div className="max-w-7xl mx-auto px-4 py-2">
+            <div className="flex items-center justify-center space-x-4">
+              <Badge variant="outline" className="text-yellow-500 border-yellow-500/50">
+                <Clock className="mr-1 h-3 w-3" />
+                {formatTime(timeLeft)} remaining
+              </Badge>
+              <Badge variant="outline" className="text-blue-500 border-blue-500/50">
+                <Coins className="mr-1 h-3 w-3" />
+                {tokensLeft} chat tokens
+              </Badge>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="mx-auto px-2 sm:px-4 lg:px-6 py-4">

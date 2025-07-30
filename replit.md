@@ -10,6 +10,9 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (July 30, 2025)
 
+**SIMPLIFIED STREAM VIEWER NAVIGATION - Clean Interface for Viewers (July 30, 2025):**
+Updated stream viewing navigation bar to show only website name "StreamVibe" and signup button for non-authenticated users. Removed cluttered back button and stream title from navigation, moving guest time/token counters to a dedicated status bar below the main navigation. This creates a cleaner, more focused viewing experience while maintaining essential functionality for guest users.
+
 **COMPREHENSIVE PROFESSIONAL TESTING COMPLETED - All Systems Verified (July 30, 2025):**
 Conducted exhaustive professional testing of entire StreamVibe platform including navigation, guest user system, messaging, tipping, and creator overlay functionality. Verified: 2 live streams active, 4 online users, guest sessions with 5-minute/100-token limits working, authenticated user messaging operational, tip system functional with proper restrictions, and creator overlay displaying all messages/tips in real-time. Database operations, Agora streaming, WebSocket connections, and API endpoints all confirmed working professionally. Platform ready for production deployment.
 
