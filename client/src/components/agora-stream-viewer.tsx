@@ -1,18 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Users, Volume2, VolumeX, Send, MessageCircle, Phone, Video as VideoIcon, ArrowLeft, Coins } from "lucide-react";
-import { io, Socket } from 'socket.io-client';
+import { Users, Volume2, VolumeX } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import AgoraRTC, {
   IAgoraRTCClient,
   IRemoteVideoTrack,
@@ -20,7 +12,7 @@ import AgoraRTC, {
   UID
 } from "agora-rtc-sdk-ng";
 
-import StreamMessageOverlay from "./stream-message-overlay";
+
 
 interface AgoraStreamViewerProps {
   streamId: string;
@@ -29,10 +21,6 @@ interface AgoraStreamViewerProps {
   creatorName: string;
   title: string;
   stream?: any;
-  isGuest?: boolean;
-  guestSessionId?: string | null;
-  guestTokens?: number;
-  onGuestTokenUpdate?: (tokens: number) => void;
 }
 
 export default function AgoraStreamViewer({
@@ -41,11 +29,7 @@ export default function AgoraStreamViewer({
   username,
   creatorName,
   title,
-  stream,
-  isGuest = false,
-  guestSessionId,
-  guestTokens = 0,
-  onGuestTokenUpdate
+  stream
 }: AgoraStreamViewerProps) {
   const { toast } = useToast();
   const [isConnected, setIsConnected] = useState(false);
@@ -53,10 +37,7 @@ export default function AgoraStreamViewer({
   const [viewerCount, setViewerCount] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [hasVideo, setHasVideo] = useState(false);
-  const [showChat, setShowChat] = useState(true);
 
-  const [chatMessages, setChatMessages] = useState<any[]>([]);
-  const [socket, setSocket] = useState<Socket | null>(null);
   
   const { user, isAuthenticated } = useAuth();
   const typedUser = user as any;
@@ -65,7 +46,6 @@ export default function AgoraStreamViewer({
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const remoteVideoRef = useRef<IRemoteVideoTrack | null>(null);
   const remoteAudioRef = useRef<IRemoteAudioTrack | null>(null);
-  const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Device compatibility check
   useEffect(() => {
@@ -261,41 +241,7 @@ export default function AgoraStreamViewer({
     };
   }, [streamId]);
 
-  // Initialize WebSocket for live chat
-  useEffect(() => {
-    if (!streamId) return;
 
-    const newSocket = io({
-      transports: ['websocket', 'polling']
-    });
-
-    newSocket.on('connect', () => {
-      console.log('Chat connected to WebSocket');
-      newSocket.emit('join-stream', { streamId, userId: typedUser?.id || 'guest' });
-    });
-
-    newSocket.on('chat-message', (messageData: any) => {
-      setChatMessages(prev => [...prev, messageData]);
-    });
-
-    newSocket.on('stream-ended', () => {
-      toast({
-        title: "Stream Ended",
-        description: "The creator has ended the stream.",
-      });
-    });
-
-    setSocket(newSocket);
-
-    return () => {
-      newSocket.close();
-    };
-  }, [streamId, typedUser?.id]);
-
-  // Auto-scroll chat
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatMessages]);
 
   // Video streaming focus - chat handled by StreamChat component
 
@@ -517,7 +463,7 @@ export default function AgoraStreamViewer({
   return (
     <div className="w-full h-full flex bg-black overflow-hidden" style={{ height: '100%', minHeight: '100%' }}>
       {/* Main Video Container - Desktop: left side, Mobile: full width */}
-      <div className={`relative flex-1 ${showChat ? 'lg:w-2/3' : 'w-full'} min-h-0`}>
+      <div className="relative flex-1 w-full min-h-0">
         {/* Video Stream Container */}
         <div 
           ref={videoContainerRef}
@@ -589,18 +535,7 @@ export default function AgoraStreamViewer({
           </div>
         )}
 
-        {/* Message Overlay - Only show when connected */}
-        {isConnected && (
-          <StreamMessageOverlay
-            streamId={streamId}
-            creatorName={creatorName}
-            stream={stream}
-            isGuest={isGuest}
-            guestSessionId={guestSessionId}
-            guestTokens={guestTokens}
-            onGuestTokenUpdate={onGuestTokenUpdate}
-          />
-        )}
+
       </div>
 
 

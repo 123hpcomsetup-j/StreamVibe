@@ -9,14 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { 
-  Clock, 
   Coins, 
   Users, 
   ArrowLeft,
   AlertTriangle,
   UserPlus,
-  LogIn,
-  Video
+  LogIn
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -34,12 +32,7 @@ export default function StreamView() {
   // Simple stream state - Agora handles connections
   const [streamEnded, setStreamEnded] = useState(false);
   
-  // Guest state with enhanced functionality
-  const [guestSessionId, setGuestSessionId] = useState<string | null>(null);
-  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes for guests
-  const [tokensLeft, setTokensLeft] = useState(100);
-  const [showTimeWarning, setShowTimeWarning] = useState(false);
-  const [isGuestExpired, setIsGuestExpired] = useState(false);
+
   
   // Dialog states
   const [showSignupDialog, setShowSignupDialog] = useState(false);
@@ -69,33 +62,7 @@ export default function StreamView() {
   
   const typedStream = stream as any;
   
-  // Guest session creation
-  const createGuestSessionMutation = useMutation({
-    mutationFn: () => {
-      const sessionId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-      return apiRequest("POST", "/api/guest-session", {
-        streamId: streamId,
-        sessionId: sessionId
-      });
-    },
-    onSuccess: (data: any) => {
-      setGuestSessionId(data.sessionId);
-      setTimeLeft(data.viewTimeRemaining || 300); // 5 minutes
-      setTokensLeft(data.tokensRemaining || 100);
-      console.log("Guest session created:", data);
-    },
-    onError: (error: any) => {
-      console.error("Guest session creation failed:", error);
-      if (error.message?.includes("Maximum guest sessions")) {
-        toast({
-          title: "Too Many Guest Sessions",
-          description: "Please sign up for unlimited access",
-          variant: "destructive",
-        });
-        setShowSignupDialog(true);
-      }
-    }
-  });
+
 
   // User registration mutation
   const signupMutation = useMutation({
@@ -139,48 +106,9 @@ export default function StreamView() {
     }
   });
 
-  // Create guest session on load if not authenticated
-  useEffect(() => {
-    if (!isAuthenticated && !guestSessionId && streamId && !isGuestExpired) {
-      createGuestSessionMutation.mutate();
-    }
-  }, [streamId, isAuthenticated, guestSessionId, isGuestExpired]);
 
-  // Guest timer countdown
-  useEffect(() => {
-    if (!isAuthenticated && guestSessionId && timeLeft > 0 && !isGuestExpired) {
-      const timer = setInterval(() => {
-        setTimeLeft(prev => {
-          const newTime = prev - 1;
-          
-          // Show warning at 1 minute
-          if (newTime === 60 && !showTimeWarning) {
-            setShowTimeWarning(true);
-            toast({
-              title: "1 Minute Remaining",
-              description: "Sign up now for unlimited viewing!",
-              variant: "destructive",
-            });
-          }
-          
-          // Expire at 0
-          if (newTime <= 0) {
-            setIsGuestExpired(true);
-            setShowSignupDialog(true);
-            toast({
-              title: "Guest Time Expired",
-              description: "Create an account to continue watching",
-              variant: "destructive",
-            });
-          }
-          
-          return newTime;
-        });
-      }, 1000);
 
-      return () => clearInterval(timer);
-    }
-  }, [isAuthenticated, guestSessionId, timeLeft, showTimeWarning, isGuestExpired]);
+
 
   // Form handlers
   const handleSignup = async (e: React.FormEvent) => {
@@ -201,24 +129,19 @@ export default function StreamView() {
     loginMutation.mutate(loginData);
   };
 
-  // Format time display
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+
 
   // Display name logic
   const displayName = isAuthenticated 
     ? typedUser?.username || typedUser?.firstName || 'User'
-    : `Guest_${guestSessionId?.slice(-6) || 'User'}`;
+    : 'Guest';
 
   // Tip functionality
   const handleTip = async (amount: number) => {
-    if (!isAuthenticated && tokensLeft < amount) {
+    if (!isAuthenticated) {
       toast({
-        title: "Not Enough Tokens",
-        description: "Sign up for more tokens or wait for your tokens to refresh!",
+        title: "Account Required",
+        description: "Sign up to tip creators!",
         variant: "destructive",
       });
       setShowSignupDialog(true);
@@ -230,9 +153,7 @@ export default function StreamView() {
         streamId: streamId,
         amount: amount,
         message: `Tipped ${amount} tokens!`,
-        recipientId: typedStream?.creatorId,
-        isGuest: !isAuthenticated,
-        guestSessionId: guestSessionId
+        recipientId: typedStream?.creatorId
       });
 
       if (response.ok) {
@@ -240,11 +161,6 @@ export default function StreamView() {
           title: "Tip Sent!",
           description: `You tipped ${amount} tokens to ${typedStream?.creatorName}`,
         });
-        
-        // Update guest tokens if guest user
-        if (!isAuthenticated) {
-          setTokensLeft(prev => prev - amount);
-        }
       }
     } catch (error: any) {
       toast({
@@ -255,23 +171,7 @@ export default function StreamView() {
     }
   };
 
-  // Private call functionality
-  const handlePrivateCall = () => {
-    if (!isAuthenticated) {
-      toast({
-        title: "Account Required",
-        description: "Sign up to request private calls with creators",
-        variant: "destructive",
-      });
-      setShowSignupDialog(true);
-      return;
-    }
 
-    toast({
-      title: "Private Call Request",
-      description: "Private call feature coming soon!",
-    });
-  };
 
   if (isLoading) {
     return (
@@ -352,23 +252,7 @@ export default function StreamView() {
         </div>
       )}
 
-      {/* Guest Status Bar - Show time and tokens for guests */}
-      {!isAuthenticated && !isGuestExpired && (
-        <div className="bg-slate-800/50 border-b border-slate-700">
-          <div className="max-w-7xl mx-auto px-4 py-2">
-            <div className="flex items-center justify-center space-x-4">
-              <Badge variant="outline" className="text-yellow-500 border-yellow-500/50">
-                <Clock className="mr-1 h-3 w-3" />
-                {formatTime(timeLeft)} remaining
-              </Badge>
-              <Badge variant="outline" className="text-blue-500 border-blue-500/50">
-                <Coins className="mr-1 h-3 w-3" />
-                {tokensLeft} chat tokens
-              </Badge>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Main Content - Full Width Video - 80% of viewport height */}
       <div className="relative" style={{ height: '80vh', minHeight: '80vh', maxHeight: '80vh' }}>
@@ -377,15 +261,11 @@ export default function StreamView() {
             {!streamEnded && typedStream ? (
               <AgoraStreamViewer
                 streamId={typedStream.id}
-                userId={typedUser?.id || guestSessionId || ''}
+                userId={typedUser?.id || 'guest'}
                 username={displayName as string}
                 creatorName={typedStream.creatorName || 'Creator'}
                 title={typedStream.title}
                 stream={typedStream}
-                isGuest={!isAuthenticated}
-                guestSessionId={guestSessionId}
-                guestTokens={tokensLeft}
-                onGuestTokenUpdate={(tokens) => setTokensLeft(tokens)}
               />
             ) : (
               <Card className="bg-slate-800 border-slate-700 h-full flex items-center justify-center">
@@ -438,17 +318,7 @@ export default function StreamView() {
                 50 tokens
               </Button>
             </div>
-            
-            {/* Private Call Button */}
-            <div className="hidden sm:block w-px h-6 bg-slate-600"></div>
-            <Button 
-              size="sm"
-              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-1 text-xs sm:text-sm"
-              onClick={handlePrivateCall}
-            >
-              <Video className="mr-1 h-3 w-3" />
-              Private Call
-            </Button>
+
           </div>
         </div>
       </div>
