@@ -553,11 +553,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Token purchase endpoints
+  // Token purchase endpoints (both singular and plural for compatibility)
   app.post('/api/token-purchase', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
       console.log(`💰 User ${userId} creating token purchase request:`, req.body);
+      
+      const validatedData = insertTokenPurchaseSchema.parse({
+        ...req.body,
+        userId,
+        status: 'pending', // Ensure status is set to pending
+      });
+      
+      console.log(`✅ Validated token purchase data:`, validatedData);
+      
+      const purchase = await storage.createTokenPurchase(validatedData);
+      console.log(`🎯 Created token purchase:`, purchase);
+      
+      res.status(201).json(purchase);
+    } catch (error) {
+      console.error("❌ Error creating token purchase:", error);
+      res.status(500).json({ message: "Failed to create token purchase request" });
+    }
+  });
+
+  // Plural endpoint for compatibility with navbar token purchase
+  app.post('/api/token-purchases', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      console.log(`💰 User ${userId} creating token purchase request (plural endpoint):`, req.body);
+      
+      const validatedData = insertTokenPurchaseSchema.parse({
+        ...req.body,
+        userId,
+        status: 'pending', // Ensure status is set to pending
+      });
+      
+      console.log(`✅ Validated token purchase data:`, validatedData);
+      
+      const purchase = await storage.createTokenPurchase(validatedData);
+      console.log(`🎯 Created token purchase:`, purchase);
+      
+      res.status(201).json(purchase);
+    } catch (error) {
+      console.error("❌ Error creating token purchase:", error);
+      res.status(500).json({ message: "Failed to create token purchase request" });
+    }
+  });
+
+  // Plural endpoint for compatibility with navbar token purchase
+  app.post('/api/token-purchases', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      console.log(`💰 User ${userId} creating token purchase request (plural endpoint):`, req.body);
       
       const validatedData = insertTokenPurchaseSchema.parse({
         ...req.body,
