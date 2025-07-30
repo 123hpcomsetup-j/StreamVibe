@@ -82,7 +82,7 @@ export default function StreamView() {
   const { data: messages } = useQuery({
     queryKey: ["/api/streams", streamId, "chat"],
     enabled: !!streamId,
-    refetchInterval: 3000, // Refresh every 3 seconds
+    refetchInterval: 2000, // Refresh every 2 seconds for better real-time experience
   });
   
   // Update chat messages when data changes
@@ -92,6 +92,78 @@ export default function StreamView() {
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+
+  // WebSocket connection for real-time chat
+  useEffect(() => {
+    if (!streamId) return;
+
+    // Import socket.io-client
+    import('socket.io-client').then(({ io }) => {
+      const newSocket = io(window.location.origin, {
+        path: '/socket.io',
+        transports: ['websocket', 'polling'],
+        query: {
+          userId: typedUser?.id || 'guest',
+          role: typedUser?.role || 'guest'
+        }
+      });
+
+      newSocket.on('connect', () => {
+        console.log('🔗 Viewer WebSocket connected for chat');
+        // Join stream room for real-time updates
+        newSocket.emit('join-stream', { streamId, userId: typedUser?.id || 'guest' });
+      });
+
+      newSocket.on('disconnect', () => {
+        console.log('❌ Viewer WebSocket disconnected from chat server');
+      });
+
+      // Listen for real-time chat messages
+      newSocket.on('chat-message', (data) => {
+        console.log('Viewer received chat message:', data);
+        setChatMessages(prev => {
+          // Avoid duplicates by checking message timestamp
+          const exists = prev.some(msg => 
+            msg.senderName === data.senderName && 
+            msg.message === data.message &&
+            Math.abs(new Date(msg.createdAt).getTime() - new Date(data.createdAt || data.timestamp).getTime()) < 1000
+          );
+          if (!exists) {
+            return [...prev, {
+              ...data,
+              createdAt: data.createdAt || data.timestamp || new Date().toISOString()
+            }];
+          }
+          return prev;
+        });
+        // Auto-scroll to new message
+        setTimeout(() => {
+          chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      });
+
+      // Listen for tip notifications
+      newSocket.on('tip-message', (data) => {
+        console.log('Viewer received tip notification:', data);
+        const tipNotification = {
+          id: `tip_${Date.now()}`,
+          senderName: 'System',
+          senderRole: 'system',
+          message: `💰 ${data.username} tipped ${data.amount} tokens!`,
+          tipAmount: data.amount,
+          createdAt: new Date().toISOString()
+        };
+        setChatMessages(prev => [...prev, tipNotification]);
+        setTimeout(() => {
+          chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      });
+
+      return () => {
+        newSocket.disconnect();
+      };
+    });
+  }, [streamId, typedUser?.id, typedUser?.role]);
   
   const typedStream = stream as any;
   

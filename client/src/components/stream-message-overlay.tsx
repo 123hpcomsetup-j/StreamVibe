@@ -77,26 +77,50 @@ export default function StreamMessageOverlay({
       }, 10000);
     });
 
-    // Listen for tip messages
+    // Listen for tip messages with enhanced golden display
     socket.on('tip-message', (data: any) => {
+      console.log('🎯 Creator overlay received tip notification:', data);
       const newTipMessage: OverlayMessage = {
         id: Date.now().toString() + Math.random(),
         username: data.username || 'Anonymous',
-        message: data.message || `Tipped ${data.amount} tokens!`,
+        message: `💰 Tipped ${data.amount} tokens!`,
         tipAmount: data.amount,
         timestamp: new Date(),
         isCreator: false,
         isTip: true,
         userRole: data.userRole || 'viewer',
-        userType: data.userType || 'user'
+        userType: 'tip'
       };
       
-      setOverlayMessages(prev => [...prev.slice(-4), newTipMessage]); // Keep last 5 messages
+      setOverlayMessages(prev => [...prev.slice(-3), newTipMessage]); // Keep last 4 messages + new tip
       
-      // Auto-remove tip message after 15 seconds (longer for tips)
+      // Auto-remove tip message after 15 seconds for visibility
       setTimeout(() => {
         setOverlayMessages(prev => prev.filter(msg => msg.id !== newTipMessage.id));
       }, 15000);
+    });
+
+    // Listen for activity notifications
+    socket.on('activity-message', (data: any) => {
+      console.log('🎯 Creator overlay received activity notification:', data);
+      const activityMessage: OverlayMessage = {
+        id: Date.now().toString() + Math.random(),
+        username: data.username || 'Anonymous',
+        message: `🎯 Used activity: ${data.activityName || 'Special Action'}`,
+        tipAmount: data.amount,
+        timestamp: new Date(),
+        isCreator: false,
+        isTip: true,
+        userRole: 'viewer',
+        userType: 'activity'
+      };
+      
+      setOverlayMessages(prev => [...prev.slice(-3), activityMessage]);
+      
+      // Auto-remove activity notification after 12 seconds
+      setTimeout(() => {
+        setOverlayMessages(prev => prev.filter(msg => msg.id !== activityMessage.id));
+      }, 12000);
     });
 
     // Join the stream room
@@ -105,6 +129,7 @@ export default function StreamMessageOverlay({
     return () => {
       socket.off('chat-message');
       socket.off('tip-message');
+      socket.off('activity-message');
     };
   }, [socket, streamId]);
 
@@ -118,28 +143,31 @@ export default function StreamMessageOverlay({
               key={msg.id}
               className={`
                 animate-in slide-in-from-top-2 duration-500
-                ${msg.isTip 
-                  ? 'bg-gradient-to-r from-yellow-500/30 to-orange-500/30' 
+                ${msg.isTip || msg.userType === 'tip' || msg.userType === 'activity'
+                  ? 'bg-gradient-to-r from-yellow-500/40 to-orange-500/40 border-yellow-500/50 shadow-yellow-500/20 shadow-lg' 
                   : msg.isCreator 
-                    ? 'bg-purple-600/30' 
+                    ? 'bg-purple-600/30 border-purple-500/50' 
                     : isCreator
-                      ? 'bg-black/20'
-                      : 'bg-black/60'
+                      ? 'bg-black/20 border-white/10'
+                      : 'bg-black/60 border-white/10'
                 }
                 backdrop-blur-sm rounded-lg p-2 shadow-lg pointer-events-auto
-                max-w-sm ml-auto border border-white/10
+                max-w-sm ml-auto border
               `}
             >
               <div className="flex items-center space-x-1">
-                {msg.isTip && <Gift className="h-3 w-3 text-white animate-pulse" />}
+                {(msg.isTip || msg.userType === 'tip') && <Coins className="h-3 w-3 text-yellow-300 animate-pulse" />}
+                {msg.userType === 'activity' && <Gift className="h-3 w-3 text-orange-300 animate-pulse" />}
                 {msg.isCreator && <Badge className="bg-purple-700/60 text-white text-xs px-1 py-0">Creator</Badge>}
                 <span 
                   className={`text-xs ${
-                    msg.isCreator || msg.userRole === 'creator' 
-                      ? 'font-bold text-yellow-300 drop-shadow-lg' 
-                      : msg.userRole === 'guest'
-                        ? 'font-normal text-gray-300'
-                        : 'font-medium text-blue-300'
+                    msg.isTip || msg.userType === 'tip' || msg.userType === 'activity'
+                      ? 'font-bold text-yellow-200 drop-shadow-lg' 
+                      : msg.isCreator || msg.userRole === 'creator' 
+                        ? 'font-bold text-yellow-300 drop-shadow-lg' 
+                        : msg.userRole === 'guest'
+                          ? 'font-normal text-gray-300'
+                          : 'font-medium text-blue-300'
                   }`}
                 >
                   {msg.username}
