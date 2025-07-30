@@ -78,16 +78,16 @@ export default function StreamView() {
     enabled: isAuthenticated,
   });
   
-  // Fetch chat messages
+  // Fetch chat messages (initial load only, real-time updates via WebSocket)
   const { data: messages } = useQuery({
     queryKey: ["/api/streams", streamId, "chat"],
     enabled: !!streamId,
-    refetchInterval: 2000, // Refresh every 2 seconds for better real-time experience
+    refetchInterval: false, // Disable polling, use WebSocket for real-time updates
   });
   
   // Update chat messages when data changes - keep only last 10 messages
   useEffect(() => {
-    if (messages) {
+    if (messages && Array.isArray(messages)) {
       const lastTenMessages = messages.slice(-10);
       setChatMessages(lastTenMessages);
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -121,22 +121,30 @@ export default function StreamView() {
 
       // Listen for real-time chat messages
       newSocket.on('chat-message', (data) => {
-        console.log('Viewer received chat message:', data);
+        console.log('🔥 REAL-TIME: Viewer received chat message:', data);
         setChatMessages(prev => {
-          // Avoid duplicates by checking message timestamp
+          console.log('🔥 REAL-TIME: Current chat messages:', prev.length);
+          // Avoid duplicates by checking message ID first, then timestamp
           const exists = prev.some(msg => 
-            msg.senderName === data.senderName && 
-            msg.message === data.message &&
-            Math.abs(new Date(msg.createdAt).getTime() - new Date(data.createdAt || data.timestamp).getTime()) < 1000
+            msg.id === data.id || (
+              msg.senderName === data.senderName && 
+              msg.message === data.message &&
+              Math.abs(new Date(msg.createdAt).getTime() - new Date(data.createdAt || data.timestamp).getTime()) < 2000
+            )
           );
           if (!exists) {
-            const newMessages = [...prev, {
+            const newMessage = {
               ...data,
               createdAt: data.createdAt || data.timestamp || new Date().toISOString()
-            }];
+            };
+            const newMessages = [...prev, newMessage];
+            console.log('🔥 REAL-TIME: Adding new message, total will be:', newMessages.length);
             // Keep only last 10 messages
-            return newMessages.slice(-10);
+            const limitedMessages = newMessages.slice(-10);
+            console.log('🔥 REAL-TIME: Final message count after limit:', limitedMessages.length);
+            return limitedMessages;
           }
+          console.log('🔥 REAL-TIME: Message already exists, skipping');
           return prev;
         });
         // Auto-scroll to new message
