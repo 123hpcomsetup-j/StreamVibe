@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Label } from "@/components/ui/label";
 import type { User } from "@shared/schema";
 import AgoraStreamViewer from "@/components/agora-stream-viewer";
+import Navbar from "@/components/navbar";
 
 export default function StreamView() {
   const [, params] = useRoute("/stream/:streamId");
@@ -251,20 +252,22 @@ export default function StreamView() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Simplified Navigation Bar - Website Name and Auth Buttons */}
-      <div className="border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            {/* Website Name - Clickable to go home */}
-            <button
-              onClick={() => setLocation("/")}
-              className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent hover:from-purple-300 hover:to-pink-300 transition-colors"
-            >
-              StreamVibe
-            </button>
-            
-            {/* Auth Buttons - Only show for non-authenticated users */}
-            {!isAuthenticated && (
+      {/* Navigation - Use proper Navbar component if authenticated, otherwise show simple navigation */}
+      {isAuthenticated && typedUser ? (
+        <Navbar user={typedUser} />
+      ) : (
+        <div className="border-b border-slate-800">
+          <div className="max-w-7xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              {/* Website Name - Clickable to go home */}
+              <button
+                onClick={() => setLocation("/")}
+                className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent hover:from-purple-300 hover:to-pink-300 transition-colors"
+              >
+                StreamVibe
+              </button>
+              
+              {/* Auth Buttons - Only show for non-authenticated users */}
               <div className="flex items-center space-x-3">
                 <Button 
                   variant="ghost"
@@ -282,10 +285,10 @@ export default function StreamView() {
                   Sign Up
                 </Button>
               </div>
-            )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Guest Status Bar - Show time and tokens for guests */}
       {!isAuthenticated && !isGuestExpired && (
