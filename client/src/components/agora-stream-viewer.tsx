@@ -223,11 +223,7 @@ export default function AgoraStreamViewer({
         }
         
         if (videoContainerRef.current) {
-          try {
-            videoContainerRef.current.innerHTML = '';
-          } catch (error) {
-            console.log("Note: Video container clear skipped");
-          }
+          videoContainerRef.current.innerHTML = '';
         }
       }
       
