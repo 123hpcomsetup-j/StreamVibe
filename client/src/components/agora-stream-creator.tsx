@@ -763,25 +763,7 @@ export default function AgoraStreamCreator({
           </Card>
         )}
 
-        {/* Stream Status Info - Show only when streaming */}
-        {isStreaming && (
-          <Card className="bg-red-900/20 border-red-500/50">
-            <CardContent className="p-6">
-              <div className="text-center">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-2"></div>
-                  <span className="text-red-400 font-semibold">LIVE STREAMING</span>
-                </div>
-                <p className="text-slate-400 text-sm">
-                  Viewers: {viewerCount} • Video: {isVideoOn ? 'ON' : 'OFF'} • Audio: {isAudioOn ? 'ON' : 'OFF'}
-                </p>
-                <p className="text-slate-500 text-xs mt-2">
-                  Use overlay controls to manage your stream
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        
       </div>
 
       {/* Live Chat Panel - Shows live chat and token interactions */}
