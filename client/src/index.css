@@ -53,6 +53,32 @@
 }
 
 /* Agora Video Full Screen Styling - 80% Viewport Height */
+
+/* Creator Video Container Styling for Self-View */
+.creator-video-container video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  z-index: 1 !important;
+  background: black !important;
+  border-radius: 0 !important;
+}
+
+/* Ensure video elements are properly visible */
+.creator-video-container {
+  position: relative !important;
+}
+
+.creator-video-container > * {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
 .agora-video-container {
   height: 80vh !important;
   min-height: 80vh !important;

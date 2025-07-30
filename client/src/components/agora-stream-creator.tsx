@@ -379,31 +379,52 @@ export default function AgoraStreamCreator({
       });
 
       // Play video locally for creator preview - ensure creator can see themselves
+      console.log('🎥 Attempting to display creator video locally...');
       if (videoContainerRef.current && videoTrack) {
         try {
-          // Clear any existing video elements first
-          const videoElements = videoContainerRef.current.querySelectorAll('video');
-          videoElements.forEach(el => el.remove());
+          console.log('📺 Video container found, playing video track...');
           
-          // Play the video track in the container
+          // Don't clear existing elements, just play the track
           await videoTrack.play(videoContainerRef.current);
-          console.log('✅ Creator preview video displayed locally');
+          console.log('✅ Creator video track played in container');
           
-          // Apply styles to ensure video fills container and is visible
-          setTimeout(() => {
-            const videoEl = videoContainerRef.current?.querySelector('video');
-            if (videoEl) {
+          // Apply styles immediately and again after a delay
+          const applyVideoStyles = () => {
+            const videoElements = videoContainerRef.current?.querySelectorAll('video');
+            console.log(`🎬 Found ${videoElements?.length || 0} video elements in container`);
+            
+            videoElements?.forEach((videoEl, index) => {
+              console.log(`🎨 Styling video element ${index + 1}`);
               videoEl.style.width = '100%';
               videoEl.style.height = '100%';
               videoEl.style.objectFit = 'cover';
               videoEl.style.zIndex = '1';
-              console.log('✅ Creator video styling applied');
-            }
-          }, 100);
+              videoEl.style.position = 'absolute';
+              videoEl.style.top = '0';
+              videoEl.style.left = '0';
+              videoEl.style.background = 'black';
+              console.log(`✅ Video element ${index + 1} styled for visibility`);
+            });
+          };
+          
+          // Apply styles immediately
+          applyVideoStyles();
+          
+          // Apply styles again after delays to ensure they stick
+          setTimeout(applyVideoStyles, 100);
+          setTimeout(applyVideoStyles, 500);
+          setTimeout(applyVideoStyles, 1000);
+          
+          console.log('✅ Creator preview video setup complete');
           
         } catch (error) {
           console.error('❌ Error playing creator video locally:', error);
         }
+      } else {
+        console.error('❌ Video container or track missing:', {
+          container: !!videoContainerRef.current,
+          track: !!videoTrack
+        });
       }
 
       setIsStreaming(true);
@@ -640,7 +661,7 @@ export default function AgoraStreamCreator({
         <div className="bg-slate-800 border-slate-700 h-[60vh] sm:h-[70vh] md:h-[75vh] lg:h-[85vh] flex flex-col">
           <div 
             ref={videoContainerRef}
-            className="relative flex-1 bg-black overflow-hidden w-full"
+            className="relative flex-1 bg-black overflow-hidden w-full creator-video-container"
             style={{
               minHeight: '400px',
               maxHeight: '85vh'
