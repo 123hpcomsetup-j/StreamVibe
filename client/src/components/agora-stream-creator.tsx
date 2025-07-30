@@ -388,32 +388,87 @@ export default function AgoraStreamCreator({
           await videoTrack.play(videoContainerRef.current);
           console.log('✅ Creator video track played in container');
           
-          // Apply styles immediately and again after a delay
+          // Apply styles and debugging for video visibility
           const applyVideoStyles = () => {
+            const allElements = videoContainerRef.current?.querySelectorAll('*');
             const videoElements = videoContainerRef.current?.querySelectorAll('video');
+            console.log(`🔍 Container has ${allElements?.length || 0} total elements`);
             console.log(`🎬 Found ${videoElements?.length || 0} video elements in container`);
             
+            // Log container properties
+            if (videoContainerRef.current) {
+              const container = videoContainerRef.current;
+              console.log('📦 Container properties:', {
+                width: container.offsetWidth,
+                height: container.offsetHeight,
+                display: getComputedStyle(container).display,
+                position: getComputedStyle(container).position,
+                zIndex: getComputedStyle(container).zIndex,
+                overflow: getComputedStyle(container).overflow
+              });
+            }
+            
+            // Check all elements in container
+            allElements?.forEach((el, index) => {
+              console.log(`🔍 Element ${index + 1}:`, {
+                tagName: el.tagName,
+                className: el.className,
+                width: el.offsetWidth || 'no width',
+                height: el.offsetHeight || 'no height',
+                display: getComputedStyle(el).display,
+                visibility: getComputedStyle(el).visibility,
+                opacity: getComputedStyle(el).opacity
+              });
+            });
+            
             videoElements?.forEach((videoEl, index) => {
-              console.log(`🎨 Styling video element ${index + 1}`);
-              videoEl.style.width = '100%';
-              videoEl.style.height = '100%';
-              videoEl.style.objectFit = 'cover';
-              videoEl.style.zIndex = '1';
-              videoEl.style.position = 'absolute';
-              videoEl.style.top = '0';
-              videoEl.style.left = '0';
-              videoEl.style.background = 'black';
-              console.log(`✅ Video element ${index + 1} styled for visibility`);
+              console.log(`🎨 Styling video element ${index + 1}:`, {
+                currentWidth: videoEl.offsetWidth,
+                currentHeight: videoEl.offsetHeight,
+                videoWidth: videoEl.videoWidth,
+                videoHeight: videoEl.videoHeight,
+                readyState: videoEl.readyState,
+                paused: videoEl.paused
+              });
+              
+              // Force video to be visible with aggressive styling
+              videoEl.style.cssText = `
+                width: 100% !important;
+                height: 100% !important;
+                object-fit: cover !important;
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                z-index: 1 !important;
+                background: black !important;
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                border: none !important;
+                outline: none !important;
+                transform: none !important;
+              `;
+              
+              console.log(`✅ Video element ${index + 1} force styled`);
+              
+              // Try to play the video if it's paused
+              if (videoEl.paused) {
+                console.log(`▶️ Attempting to play video element ${index + 1}`);
+                videoEl.play().then(() => {
+                  console.log(`✅ Video element ${index + 1} playing`);
+                }).catch(error => {
+                  console.log(`❌ Video element ${index + 1} play failed:`, error);
+                });
+              }
             });
           };
           
-          // Apply styles immediately
+          // Apply styles immediately and repeatedly
           applyVideoStyles();
-          
-          // Apply styles again after delays to ensure they stick
           setTimeout(applyVideoStyles, 100);
           setTimeout(applyVideoStyles, 500);
           setTimeout(applyVideoStyles, 1000);
+          setTimeout(applyVideoStyles, 2000);
           
           console.log('✅ Creator preview video setup complete');
           
