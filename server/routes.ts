@@ -597,11 +597,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: 'pending'
         };
       } else if (req.body.tokenAmount && req.body.utrNumber) {
-        // Alternative user dashboard format: { tokenAmount: "100", utrNumber: "123" }
+        // Alternative user dashboard format: { tokenAmount: 100, utrNumber: "123" }
         const amount = parseFloat(req.body.tokenAmount);
         requestData = {
           requestedTokens: Math.floor(amount), // Convert to tokens (1 rupee = 1 token)
-          amountPaid: req.body.tokenAmount,
+          amountPaid: req.body.tokenAmount.toString(), // Ensure string format
           utrNumber: req.body.utrNumber,
           userId,
           status: 'pending'
