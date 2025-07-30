@@ -14,7 +14,6 @@ import path from "path";
 import { 
   insertStreamSchema,
   insertReportSchema,
-  insertChatMessageSchema,
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -55,71 +54,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const onlineUsers = await storage.getOnlineUsers();
       res.json(onlineUsers);
     } catch (error) {
-      console.error("Error fetching online users:", error);
+      console.error('Error fetching online users:', error);
       res.status(500).json({ message: "Failed to fetch online users" });
-    }
-  });
-
-  // Agora token generation endpoint
-  app.post('/api/agora/token', async (req, res) => {
-    try {
-      const { channelName, uid, role } = req.body;
-      
-      console.log('=== AGORA TOKEN REQUEST ===');
-      console.log('Request body:', JSON.stringify(req.body, null, 2));
-      console.log('Channel Name:', channelName);
-      console.log('UID:', uid, 'Type:', typeof uid);
-      console.log('Role:', role);
-      
-      const appId = process.env.VITE_AGORA_APP_ID;
-      const appCertificate = process.env.AGORA_APP_CERTIFICATE;
-      
-      console.log('App ID (first 6 chars):', appId?.substring(0, 6) + '...');
-      console.log('App Certificate configured:', !!appCertificate);
-      
-      if (!appId || !appCertificate) {
-        return res.status(500).json({ message: "Agora credentials not configured" });
-      }
-      
-      // Import Agora token generator using CommonJS require
-      const { RtcTokenBuilder, RtcRole } = require('agora-token');
-      
-      // Set token expiration time (24 hours)
-      const expirationTimeInSeconds = 3600 * 24;
-      const currentTimeStamp = Math.floor(Date.now() / 1000);
-      const privilegeExpiredTs = currentTimeStamp + expirationTimeInSeconds;
-      
-      // Use proper Agora role constants
-      const agoraRole = role === 'host' ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER;
-      
-      console.log('Token generation params:');
-      console.log('- appId:', appId);
-      console.log('- channelName:', channelName);
-      console.log('- uid:', uid);
-      console.log('- agoraRole:', agoraRole, '(PUBLISHER=1, SUBSCRIBER=2)');
-      console.log('- privilegeExpiredTs:', privilegeExpiredTs);
-      
-      // Generate token
-      const token = RtcTokenBuilder.buildTokenWithUid(
-        appId,
-        appCertificate,
-        channelName,
-        uid,
-        agoraRole,
-        privilegeExpiredTs
-      );
-      
-      console.log('Generated token (first 20 chars):', token.substring(0, 20) + '...');
-      console.log('=== END TOKEN REQUEST ===');
-      
-      res.json({ token });
-    } catch (error: any) {
-      console.error("=== AGORA TOKEN ERROR ===");
-      console.error("Error generating Agora token:", error);
-      console.error("Error stack:", error.stack);
-      console.error("Environment check - VITE_AGORA_APP_ID:", !!process.env.VITE_AGORA_APP_ID);
-      console.error("Environment check - AGORA_APP_CERTIFICATE:", !!process.env.AGORA_APP_CERTIFICATE);
-      res.status(500).json({ message: "Failed to generate token", error: error?.message || 'Unknown error' });
     }
   });
 
@@ -136,25 +72,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/streams/live', async (req, res) => {
     try {
-      // Clean up stale streams before fetching (streams older than 2 hours)
-      await storage.cleanupStaleStreams();
-      const liveStreams = await storage.getLiveStreamsWithCreators();
+      const liveStreams = await storage.getLiveStreams();
       res.json(liveStreams);
     } catch (error) {
       console.error("Error fetching live streams:", error);
       res.status(500).json({ message: "Failed to fetch live streams" });
-    }
-  });
-
-  app.get('/api/streams/current', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const streams = await storage.getStreams();
-      const currentStream = streams.find(stream => stream.creatorId === userId && stream.isLive);
-      res.json(currentStream || null);
-    } catch (error) {
-      console.error("Error fetching current stream:", error);
-      res.status(500).json({ message: "Failed to fetch current stream" });
     }
   });
 
@@ -163,8 +85,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
       
-      if (user?.role !== 'creator' || !user.isApproved) {
-        return res.status(403).json({ message: "Only approved creators can create streams" });
+      if (!user || user.role !== 'creator') {
+        return res.status(403).json({ message: "Creator access required" });
+      }
+
+      if (!user.isApproved) {
+        return res.status(403).json({ message: "Creator approval required. Please wait for admin approval." });
       }
 
       const validatedData = insertStreamSchema.parse({
@@ -196,7 +122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const streamId = req.params.id;
       
-      // Get stream with creator information - simplified query to avoid drizzle issues
+      // Get stream with creator information - simplified query
       const stream = await storage.getStreamById(streamId);
       if (!stream) {
         return res.status(404).json({ message: "Stream not found" });
@@ -257,8 +183,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-
-
   app.delete('/api/streams/:id', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -274,9 +198,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Set user offline when stopping stream
       await storage.updateUserOnlineStatus(userId, false);
-      
-      // Notify WebSocket clients about stream status change
-      // This will be handled by the WebSocket server
       
       res.json({ message: "Stream stopped successfully", streamId });
     } catch (error) {
@@ -296,19 +217,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get online users
-  app.get("/api/users/online", async (req, res) => {
-    try {
-      const onlineUsers = await storage.getOnlineUsers();
-      res.json(onlineUsers);
-    } catch (error) {
-      console.error('Error fetching online users:', error);
-      res.status(500).json({ message: "Failed to fetch online users" });
-    }
-  });
-
-
-
   // Report routes
   app.post('/api/reports', requireAuth, async (req: any, res) => {
     try {
@@ -323,149 +231,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating report:", error);
       res.status(400).json({ message: "Failed to create report" });
-    }
-  });
-
-
-
-
-
-  // Chat routes  
-  app.get('/api/streams/:streamId/chat', async (req, res) => {
-    try {
-      const { streamId } = req.params;
-      const messages = await storage.getChatMessages(streamId);
-      res.json(messages);
-    } catch (error) {
-      console.error("Error fetching chat messages:", error);
-      res.status(500).json({ message: "Failed to fetch chat messages" });
-    }
-  });
-
-
-
-  app.post('/api/streams/:streamId/chat', async (req: any, res) => {
-    try {
-      const { streamId } = req.params;
-      const { message, senderName, isPrivate = false } = req.body;
-      const sessionId = req.headers['x-session-id'] as string;
-      
-
-      
-      // Regular authenticated user flow
-      if (!req.user) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
-      
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      // Get stream info for validation
-      const stream = await storage.getStreamById(streamId);
-      if (!stream) {
-        return res.status(404).json({ message: "Stream not found" });
-      }
-      
-      // Get user's real name for authenticated users
-      const realSenderName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username : 'User';
-
-      // Create chat message
-      const chatMessage = await storage.createChatMessage({
-        streamId,
-        userId,
-        message,
-        senderName: realSenderName || 'Anonymous',
-        isPrivate: isPrivate || false,
-      });
-      
-      // Broadcast message to WebSocket for real-time delivery
-      if (isPrivate) {
-        // Private messages only go to creator
-        const creatorSocket = global.creatorSockets?.get(stream.creatorId);
-        if (creatorSocket) {
-          creatorSocket.emit('private-message', {
-            ...chatMessage,
-            messageType: 'private'
-          });
-        }
-        
-        // Also send confirmation back to sender
-        global.io?.to(`user-${userId}`).emit('private-message-sent', {
-          ...chatMessage,
-          messageType: 'private_sent'
-        });
-      } else {
-        // Public messages go to all viewers
-        global.io?.to(`stream-${streamId}`).emit('chat-message', chatMessage);
-      }
-      
-      res.json(chatMessage);
-    } catch (error) {
-      console.error("Error creating chat message:", error);
-      res.status(400).json({ message: "Failed to create chat message" });
-    }
-  });
-
-  app.get('/api/chat/:streamId', async (req, res) => {
-    try {
-      const { streamId } = req.params;
-      
-      // For featured stream, return mock data instead of database lookup
-      if (streamId === 'featured') {
-        const mockMessages = [
-          { id: '1', message: 'Welcome to the featured stream!', userId: 'system', streamId: 'featured', createdAt: new Date() },
-          { id: '2', message: 'Great content!', userId: 'user1', streamId: 'featured', createdAt: new Date() },
-        ];
-        return res.json(mockMessages);
-      }
-      
-      const messages = await storage.getChatMessages(streamId);
-      res.json(messages);
-    } catch (error) {
-      console.error("Error fetching chat messages:", error);
-      res.status(500).json({ message: "Failed to fetch chat messages" });
-    }
-  });
-
-  app.post('/api/chat', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      
-      // For featured stream, just return a mock response instead of database insert
-      if (req.body.streamId === 'featured') {
-        const mockMessage = {
-          id: Date.now().toString(),
-          message: req.body.message,
-          userId: userId,
-          streamId: 'featured',
-          createdAt: new Date()
-        };
-        return res.json(mockMessage);
-      }
-      
-      // Get user's real name for authenticated users
-      const user = await storage.getUser(userId);
-      const senderName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username : 'User';
-
-      const validatedData = insertChatMessageSchema.parse({
-        ...req.body,
-        userId,
-        senderName, // Use real user name
-      });
-
-      const message = await storage.createChatMessage(validatedData);
-      
-      // Broadcast message to WebSocket for real-time delivery
-      global.io?.to(`stream-${validatedData.streamId}`).emit('chat-message', message);
-      
-      res.json(message);
-    } catch (error) {
-      console.error("Error creating chat message:", error);
-      res.status(400).json({ message: "Failed to create chat message" });
     }
   });
 
@@ -520,697 +285,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error fetching reports:", error);
       res.status(500).json({ message: "Failed to fetch reports" });
     }
-
-
-  app.get('/api/admin/pending-token-purchases', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
-      if (user?.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-
-      const purchases = await storage.getPendingTokenPurchases();
-      res.json(purchases);
-    } catch (error) {
-      console.error("Error fetching token purchases:", error);
-      res.status(500).json({ message: "Failed to fetch token purchases" });
-    }
   });
 
-  app.post('/api/admin/approve-token-purchase/:id', requireAuth, async (req: any, res) => {
+  // Agora token generation for streaming
+  app.get('/api/agora/token', async (req, res) => {
     try {
-      const adminUserId = req.user.id;
-      const admin = await storage.getUser(adminUserId);
+      const { channelName, role, uid } = req.query;
       
-      if (admin?.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
+      if (!channelName) {
+        return res.status(400).json({ message: 'Channel name is required' });
       }
 
-      const { id } = req.params;
-      const purchase = await storage.updateTokenPurchaseStatus(id, 'approved');
+      // Import agora-token package for generating RTC tokens
+      const { RtcTokenBuilder, RtcRole } = require('agora-token');
       
-      // Add tokens to user wallet
-      await storage.updateUserWallet(purchase.userId, purchase.tokens);
-      
-      res.json(purchase);
-    } catch (error) {
-      console.error("Error approving token purchase:", error);
-      res.status(400).json({ message: "Failed to approve token purchase" });
-    }
-  });
+      const appId = process.env.VITE_AGORA_APP_ID;
+      const appCertificate = process.env.AGORA_APP_CERTIFICATE;
 
-  // Creator payout request
-  app.post("/api/creator/request-payout", requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
-      if (!user || user.role !== 'creator') {
-        return res.status(403).json({ message: "Creator access required" });
+      if (!appId || !appCertificate) {
+        return res.status(500).json({ message: 'Agora credentials not configured' });
       }
 
-      const { tokenAmount, upiId } = req.body;
+      // Token expiry time (24 hours from now)
+      const expirationTimeInSeconds = Math.floor(Date.now() / 1000) + 86400;
+      
+      // Determine role: 'host' for creators, 'audience' for viewers
+      const agoraRole = role === 'host' ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER;
+      
+      // Generate token
+      const token = RtcTokenBuilder.buildTokenWithUid(
+        appId,
+        appCertificate,
+        channelName as string,
+        parseInt(uid as string) || 0,
+        agoraRole,
+        expirationTimeInSeconds
+      );
 
-      if (!tokenAmount || !upiId || tokenAmount < 1000) {
-        return res.status(400).json({ message: "Invalid payout request. Minimum 1000 tokens required." });
-      }
-
-      // Get creator stats to verify available tokens
-      const stats = await storage.getCreatorStats(user.id);
-      if (stats.totalEarnings < tokenAmount) {
-        return res.status(400).json({ message: "Insufficient token balance" });
-      }
-
-      const payout = await storage.createPayout({
-        creatorId: user.id,
-        tokenAmount,
-        requestedAmount: (tokenAmount * 1).toString(), // 1 token = ₹1
-        upiId: upiId.trim(),
-        status: 'pending'
+      console.log(`Generated Agora token for channel: ${channelName}, role: ${role}, uid: ${uid}`);
+      
+      res.json({
+        token,
+        appId,
+        channelName,
+        uid: parseInt(uid as string) || 0,
+        role: agoraRole,
+        expirationTime: expirationTimeInSeconds
       });
-
-      res.json(payout);
     } catch (error) {
-      console.error('Payout request error:', error);
-      res.status(500).json({ message: "Failed to request payout" });
+      console.error('Error generating Agora token:', error);
+      res.status(500).json({ message: 'Failed to generate token' });
     }
   });
 
-  // Admin release payout
-  app.post("/api/admin/release-payout/:id", requireAuth, async (req: any, res) => {
-    try {
-      const adminUserId = req.user.id;
-      const admin = await storage.getUser(adminUserId);
-      
-      if (admin?.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-
-      const { id } = req.params;
-      const { utrNumber } = req.body;
-
-      if (!utrNumber) {
-        return res.status(400).json({ message: "UTR number is required" });
-      }
-
-      const payout = await storage.releasePayout(id, utrNumber);
-      res.json(payout);
-    } catch (error) {
-      console.error("Error releasing payout:", error);
-      res.status(400).json({ message: "Failed to release payout" });
-    }
-  });
-
-  // Guest session routes with IP-based limiting
-  app.post("/api/guest-session", async (req: any, res) => {
-    try {
-      const { streamId, sessionId } = req.body;
-      
-      if (!streamId || !sessionId) {
-        return res.status(400).json({ message: "Missing required fields" });
-      }
-
-      // Get client IP address
-      const clientIP = req.ip || req.connection?.remoteAddress || req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
-      console.log(`Guest session request from IP: ${clientIP}`);
-
-      // Check existing guest sessions for this IP (limit to 2 per IP)
-      const existingSessions = await storage.getGuestSessionsByIP(clientIP);
-      
-      if (existingSessions.length >= 2) {
-        return res.status(429).json({ 
-          message: "Maximum guest sessions reached for this IP address. Please wait or create an account for unlimited access." 
-        });
-      }
-
-      // Check if stream exists (allow both live and ended streams for guest sessions)
-      const stream = await storage.getStreamById(streamId);
-      if (!stream) {
-        return res.status(404).json({ message: "Stream not found" });
-      }
-
-      // Generate random guest name
-      const randomId = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const guestName = `Guest_${randomId}`;
-
-      const guestSession = await storage.createGuestSession({
-        streamId,
-        sessionId,
-        tokensRemaining: 100,
-        viewTimeRemaining: 300, // 5 minutes
-        guestName, // Store the generated name
-        ipAddress: clientIP, // Track IP for limiting
-      });
-
-      res.json(guestSession);
-    } catch (error) {
-      console.error("Error creating guest session:", error);
-      res.status(500).json({ message: "Failed to create guest session" });
-    }
-  });
-
-  app.get("/api/guest-session/:streamId", async (req, res) => {
-    try {
-      const { streamId } = req.params;
-      const sessionId = req.headers['x-session-id'] as string;
-      
-      if (!sessionId) {
-        return res.status(400).json({ message: "Session ID required" });
-      }
-
-      const guestSession = await storage.getGuestSession(streamId, sessionId);
-      if (!guestSession) {
-        return res.status(404).json({ message: "Guest session not found" });
-      }
-
-      res.json(guestSession);
-    } catch (error) {
-      console.error("Error fetching guest session:", error);
-      res.status(500).json({ message: "Failed to fetch guest session" });
-    }
-  });
-
-  // Creator Action Presets Routes
-  app.get('/api/creator/action-presets', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
-      if (user?.role !== 'creator') {
-        return res.status(403).json({ message: "Only creators can access action presets" });
-      }
-
-      const presets = await storage.getCreatorActionPresets(userId);
-      res.json(presets);
-    } catch (error) {
-      console.error("Error fetching creator action presets:", error);
-      res.status(500).json({ message: "Failed to fetch creator action presets" });
-    }
-  });
-
-  app.post('/api/creator/action-presets', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
-      if (user?.role !== 'creator') {
-        return res.status(403).json({ message: "Only creators can create action presets" });
-      }
-
-      // Check if creator already has 5 action presets (limit)
-      const existingPresets = await storage.getCreatorActionPresets(userId);
-      if (existingPresets.length >= 5) {
-        return res.status(400).json({ message: "Maximum 5 action presets allowed per creator" });
-      }
-
-      const validatedData = insertCreatorActionPresetSchema.parse({
-        ...req.body,
-        creatorId: userId,
-        isEnabled: true
-      });
-
-      const preset = await storage.createCreatorActionPreset(validatedData);
-      res.json(preset);
-    } catch (error) {
-      console.error("Error creating creator action preset:", error);
-      res.status(400).json({ message: "Failed to create action preset" });
-    }
-  });
-
-  app.put('/api/creator/action-presets/:id', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const { id } = req.params;
-      const user = await storage.getUser(userId);
-      
-      if (user?.role !== 'creator') {
-        return res.status(403).json({ message: "Only creators can update action presets" });
-      }
-
-      // Verify the preset belongs to this creator
-      const preset = await storage.getCreatorActionPresetById(id);
-      if (!preset || preset.creatorId !== userId) {
-        return res.status(404).json({ message: "Action preset not found" });
-      }
-
-      const validatedData = insertCreatorActionPresetSchema.parse({
-        ...req.body,
-        creatorId: userId
-      });
-
-      const updatedPreset = await storage.updateCreatorActionPreset(id, validatedData);
-      res.json(updatedPreset);
-    } catch (error) {
-      console.error("Error updating creator action preset:", error);
-      res.status(400).json({ message: "Failed to update action preset" });
-    }
-  });
-
-  app.delete('/api/creator/action-presets/:id', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const { id } = req.params;
-      const user = await storage.getUser(userId);
-      
-      if (user?.role !== 'creator') {
-        return res.status(403).json({ message: "Only creators can delete action presets" });
-      }
-
-      // Verify the preset belongs to this creator
-      const preset = await storage.getCreatorActionPresetById(id);
-      if (!preset || preset.creatorId !== userId) {
-        return res.status(404).json({ message: "Action preset not found" });
-      }
-
-      await storage.deleteCreatorActionPreset(id);
-      res.json({ message: "Action preset deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting creator action preset:", error);
-      res.status(400).json({ message: "Failed to delete action preset" });
-    }
-  });
-
-  // Private Call Request Endpoints
+  // Create HTTP server and setup WebRTC
+  const server = createServer(app);
   
-  // Create private call request (for authenticated users and guests)
-  app.post('/api/streams/:streamId/private-call-request', async (req, res) => {
-    try {
-      const { streamId } = req.params;
-      const { message, tokenCost, durationMinutes } = req.body;
-      const sessionId = req.headers['x-session-id'] as string;
-      const isAuthenticated = !!(req as any).user;
-      
-      // Get stream info to validate and get creator
-      const [stream] = await db.select()
-        .from(streams)
-        .where(eq(streams.id, streamId));
-        
-      if (!stream || !stream.isLive) {
-        return res.status(404).json({ message: "Stream not found or not live" });
-      }
+  // Setup WebRTC signaling with Socket.io
+  setupWebRTC(server);
 
-      let requestData: any = {
-        streamId,
-        creatorId: stream.creatorId,
-        tokenCost: tokenCost || stream.privateRate,
-        durationMinutes: durationMinutes || 10,
-        message: message || '',
-        status: 'pending'
-      };
-
-      if (isAuthenticated) {
-        const user = (req as any).user;
-        requestData.requesterId = user.id;
-        requestData.requesterName = user.username || `${user.firstName} ${user.lastName}`;
-      } else {
-        // Guest user - find or create guest session
-        if (!sessionId) {
-          return res.status(400).json({ message: "Session ID required for guest requests" });
-        }
-
-        const [guestSession] = await db.select()
-          .from(guestSessions)
-          .where(eq(guestSessions.sessionId, sessionId));
-
-        if (!guestSession) {
-          return res.status(404).json({ message: "Guest session not found" });
-        }
-
-        requestData.guestSessionId = guestSession.id;
-        requestData.requesterName = guestSession.guestName;
-      }
-
-      const [request] = await db.insert(privateCallRequests)
-        .values(requestData)
-        .returning();
-
-      res.json(request);
-    } catch (error) {
-      console.error("Error creating private call request:", error);
-      res.status(500).json({ message: "Failed to create private call request" });
-    }
-  });
-
-  // Get private call requests for creator
-  app.get('/api/creator/private-call-requests', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
-      if (!user || user.role !== 'creator') {
-        return res.status(403).json({ message: "Creator access required" });
-      }
-
-      const requests = await db.select()
-        .from(privateCallRequests)
-        .where(eq(privateCallRequests.creatorId, userId))
-        .orderBy(privateCallRequests.createdAt);
-
-      res.json(requests);
-    } catch (error) {
-      console.error("Error fetching private call requests:", error);
-      res.status(500).json({ message: "Failed to fetch requests" });
-    }
-  });
-
-  // Accept/reject private call request
-  app.patch('/api/private-call-requests/:requestId/:action', requireAuth, async (req: any, res) => {
-    try {
-      const { requestId, action } = req.params;
-      const userId = req.user.id;
-      
-      if (!['accept', 'reject'].includes(action)) {
-        return res.status(400).json({ message: "Invalid action. Use 'accept' or 'reject'" });
-      }
-
-      const [request] = await db.select()
-        .from(privateCallRequests)
-        .where(eq(privateCallRequests.id, requestId));
-
-      if (!request) {
-        return res.status(404).json({ message: "Private call request not found" });
-      }
-
-      if (request.creatorId !== userId) {
-        return res.status(403).json({ message: "Not authorized to manage this request" });
-      }
-
-      if (request.status !== 'pending') {
-        return res.status(400).json({ message: "Request already processed" });
-      }
-
-      const newStatus = action === 'accept' ? 'accepted' : 'rejected';
-      let updateData: any = { 
-        status: newStatus as any,
-        updatedAt: new Date()
-      };
-
-      // If accepting, create private channel ID
-      if (action === 'accept') {
-        updateData.privateChannelId = `private_${requestId}_${Date.now()}`;
-      }
-
-      const [updatedRequest] = await db.update(privateCallRequests)
-        .set(updateData)
-        .where(eq(privateCallRequests.id, requestId))
-        .returning();
-
-      res.json(updatedRequest);
-    } catch (error) {
-      console.error("Error updating private call request:", error);
-      res.status(500).json({ message: "Failed to update request" });
-    }
-  });
-
-  // Start private call (moves from accepted to active)
-  app.post('/api/private-call-requests/:requestId/start', requireAuth, async (req: any, res) => {
-    try {
-      const { requestId } = req.params;
-      const userId = req.user.id;
-
-      const [request] = await db.select()
-        .from(privateCallRequests)
-        .where(eq(privateCallRequests.id, requestId));
-
-      if (!request) {
-        return res.status(404).json({ message: "Private call request not found" });
-      }
-
-      if (request.creatorId !== userId) {
-        return res.status(403).json({ message: "Not authorized to start this call" });
-      }
-
-      if (request.status !== 'accepted') {
-        return res.status(400).json({ message: "Request must be accepted first" });
-      }
-
-      const [updatedRequest] = await db.update(privateCallRequests)
-        .set({ 
-          status: 'active' as any,
-          startedAt: new Date(),
-          updatedAt: new Date()
-        })
-        .where(eq(privateCallRequests.id, requestId))
-        .returning();
-
-      res.json(updatedRequest);
-    } catch (error) {
-      console.error("Error starting private call:", error);
-      res.status(500).json({ message: "Failed to start private call" });
-    }
-  });
-
-  // End private call
-  app.post('/api/private-call-requests/:requestId/end', requireAuth, async (req: any, res) => {
-    try {
-      const { requestId } = req.params;
-      const userId = req.user.id;
-
-      const [request] = await db.select()
-        .from(privateCallRequests)
-        .where(eq(privateCallRequests.id, requestId));
-
-      if (!request) {
-        return res.status(404).json({ message: "Private call request not found" });
-      }
-
-      if (request.creatorId !== userId) {
-        return res.status(403).json({ message: "Not authorized to end this call" });
-      }
-
-      if (request.status !== 'active') {
-        return res.status(400).json({ message: "Call is not currently active" });
-      }
-
-      const [updatedRequest] = await db.update(privateCallRequests)
-        .set({ 
-          status: 'completed' as any,
-          endedAt: new Date(),
-          updatedAt: new Date()
-        })
-        .where(eq(privateCallRequests.id, requestId))
-        .returning();
-
-      res.json(updatedRequest);
-    } catch (error) {
-      console.error("Error ending private call:", error);
-      res.status(500).json({ message: "Failed to end private call" });
-    }
-  });
-
-  // Admin profile management endpoints
-  app.patch('/api/admin/profile', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
-      if (user?.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-
-      const { username, email, phoneNumber, profileImageUrl } = req.body;
-      const updatedUser = await storage.updateUser(userId, {
-        username,
-        email,
-        phoneNumber,
-        profileImageUrl
-      });
-      res.json(updatedUser);
-    } catch (error) {
-      console.error("Error updating admin profile:", error);
-      res.status(400).json({ message: "Failed to update profile" });
-    }
-  });
-
-  app.post('/api/admin/change-password', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
-      if (user?.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-
-      const { currentPassword, newPassword } = req.body;
-      const success = await storage.changePassword(userId, currentPassword, newPassword);
-      
-      if (!success) {
-        return res.status(400).json({ message: "Current password is incorrect" });
-      }
-      
-      res.json({ message: "Password changed successfully" });
-    } catch (error) {
-      console.error("Error changing admin password:", error);
-      res.status(400).json({ message: "Failed to change password" });
-    }
-  });
-
-  // Admin tip menu management endpoints
-  app.get('/api/admin/tip-menu', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
-      if (user?.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-
-      const tipMenuItems = await db.select()
-        .from(adminTipMenu)
-        .orderBy(adminTipMenu.order);
-
-      res.json(tipMenuItems);
-    } catch (error) {
-      console.error("Error fetching tip menu:", error);
-      res.status(500).json({ message: "Failed to fetch tip menu" });
-    }
-  });
-
-  app.post('/api/admin/tip-menu', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
-      if (user?.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-
-      const data = insertAdminTipMenuSchema.parse(req.body);
-
-      const [tipMenuItem] = await db.insert(adminTipMenu)
-        .values(data)
-        .returning();
-
-      res.json(tipMenuItem);
-    } catch (error) {
-      console.error("Error creating tip menu item:", error);
-      res.status(400).json({ message: "Failed to create tip menu item" });
-    }
-  });
-
-  app.put('/api/admin/tip-menu/:id', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
-      if (user?.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-
-      const { id } = req.params;
-      const data = insertAdminTipMenuSchema.parse(req.body);
-
-      const [tipMenuItem] = await db.update(adminTipMenu)
-        .set({ ...data, updatedAt: new Date() })
-        .where(eq(adminTipMenu.id, id))
-        .returning();
-
-      if (!tipMenuItem) {
-        return res.status(404).json({ message: "Tip menu item not found" });
-      }
-
-      res.json(tipMenuItem);
-    } catch (error) {
-      console.error("Error updating tip menu item:", error);
-      res.status(400).json({ message: "Failed to update tip menu item" });
-    }
-  });
-
-  app.delete('/api/admin/tip-menu/:id', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
-      if (user?.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-
-      const { id } = req.params;
-
-      const [deleted] = await db.delete(adminTipMenu)
-        .where(eq(adminTipMenu.id, id))
-        .returning();
-
-      if (!deleted) {
-        return res.status(404).json({ message: "Tip menu item not found" });
-      }
-
-      res.json({ message: "Tip menu item deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting tip menu item:", error);
-      res.status(400).json({ message: "Failed to delete tip menu item" });
-    }
-  });
-
-  // Admin user management endpoints
-  app.get('/api/admin/users', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
-      if (user?.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-
-      const users = await storage.getAllUsers();
-      res.json(users);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      res.status(500).json({ message: "Failed to fetch users" });
-    }
-  });
-
-  app.post('/api/admin/ban-user/:userId', requireAuth, async (req: any, res) => {
-    try {
-      const adminUserId = req.user.id;
-      const admin = await storage.getUser(adminUserId);
-      
-      if (admin?.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-
-      const { userId } = req.params;
-      const { reason } = req.body;
-      
-      const bannedUser = await storage.banUser(userId, reason);
-      res.json(bannedUser);
-    } catch (error) {
-      console.error("Error banning user:", error);
-      res.status(400).json({ message: "Failed to ban user" });
-    }
-  });
-
-  app.post('/api/admin/end-stream/:streamId', requireAuth, async (req: any, res) => {
-    try {
-      const adminUserId = req.user.id;
-      const admin = await storage.getUser(adminUserId);
-      
-      if (admin?.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-
-      const { streamId } = req.params;
-      const { reason } = req.body;
-      
-      await storage.endStream(streamId, reason);
-      
-      // Notify all connected clients that the stream has ended
-      global.io?.to(`stream-${streamId}`).emit('stream-ended', { reason });
-      
-      res.json({ message: "Stream ended successfully" });
-    } catch (error) {
-      console.error("Error ending stream:", error);
-      res.status(400).json({ message: "Failed to end stream" });
-    }
-  });
-
-  const httpServer = createServer(app);
-  
-  // Setup WebRTC signaling server
-  // DISABLED: WebRTC conflicts with Agora - Chat now handled via existing Socket.io
-  // setupWebRTC(httpServer);
-  
-  return httpServer;
+  return server;
 }
