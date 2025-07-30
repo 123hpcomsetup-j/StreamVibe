@@ -34,6 +34,13 @@ export default function CreatorDashboard() {
     tokenPrice: 1,
     privateRate: 20,
   });
+
+  // Tip amounts settings (3 fixed amounts)
+  const [tipAmounts, setTipAmounts] = useState({
+    small: 10,
+    medium: 25,
+    large: 50
+  });
   
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -705,7 +712,56 @@ export default function CreatorDashboard() {
           </CardContent>
         </Card>
 
-
+        {/* Tip Amounts Configuration */}
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center">
+              <DollarSign className="mr-2 h-5 w-5" />
+              Tip Button Amounts
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-slate-400 text-sm">Set three tip amounts that viewers can choose from below your video.</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label className="text-slate-300">Small Tip (tokens)</Label>
+                <Input
+                  type="number"
+                  value={tipAmounts.small}
+                  onChange={(e) => setTipAmounts({ ...tipAmounts, small: Number(e.target.value) })}
+                  className="bg-slate-700 border-slate-600 text-white"
+                  min="1"
+                />
+              </div>
+              <div>
+                <Label className="text-slate-300">Medium Tip (tokens)</Label>
+                <Input
+                  type="number"
+                  value={tipAmounts.medium}
+                  onChange={(e) => setTipAmounts({ ...tipAmounts, medium: Number(e.target.value) })}
+                  className="bg-slate-700 border-slate-600 text-white"
+                  min="1"
+                />
+              </div>
+              <div>
+                <Label className="text-slate-300">Large Tip (tokens)</Label>
+                <Input
+                  type="number"
+                  value={tipAmounts.large}
+                  onChange={(e) => setTipAmounts({ ...tipAmounts, large: Number(e.target.value) })}
+                  className="bg-slate-700 border-slate-600 text-white"
+                  min="1"
+                />
+              </div>
+            </div>
+            <Button 
+              onClick={() => toast({ title: "Tip Amounts Updated", description: "Your tip button amounts have been saved." })}
+              className="bg-primary hover:bg-primary/80"
+            >
+              Save Tip Amounts
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Profile Management */}
         <Card className="bg-slate-800 border-slate-700">

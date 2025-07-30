@@ -15,7 +15,8 @@ import {
   ArrowLeft,
   AlertTriangle,
   UserPlus,
-  LogIn
+  LogIn,
+  Video
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -212,6 +213,66 @@ export default function StreamView() {
     ? typedUser?.username || typedUser?.firstName || 'User'
     : `Guest_${guestSessionId?.slice(-6) || 'User'}`;
 
+  // Tip functionality
+  const handleTip = async (amount: number) => {
+    if (!isAuthenticated && tokensLeft < amount) {
+      toast({
+        title: "Not Enough Tokens",
+        description: "Sign up for more tokens or wait for your tokens to refresh!",
+        variant: "destructive",
+      });
+      setShowSignupDialog(true);
+      return;
+    }
+
+    try {
+      const response = await apiRequest("POST", "/api/tips", {
+        streamId: streamId,
+        amount: amount,
+        message: `Tipped ${amount} tokens!`,
+        recipientId: typedStream?.creatorId,
+        isGuest: !isAuthenticated,
+        guestSessionId: guestSessionId
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Tip Sent!",
+          description: `You tipped ${amount} tokens to ${typedStream?.creatorName}`,
+        });
+        
+        // Update guest tokens if guest user
+        if (!isAuthenticated) {
+          setTokensLeft(prev => prev - amount);
+        }
+      }
+    } catch (error: any) {
+      toast({
+        title: "Tip Failed",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Private call functionality
+  const handlePrivateCall = () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Account Required",
+        description: "Sign up to request private calls with creators",
+        variant: "destructive",
+      });
+      setShowSignupDialog(true);
+      return;
+    }
+
+    toast({
+      title: "Private Call Request",
+      description: "Private call feature coming soon!",
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
@@ -310,9 +371,9 @@ export default function StreamView() {
       )}
 
       {/* Main Content - Full Width Video - 80% of viewport height */}
-      <div className="overflow-hidden" style={{ height: '80vh', minHeight: '80vh', maxHeight: '80vh' }}>
+      <div className="relative" style={{ height: '80vh', minHeight: '80vh', maxHeight: '80vh' }}>
         {/* Video Stream - Full Container */}
-        <div className="w-screen h-full bg-black overflow-hidden -mx-2 sm:-mx-4 lg:-mx-6">
+        <div className="absolute inset-0 w-full h-full bg-black overflow-hidden agora-video-container">
             {!streamEnded && typedStream ? (
               <AgoraStreamViewer
                 streamId={typedStream.id}
@@ -343,6 +404,53 @@ export default function StreamView() {
                 </CardContent>
               </Card>
             )}
+        </div>
+      </div>
+
+      {/* Tip Buttons and Private Call - Below Video */}
+      <div className="bg-slate-800 border-t border-slate-700 px-4 py-3">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
+            {/* Tip Buttons */}
+            <div className="flex items-center space-x-2">
+              <span className="text-slate-300 text-sm font-medium">Quick Tip:</span>
+              <Button 
+                size="sm"
+                className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 text-xs sm:text-sm"
+                onClick={() => handleTip(10)}
+              >
+                <Coins className="mr-1 h-3 w-3" />
+                10 tokens
+              </Button>
+              <Button 
+                size="sm"
+                className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 text-xs sm:text-sm"
+                onClick={() => handleTip(25)}
+              >
+                <Coins className="mr-1 h-3 w-3" />
+                25 tokens
+              </Button>
+              <Button 
+                size="sm"
+                className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 text-xs sm:text-sm"
+                onClick={() => handleTip(50)}
+              >
+                <Coins className="mr-1 h-3 w-3" />
+                50 tokens
+              </Button>
+            </div>
+            
+            {/* Private Call Button */}
+            <div className="hidden sm:block w-px h-6 bg-slate-600"></div>
+            <Button 
+              size="sm"
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-1 text-xs sm:text-sm"
+              onClick={handlePrivateCall}
+            >
+              <Video className="mr-1 h-3 w-3" />
+              Private Call
+            </Button>
+          </div>
         </div>
       </div>
 
