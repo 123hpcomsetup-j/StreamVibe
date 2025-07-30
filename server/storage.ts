@@ -2,15 +2,12 @@ import {
   users,
   streams,
   reports,
-  chatMessages,
   type User,
   type UpsertUser,
   type Stream,
   type InsertStream,
   type Report,
   type InsertReport,
-  type ChatMessage,
-  type InsertChatMessage,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -42,9 +39,7 @@ export interface IStorage {
   createReport(report: InsertReport): Promise<Report>;
   getReports(): Promise<Report[]>;
   
-  // Chat operations
-  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
-  getChatMessages(streamId: string): Promise<ChatMessage[]>;
+
   
   // Admin operations
   getAllUsers(): Promise<User[]>;
@@ -176,19 +171,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(reports).orderBy(desc(reports.createdAt));
   }
 
-  // Chat operations
-  async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
-    const [newMessage] = await db.insert(chatMessages).values(message).returning();
-    return newMessage;
-  }
 
-  async getChatMessages(streamId: string): Promise<ChatMessage[]> {
-    return await db
-      .select()
-      .from(chatMessages)
-      .where(eq(chatMessages.streamId, streamId))
-      .orderBy(chatMessages.createdAt);
-  }
 
   // Admin operations
   async getAllUsers(): Promise<User[]> {

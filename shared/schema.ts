@@ -67,30 +67,18 @@ export const reports = pgTable("reports", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Chat messages table
-export const chatMessages = pgTable("chat_messages", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  streamId: varchar("stream_id").references(() => streams.id).notNull(),
-  userId: varchar("user_id").references(() => users.id),
-  guestSessionId: varchar("guest_session_id"),
-  senderName: varchar("sender_name").notNull(),
-  message: text("message").notNull(),
-  isPrivate: boolean("is_private").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   streams: many(streams),
-  chatMessages: many(chatMessages),
 }));
 
-export const streamsRelations = relations(streams, ({ one, many }) => ({
+export const streamsRelations = relations(streams, ({ one }) => ({
   creator: one(users, {
     fields: [streams.creatorId],
     references: [users.id],
   }),
-  chatMessages: many(chatMessages),
 }));
 
 // Define Zod insert schemas for frontend forms
@@ -107,6 +95,3 @@ export const insertReportSchema = createInsertSchema(reports);
 export type InsertReport = z.infer<typeof insertReportSchema>;
 export type Report = typeof reports.$inferSelect;
 
-export const insertChatMessageSchema = createInsertSchema(chatMessages);
-export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
-export type ChatMessage = typeof chatMessages.$inferSelect;
