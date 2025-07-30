@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Users, MessageCircle, Send, Video, VideoOff, Mic, MicOff, Square, Play } from "lucide-react";
+import { ArrowLeft, Users, MessageCircle, Send, Video, VideoOff, Mic, MicOff, Square, Play, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -58,6 +58,12 @@ export default function CreatorLiveStudio() {
   // Fetch current stream data
   const { data: currentStream } = useQuery({
     queryKey: ['/api/streams/current'],
+    enabled: !!user,
+  });
+
+  // Get wallet balance
+  const { data: wallet } = useQuery({
+    queryKey: ["/api/wallet"],
     enabled: !!user,
   });
 
@@ -299,6 +305,11 @@ export default function CreatorLiveStudio() {
           <div className="flex items-center space-x-2 text-white">
             <Users className="h-4 w-4" />
             <span className="text-sm">{viewerCount}</span>
+          </div>
+          
+          <div className="flex items-center space-x-2 text-yellow-400">
+            <span className="text-xs">💰</span>
+            <span className="text-sm font-medium">{(wallet as any)?.balance || 0} tokens</span>
           </div>
         </div>
       </div>

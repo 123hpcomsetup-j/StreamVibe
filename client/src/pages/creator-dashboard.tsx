@@ -58,6 +58,12 @@ export default function CreatorDashboard() {
     enabled: isAuthenticated,
   });
 
+  // Get wallet balance
+  const { data: wallet } = useQuery({
+    queryKey: ["/api/wallet"],
+    enabled: isAuthenticated,
+  });
+
   // Start stream mutation
   const startStreamMutation = useMutation({
     mutationFn: async () => {
@@ -223,7 +229,19 @@ export default function CreatorDashboard() {
 
             {/* Stats Cards */}
             {stats && (
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                <Card className="bg-slate-800 border-slate-700">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-slate-400 text-xs">Token Balance</p>
+                        <p className="text-xl font-bold text-white">{(wallet as any)?.balance || 0}</p>
+                      </div>
+                      <DollarSign className="h-6 w-6 text-yellow-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+
                 <Card className="bg-slate-800 border-slate-700">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">

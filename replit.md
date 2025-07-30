@@ -10,6 +10,9 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (July 30, 2025)
 
+**CREATOR TOKEN BALANCE DISPLAY ADDED - Complete Financial Overview (July 30, 2025):**
+Added comprehensive token balance display to both creator dashboard and live studio showing creator's total token holdings from tips earned and tokens purchased. Creator dashboard now features 5-column stats grid with prominent token balance card (yellow coin icon) alongside existing earnings metrics. Creator live studio status bar displays real-time token balance next to viewer count for instant financial tracking during streaming. Token balance fetched from wallet API endpoint showing combined tokens from all sources including viewer tips and personal purchases.
+
 **CREATOR LIVE STUDIO FULL-SCREEN REDESIGN - Professional Broadcasting Interface (July 30, 2025):**
 Completely redesigned creator live studio to use full-screen layout matching user stream viewer experience. New interface features: 80% video area for creator self-view with professional broadcasting controls, 20% live chat panel on right side for real-time viewer interaction, streamlined status bar showing live/offline status and viewer count, integrated stream controls (video/audio toggle, end stream) overlaid on video, WebSocket-powered real-time chat with message history, professional dark theme optimized for streaming environment. Creator can now see themselves while streaming and interact with viewers through chat just like viewers see the stream.
 
