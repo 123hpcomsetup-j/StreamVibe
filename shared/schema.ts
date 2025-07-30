@@ -116,6 +116,7 @@ export const chatMessages = pgTable("chat_messages", {
   senderName: varchar("sender_name").notNull(),
   message: text("message").notNull(),
   tipAmount: integer("tip_amount").default(0),
+  isPrivate: boolean("is_private").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

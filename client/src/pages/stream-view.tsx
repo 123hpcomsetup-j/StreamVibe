@@ -44,11 +44,13 @@ export default function StreamView() {
   const [streamEnded, setStreamEnded] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   
-  // Guest state
+  // Guest state with enhanced functionality
   const [guestName, setGuestName] = useState("");
   const [guestSessionId, setGuestSessionId] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes for guests
   const [tokensLeft, setTokensLeft] = useState(100);
+  const [showTimeWarning, setShowTimeWarning] = useState(false);
+  const [isGuestExpired, setIsGuestExpired] = useState(false);
   
   // Chat state
   const [message, setMessage] = useState("");
@@ -170,22 +172,51 @@ export default function StreamView() {
     }
   }, [streamId, isAuthenticated, guestSessionId]);
 
-  // Guest timer countdown
+  // Enhanced guest timer countdown with warnings
   useEffect(() => {
-    if (!isAuthenticated && guestSessionId && timeLeft > 0) {
+    if (!isAuthenticated && guestSessionId && timeLeft > 0 && !isGuestExpired) {
       const timer = setInterval(() => {
         setTimeLeft((prev) => {
-          if (prev <= 1) {
+          const newTime = prev - 1;
+          
+          // Show warning at 60 seconds (1 minute) left
+          if (newTime === 60 && !showTimeWarning) {
+            setShowTimeWarning(true);
+            toast({
+              title: "Time Running Out!",
+              description: "Only 1 minute left. Sign up to continue watching!",
+              variant: "destructive",
+            });
+          }
+          
+          // Show final warning at 30 seconds
+          if (newTime === 30) {
+            toast({
+              title: "30 Seconds Remaining",
+              description: "Your guest session will expire soon!",
+              variant: "destructive",
+            });
+          }
+          
+          // Time expired
+          if (newTime <= 0) {
+            setIsGuestExpired(true);
             setShowSignupDialog(true);
+            toast({
+              title: "Guest Time Expired",
+              description: "Sign up now to continue watching streams!",
+              variant: "destructive",
+            });
             return 0;
           }
-          return prev - 1;
+          
+          return newTime;
         });
       }, 1000);
 
       return () => clearInterval(timer);
     }
-  }, [timeLeft, isAuthenticated, guestSessionId]);
+  }, [timeLeft, isAuthenticated, guestSessionId, isGuestExpired, showTimeWarning, toast]);
 
   // Stream check for Agora
 
@@ -500,6 +531,9 @@ export default function StreamView() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Check if guest session is expired or blocked
+  const isGuestBlocked = !isAuthenticated && (isGuestExpired || timeLeft <= 0);
+
   const getConnectionBadge = () => {
     switch (connectionStatus) {
       case 'connected':
@@ -622,6 +656,11 @@ export default function StreamView() {
                   username={displayName as string}
                   creatorName={typedStream.creatorName || 'Creator'}
                   title={typedStream.title}
+                  stream={typedStream}
+                  isGuest={!isAuthenticated}
+                  guestSessionId={guestSessionId}
+                  guestTokens={tokensLeft}
+                  onGuestTokenUpdate={(tokens) => setTokensLeft(tokens)}
                 />
               ) : (
                 <Card className="bg-slate-800 border-slate-700 h-full flex items-center justify-center">

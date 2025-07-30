@@ -522,7 +522,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/streams/:streamId/chat', async (req: any, res) => {
     try {
       const { streamId } = req.params;
-      const { message, tipAmount = 0, senderName } = req.body;
+      const { message, tipAmount = 0, senderName, isPrivate = false } = req.body;
       const sessionId = req.headers['x-session-id'] as string;
       
       // Check for authenticated user session
@@ -544,9 +544,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(403).json({ message: "No chat tokens remaining. Sign up to continue chatting!" });
         }
         
-        // Get stream info to calculate token cost based on creator settings
+        // Get stream info to check minimum requirements
         const stream = await storage.getStreamById(streamId);
-        const tokenCost = (stream?.tokenPrice || 1); // Use creator's token price
+        
+        // Check if message meets private message requirements
+        if (isPrivate) {
+          return res.status(403).json({ 
+            message: "Guests cannot send private messages. Please sign up to access private messaging!" 
+          });
+        }
         
         // Create chat message for guest with auto-generated name
         const chatMessage = await storage.createChatMessage({
@@ -556,6 +562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message,
           tipAmount: 0, // Guests can't tip
           senderName: guestSession.guestName || 'Guest', // Use auto-generated guest name
+          isPrivate: false, // Guests can only send public messages
         });
         
         // Decrement guest tokens (1 token per message regardless of creator price)
@@ -582,30 +589,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Get stream info for validation
+      const stream = await storage.getStreamById(streamId);
+      if (!stream) {
+        return res.status(404).json({ message: "Stream not found" });
+      }
+      
+      // Check private message minimum token requirement
+      if (isPrivate) {
+        const minPrivateTokens = stream.privateRate || 20;
+        if (tipAmount < minPrivateTokens) {
+          return res.status(400).json({ 
+            message: `Private messages require a minimum tip of ${minPrivateTokens} tokens`,
+            minRequired: minPrivateTokens
+          });
+        }
+      }
       
       // Handle tip if provided
       if (tipAmount > 0) {
-        const user = await storage.getUser(userId);
-        if (!user || (user.walletBalance || 0) < tipAmount) {
+        if ((user.walletBalance || 0) < tipAmount) {
           return res.status(400).json({ message: "Insufficient wallet balance" });
         }
         
-        // Get stream creator
-        const stream = await storage.getStreamById(streamId);
-        if (stream && stream.creatorId) {
-          // Create transaction for tip
-          await storage.createTransaction({
-            fromUserId: userId,
-            toUserId: stream.creatorId,
-            tokenAmount: tipAmount,
-            purpose: 'tip',
-            streamId: streamId,
-          });
-          
-          // Update wallets
-          await storage.updateUserWallet(userId, -tipAmount);
-          await storage.updateUserWallet(stream.creatorId, tipAmount);
-        }
+        // Create transaction for tip
+        await storage.createTransaction({
+          fromUserId: userId,
+          toUserId: stream.creatorId,
+          tokenAmount: tipAmount,
+          purpose: isPrivate ? 'private_message' : 'tip',
+          streamId: streamId,
+        });
+        
+        // Update wallets
+        await storage.updateUserWallet(userId, -tipAmount);
+        await storage.updateUserWallet(stream.creatorId, tipAmount);
       }
       
       // Get user's real name for authenticated users
@@ -619,10 +643,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message,
         tipAmount,
         senderName: realSenderName || 'Anonymous',
+        isPrivate: isPrivate || false,
       });
       
       // Broadcast message to WebSocket for real-time delivery
-      global.io?.to(`stream-${streamId}`).emit('chat-message', chatMessage);
+      if (isPrivate) {
+        // Private messages only go to creator
+        const creatorSocket = global.creatorSockets?.get(stream.creatorId);
+        if (creatorSocket) {
+          creatorSocket.emit('private-message', {
+            ...chatMessage,
+            messageType: 'private'
+          });
+        }
+        
+        // Also send confirmation back to sender
+        global.io?.to(`user-${userId}`).emit('private-message-sent', {
+          ...chatMessage,
+          messageType: 'private_sent'
+        });
+      } else {
+        // Public messages go to all viewers
+        global.io?.to(`stream-${streamId}`).emit('chat-message', chatMessage);
+      }
       
       res.json(chatMessage);
     } catch (error) {

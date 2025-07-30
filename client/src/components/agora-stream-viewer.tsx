@@ -20,6 +20,7 @@ import AgoraRTC, {
   UID
 } from "agora-rtc-sdk-ng";
 import StreamChat from "./stream-chat";
+import StreamMessageOverlay from "./stream-message-overlay";
 
 interface AgoraStreamViewerProps {
   streamId: string;
@@ -27,6 +28,11 @@ interface AgoraStreamViewerProps {
   username: string;
   creatorName: string;
   title: string;
+  stream?: any;
+  isGuest?: boolean;
+  guestSessionId?: string | null;
+  guestTokens?: number;
+  onGuestTokenUpdate?: (tokens: number) => void;
 }
 
 export default function AgoraStreamViewer({
@@ -34,7 +40,12 @@ export default function AgoraStreamViewer({
   userId,
   username,
   creatorName,
-  title
+  title,
+  stream,
+  isGuest = false,
+  guestSessionId,
+  guestTokens = 0,
+  onGuestTokenUpdate
 }: AgoraStreamViewerProps) {
   const { toast } = useToast();
   const [isConnected, setIsConnected] = useState(false);
@@ -586,6 +597,19 @@ export default function AgoraStreamViewer({
               <span className="sm:hidden">●</span>
             </Badge>
           </div>
+        )}
+
+        {/* Message Overlay - Only show when connected */}
+        {isConnected && (
+          <StreamMessageOverlay
+            streamId={streamId}
+            creatorName={creatorName}
+            stream={stream}
+            isGuest={isGuest}
+            guestSessionId={guestSessionId}
+            guestTokens={guestTokens}
+            onGuestTokenUpdate={onGuestTokenUpdate}
+          />
         )}
       </div>
 
