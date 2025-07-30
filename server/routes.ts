@@ -577,29 +577,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Plural endpoint for compatibility with navbar token purchase
-  app.post('/api/token-purchases', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      console.log(`💰 User ${userId} creating token purchase request (plural endpoint):`, req.body);
-      
-      const validatedData = insertTokenPurchaseSchema.parse({
-        ...req.body,
-        userId,
-        status: 'pending', // Ensure status is set to pending
-      });
-      
-      console.log(`✅ Validated token purchase data:`, validatedData);
-      
-      const purchase = await storage.createTokenPurchase(validatedData);
-      console.log(`🎯 Created token purchase:`, purchase);
-      
-      res.status(201).json(purchase);
-    } catch (error) {
-      console.error("❌ Error creating token purchase:", error);
-      res.status(500).json({ message: "Failed to create token purchase request" });
-    }
-  });
+
 
   // Plural endpoint for compatibility with navbar token purchase
   app.post('/api/token-purchases', requireAuth, async (req: any, res) => {
@@ -607,12 +585,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       console.log(`💰 User ${userId} creating token purchase request (plural endpoint):`, req.body);
       
-      const validatedData = insertTokenPurchaseSchema.parse({
-        ...req.body,
-        userId,
-        status: 'pending', // Ensure status is set to pending
-      });
+      // Handle different frontend request formats
+      let requestData;
+      if (req.body.amount && req.body.tokens && req.body.utrNumber) {
+        // User dashboard format: { amount: "100", tokens: 100, utrNumber: "123" }
+        requestData = {
+          requestedTokens: req.body.tokens,
+          amountPaid: req.body.amount,
+          utrNumber: req.body.utrNumber,
+          userId,
+          status: 'pending'
+        };
+      } else if (req.body.tokenAmount && req.body.utrNumber) {
+        // Alternative user dashboard format: { tokenAmount: "100", utrNumber: "123" }
+        const amount = parseFloat(req.body.tokenAmount);
+        requestData = {
+          requestedTokens: Math.floor(amount), // Convert to tokens (1 rupee = 1 token)
+          amountPaid: req.body.tokenAmount,
+          utrNumber: req.body.utrNumber,
+          userId,
+          status: 'pending'
+        };
+      } else if (req.body.amount && req.body.utrNumber) {
+        // Navbar format: { amount: 100, utrNumber: "123" }
+        requestData = {
+          requestedTokens: req.body.amount,
+          amountPaid: req.body.amount.toString(),
+          utrNumber: req.body.utrNumber,
+          userId,
+          status: 'pending'
+        };
+      } else {
+        // Direct format: { requestedTokens: 100, amountPaid: "100", utrNumber: "123" }
+        requestData = {
+          ...req.body,
+          userId,
+          status: 'pending'
+        };
+      }
       
+      console.log(`🎯 Mapped request data:`, requestData);
+      
+      const validatedData = insertTokenPurchaseSchema.parse(requestData);
       console.log(`✅ Validated token purchase data:`, validatedData);
       
       const purchase = await storage.createTokenPurchase(validatedData);
