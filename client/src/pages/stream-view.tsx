@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useLocation, useRoute } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,11 +54,18 @@ export default function StreamView() {
   });
 
   const streamId = params?.streamId;
+  const queryClient = useQueryClient();
   
   // Fetch stream data
   const { data: stream, isLoading, error } = useQuery({
     queryKey: ['/api/streams/', streamId],
     enabled: !!streamId,
+  });
+  
+  // Fetch user wallet
+  const { data: wallet } = useQuery({
+    queryKey: ["/api/wallet"],
+    enabled: isAuthenticated,
   });
   
   const typedStream = stream as any;
@@ -95,6 +102,30 @@ export default function StreamView() {
     onError: (error: Error) => {
       toast({
         title: loginForm.isSignup ? "Signup Failed" : "Login Failed", 
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Send tip mutation
+  const tipMutation = useMutation({
+    mutationFn: async ({ amount }: { amount: number }) => {
+      return await apiRequest("POST", "/api/transactions/tip", {
+        streamId,
+        amount,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/wallet"] });
+      toast({
+        title: "Tip Sent!",
+        description: `Successfully tipped ${typedStream?.creator?.username || 'creator'}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Tip Failed",
         description: error.message,
         variant: "destructive",
       });
@@ -176,6 +207,19 @@ export default function StreamView() {
       setLoginModalClosed(true);
     }
     setShowLoginModal(false);
+  };
+
+  const handleQuickTip = (amount: number) => {
+    if (!wallet || (wallet as any).tokenBalance < amount) {
+      toast({
+        title: "Insufficient Tokens",
+        description: "You don't have enough tokens for this tip",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    tipMutation.mutate({ amount });
   };
 
   // Format time display
@@ -288,11 +332,57 @@ export default function StreamView() {
                 </div>
               </div>
             ) : (
-              <AgoraStreamViewer
-                streamId={streamId!}
-                displayName={displayName}
-                onStreamEnd={() => setStreamEnded(true)}
-              />
+              <>
+                <AgoraStreamViewer
+                  streamId={streamId!}
+                  displayName={displayName}
+                  onStreamEnd={() => setStreamEnded(true)}
+                />
+                
+                {/* Video Overlay Controls */}
+                <div className="absolute top-4 right-4 z-30">
+                  <div className="flex flex-col space-y-3">
+                    {/* Quick Tip Buttons */}
+                    {isAuthenticated ? (
+                      <div className="flex flex-col space-y-2">
+                        <Button
+                          onClick={() => handleQuickTip(5)}
+                          className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-3 py-2 text-sm"
+                          size="sm"
+                        >
+                          <Heart className="mr-1 h-3 w-3" />
+                          Tip 5
+                        </Button>
+                        <Button
+                          onClick={() => handleQuickTip(10)}
+                          className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-3 py-2 text-sm"
+                          size="sm"
+                        >
+                          <Heart className="mr-1 h-3 w-3" />
+                          Tip 10
+                        </Button>
+                        <Button
+                          onClick={() => setShowTokenPanel(!showTokenPanel)}
+                          className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-3 py-2 text-sm"
+                          size="sm"
+                        >
+                          <Gift className="mr-1 h-3 w-3" />
+                          More
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        onClick={() => setShowLoginModal(true)}
+                        className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-3 py-2 text-sm"
+                        size="sm"
+                      >
+                        <LogIn className="mr-1 h-3 w-3" />
+                        Login to Tip
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </>
             )}
           </div>
 
