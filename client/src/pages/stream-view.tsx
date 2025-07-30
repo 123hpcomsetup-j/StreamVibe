@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
@@ -43,6 +44,8 @@ export default function StreamView() {
   const [streamEnded, setStreamEnded] = useState(false);
   const [showTokenPanel, setShowTokenPanel] = useState(false);
   const [showPrivateCallDialog, setShowPrivateCallDialog] = useState(false);
+  const [showCustomTipDialog, setShowCustomTipDialog] = useState(false);
+  const [customTipAmount, setCustomTipAmount] = useState("");
   const [privateCallMessage, setPrivateCallMessage] = useState("");
   
   // Unauthorized user viewing restrictions
@@ -271,6 +274,25 @@ export default function StreamView() {
     }
   });
 
+  // Handle quick tip function
+  const handleQuickTip = (amount: number) => {
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
+    tipMutation.mutate({ amount });
+  };
+
+  // Handle custom tip submission
+  const handleCustomTip = () => {
+    const amount = parseInt(customTipAmount);
+    if (amount > 0) {
+      handleQuickTip(amount);
+      setShowCustomTipDialog(false);
+      setCustomTipAmount("");
+    }
+  };
+
   // Unauthorized viewing timer effect
   useEffect(() => {
     if (!isAuthenticated && !viewingBlocked) {
@@ -348,18 +370,7 @@ export default function StreamView() {
     setShowLoginModal(false);
   };
 
-  const handleQuickTip = (amount: number) => {
-    if (!wallet || (wallet as any).tokenBalance < amount) {
-      toast({
-        title: "Insufficient Tokens",
-        description: "You don't have enough tokens for this tip",
-        variant: "destructive",
-      });
-      return;
-    }
 
-    tipMutation.mutate({ amount });
-  };
 
   // Private call request mutation
   const privateCallMutation = useMutation({
@@ -553,48 +564,7 @@ export default function StreamView() {
                   </div>
                 </div>
                 
-                {/* Video Overlay Controls - Mobile bottom left, Desktop right side corner */}
-                <div className="absolute bottom-4 left-4 md:top-1/2 md:-translate-y-1/2 md:right-4 md:left-auto md:bottom-auto z-30 flex gap-2 md:flex-col">
-                    {/* Quick Tip Buttons */}
-                    {isAuthenticated ? (
-                      <>
-                        <Button
-                          onClick={() => handleQuickTip(5)}
-                          className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-2 py-2 text-xs md:text-sm md:px-3 md:py-2 md:min-w-[80px]"
-                          size="sm"
-                        >
-                          <Heart className="mr-1 h-3 w-3" />
-                          <span className="hidden sm:inline">Tip </span>5
-                        </Button>
-                        <Button
-                          onClick={() => handleQuickTip(10)}
-                          className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-2 py-2 text-xs md:text-sm md:px-3 md:py-2 md:min-w-[80px]"
-                          size="sm"
-                        >
-                          <Heart className="mr-1 h-3 w-3" />
-                          <span className="hidden sm:inline">Tip </span>10
-                        </Button>
-                        <Button
-                          onClick={() => setShowTokenPanel(!showTokenPanel)}
-                          className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-2 py-2 text-xs md:text-sm md:px-3 md:py-2 md:min-w-[80px]"
-                          size="sm"
-                        >
-                          <Gift className="mr-1 h-3 w-3" />
-                          <span className="hidden sm:inline">More</span>
-                        </Button>
 
-                      </>
-                    ) : (
-                      <Button
-                        onClick={() => setShowLoginModal(true)}
-                        className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm text-white px-2 py-2 text-xs md:text-sm md:px-3 md:py-2 md:min-w-[80px]"
-                        size="sm"
-                      >
-                        <LogIn className="mr-1 h-3 w-3" />
-                        <span className="hidden sm:inline">Login to </span>Tip
-                      </Button>
-                    )}
-                </div>
               </>
             )}
           </div>
@@ -608,16 +578,62 @@ export default function StreamView() {
                   <MessageCircle className="h-5 w-5 text-purple-400" />
                   <h3 className="text-white font-semibold">Live Chat</h3>
                 </div>
-                {isAuthenticated ? (
-                  <Button
-                    onClick={handlePrivateCallRequest}
-                    size="sm"
-                    className="bg-pink-600 hover:bg-pink-700 text-white"
-                  >
-                    <Phone className="mr-2 h-4 w-4" />
-                    Private Call
-                  </Button>
-                ) : (
+                <div className="flex items-center space-x-2">
+                  {isAuthenticated ? (
+                    <>
+                      {/* Tip Dropdown */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="sm"
+                            className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                          >
+                            <Coins className="mr-2 h-4 w-4" />
+                            Tip
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="bg-slate-800 border-slate-700">
+                          <DropdownMenuItem 
+                            onClick={() => handleQuickTip(5)}
+                            className="text-white hover:bg-slate-700 cursor-pointer"
+                          >
+                            <Coins className="mr-2 h-4 w-4 text-yellow-400" />
+                            5 Tokens
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleQuickTip(10)}
+                            className="text-white hover:bg-slate-700 cursor-pointer"
+                          >
+                            <Coins className="mr-2 h-4 w-4 text-yellow-400" />
+                            10 Tokens
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleQuickTip(15)}
+                            className="text-white hover:bg-slate-700 cursor-pointer"
+                          >
+                            <Coins className="mr-2 h-4 w-4 text-yellow-400" />
+                            15 Tokens
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => setShowCustomTipDialog(true)}
+                            className="text-white hover:bg-slate-700 cursor-pointer"
+                          >
+                            <Gift className="mr-2 h-4 w-4 text-purple-400" />
+                            Custom Amount
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      
+                      <Button
+                        onClick={handlePrivateCallRequest}
+                        size="sm"
+                        className="bg-pink-600 hover:bg-pink-700 text-white"
+                      >
+                        <Phone className="mr-2 h-4 w-4" />
+                        Private Call
+                      </Button>
+                    </>
+                  ) : (
                   <Button
                     onClick={() => setShowLoginModal(true)}
                     size="sm"
@@ -918,6 +934,55 @@ export default function StreamView() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Custom Tip Dialog */}
+      <Dialog open={showCustomTipDialog} onOpenChange={setShowCustomTipDialog}>
+        <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center">
+              <Coins className="w-6 h-6 mr-2 text-yellow-500" />
+              Custom Tip Amount
+            </DialogTitle>
+            <DialogDescription>
+              Send a custom tip to {typedStream?.creator?.username || 'Creator'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="customAmount">Token Amount</Label>
+              <Input
+                id="customAmount"
+                type="number"
+                placeholder="Enter amount..."
+                value={customTipAmount}
+                onChange={(e) => setCustomTipAmount(e.target.value)}
+                className="bg-slate-700 border-slate-600"
+                min="1"
+              />
+            </div>
+          </div>
+          
+          <div className="flex space-x-2 mt-6">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowCustomTipDialog(false)}
+              className="flex-1 border-slate-600"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleCustomTip}
+              disabled={!customTipAmount || parseInt(customTipAmount) <= 0}
+              className="flex-1 bg-yellow-600 hover:bg-yellow-700"
+            >
+              <Coins className="w-4 h-4 mr-2" />
+              Send Tip
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      </div>
     </div>
   );
 }
