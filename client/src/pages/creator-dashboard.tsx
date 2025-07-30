@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { DollarSign, Users, Clock, Heart, Play, Settings, Phone, Mail, UserIcon, Video, Plus, Trash2, Edit, CheckCircle, XCircle } from "lucide-react";
+import { DollarSign, Users, Clock, Heart, Play, Settings, Phone, Mail, UserIcon, Video, Plus, Trash2, Edit, CheckCircle, XCircle, Square } from "lucide-react";
 import PrivateCallRequests from "@/components/private-call-requests";
 import StreamModal from "@/components/stream-modal";
 import AgoraStreamCreator from "@/components/agora-stream-creator";
@@ -956,8 +956,8 @@ export default function CreatorDashboard() {
                         <div className="flex items-center space-x-4">
                           <div className="flex-1">
                             <Input
-                              value={editingTip.name}
-                              onChange={(e) => setEditingTip(prev => ({ ...prev!, name: e.target.value }))}
+                              value={editingTip?.name || ''}
+                              onChange={(e) => setEditingTip(prev => prev ? ({ ...prev, name: e.target.value }) : null)}
                               className="bg-slate-600 border-slate-500 text-white"
                             />
                           </div>
@@ -965,8 +965,8 @@ export default function CreatorDashboard() {
                             <Input
                               type="number"
                               min="1"
-                              value={editingTip.tokenCost}
-                              onChange={(e) => setEditingTip(prev => ({ ...prev!, tokenCost: parseInt(e.target.value) || 2 }))}
+                              value={editingTip?.tokenCost || 2}
+                              onChange={(e) => setEditingTip(prev => prev ? ({ ...prev, tokenCost: parseInt(e.target.value) || 2 }) : null)}
                               className="bg-slate-600 border-slate-500 text-white"
                             />
                           </div>
@@ -977,8 +977,8 @@ export default function CreatorDashboard() {
                                 updateTipMutation.mutate({
                                   id: tip.id,
                                   data: {
-                                    name: editingTip.name,
-                                    tokenCost: editingTip.tokenCost
+                                    name: editingTip?.name || '',
+                                    tokenCost: editingTip?.tokenCost || 2
                                   }
                                 });
                               }}
