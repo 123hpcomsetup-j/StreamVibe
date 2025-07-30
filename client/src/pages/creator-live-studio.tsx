@@ -314,132 +314,136 @@ export default function CreatorLiveStudio() {
         </div>
       </div>
 
-      {/* Main Content - Video and Chat */}
+      {/* Main Content */}
       <div className="flex-1 flex">
-        {/* Video Section - 80% width */}
-        <div className="flex-1 relative bg-black">
-          {/* Video Container */}
-          <div 
-            ref={videoContainerRef}
-            className="w-full h-full flex items-center justify-center"
-            style={{ height: '100%' }}
-          >
-            {!isStreaming && (
-              <div className="text-center text-white">
-                <Video className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                <p className="text-lg mb-2">Ready to go live?</p>
-                <p className="text-sm text-gray-400 mb-6">Start your stream to begin broadcasting</p>
-                <Button 
-                  onClick={startStream}
-                  className="bg-red-600 hover:bg-red-700 text-white"
-                  size="lg"
+        <div className="flex-1 relative">
+          {/* Video Player */}
+          <div className="relative h-[65vh] bg-black">
+            {/* Video Container */}
+            <div 
+              ref={videoContainerRef}
+              className="w-full h-full flex items-center justify-center"
+              style={{ height: '100%' }}
+            >
+              {!isStreaming && (
+                <div className="text-center text-white">
+                  <Video className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg mb-2">Ready to go live?</p>
+                  <p className="text-sm text-gray-400 mb-6">Start your stream to begin broadcasting</p>
+                  <Button 
+                    onClick={startStream}
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                    size="lg"
+                  >
+                    <Play className="h-5 w-5 mr-2" />
+                    Go Live
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Stream Controls Overlay */}
+            {isStreaming && (
+              <div className="absolute bottom-4 left-4 flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleVideo}
+                  className={`${isVideoOn ? 'bg-slate-700' : 'bg-red-600'} text-white border-slate-600`}
                 >
-                  <Play className="h-5 w-5 mr-2" />
-                  Go Live
+                  {isVideoOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleAudio}
+                  className={`${isAudioOn ? 'bg-slate-700' : 'bg-red-600'} text-white border-slate-600`}
+                >
+                  {isAudioOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+                </Button>
+                
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={stopStream}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  <Square className="h-4 w-4 mr-1" />
+                  End Stream
                 </Button>
               </div>
             )}
           </div>
-
-          {/* Stream Controls Overlay */}
-          {isStreaming && (
-            <div className="absolute bottom-4 left-4 flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={toggleVideo}
-                className={`${isVideoOn ? 'bg-slate-700' : 'bg-red-600'} text-white border-slate-600`}
-              >
-                {isVideoOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={toggleAudio}
-                className={`${isAudioOn ? 'bg-slate-700' : 'bg-red-600'} text-white border-slate-600`}
-              >
-                {isAudioOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
-              </Button>
-              
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={stopStream}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                <Square className="h-4 w-4 mr-1" />
-                End Stream
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Chat Section - 20% width */}
-        <div className="w-80 bg-slate-900 border-l border-slate-700 flex flex-col">
-          {/* Chat Header */}
-          <div className="p-3 border-b border-slate-700">
-            <div className="flex items-center space-x-2">
-              <MessageCircle className="h-4 w-4 text-gray-400" />
-              <span className="text-white font-medium text-sm">Live Chat</span>
-              <Badge variant="secondary" className="text-xs">
-                {chatMessages.length}
-              </Badge>
-            </div>
-          </div>
-
-          {/* Chat Messages */}
-          <ScrollArea className="flex-1 p-3">
-            <div className="space-y-2">
-              {chatMessages.length === 0 ? (
-                <div className="text-center text-gray-400 text-sm py-8">
-                  <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No messages yet</p>
-                  <p className="text-xs">Chat will appear here when viewers send messages</p>
+          
+          {/* Chat Section - Below Video */}
+          <div className="h-[35vh] min-h-[400px] bg-slate-900 border-t border-slate-700">
+            <div className="flex flex-col h-full">
+              {/* Chat Header */}
+              <div className="p-3 border-b border-slate-700">
+                <div className="flex items-center space-x-2">
+                  <MessageCircle className="h-4 w-4 text-gray-400" />
+                  <span className="text-white font-medium text-sm">Live Chat</span>
+                  <Badge variant="secondary" className="text-xs">
+                    {chatMessages.length}
+                  </Badge>
                 </div>
-              ) : (
-                chatMessages.map((msg) => (
-                  <div key={msg.id} className="text-sm">
-                    <div className="flex items-start space-x-2">
-                      <span className={`font-medium text-xs ${
-                        msg.senderRole === 'creator' ? 'text-yellow-400' : 'text-blue-400'
-                      }`}>
-                        {msg.senderName}:
-                      </span>
-                    </div>
-                    <div className="text-gray-300 text-xs mt-1 break-words">
-                      {msg.message}
-                    </div>
-                    {msg.tipAmount > 0 && (
-                      <div className="text-green-400 text-xs mt-1">
-                        💰 Tipped {msg.tipAmount} tokens
-                      </div>
-                    )}
-                  </div>
-                ))
-              )}
-              <div ref={chatEndRef} />
-            </div>
-          </ScrollArea>
+              </div>
 
-          {/* Chat Input */}
-          <div className="p-3 border-t border-slate-700">
-            <div className="flex space-x-2">
-              <Input
-                placeholder="Type a message..."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                className="flex-1 bg-slate-800 border-slate-600 text-white placeholder-gray-400 text-sm"
-              />
-              <Button
-                onClick={sendMessage}
-                size="sm"
-                disabled={!message.trim()}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
+              {/* Chat Messages */}
+              <ScrollArea className="flex-1 p-3">
+                <div className="space-y-2">
+                  {chatMessages.length === 0 ? (
+                    <div className="text-center text-gray-400 text-sm py-8">
+                      <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>No messages yet</p>
+                      <p className="text-xs">Chat will appear here when viewers send messages</p>
+                    </div>
+                  ) : (
+                    chatMessages.map((msg) => (
+                      <div key={msg.id} className="text-sm">
+                        <div className="flex items-start space-x-2">
+                          <span className={`font-medium text-xs ${
+                            msg.senderRole === 'creator' ? 'text-yellow-400' : 'text-blue-400'
+                          }`}>
+                            {msg.senderName}:
+                          </span>
+                        </div>
+                        <div className="text-gray-300 text-xs mt-1 break-words">
+                          {msg.message}
+                        </div>
+                        {msg.tipAmount > 0 && (
+                          <div className="text-green-400 text-xs mt-1">
+                            💰 Tipped {msg.tipAmount} tokens
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                  <div ref={chatEndRef} />
+                </div>
+              </ScrollArea>
+
+              {/* Chat Input */}
+              <div className="p-3 border-t border-slate-700">
+                <div className="flex space-x-2">
+                  <Input
+                    placeholder="Type a message..."
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                    className="flex-1 bg-slate-800 border-slate-600 text-white placeholder-gray-400 text-sm"
+                  />
+                  <Button
+                    onClick={sendMessage}
+                    size="sm"
+                    disabled={!message.trim()}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
