@@ -190,7 +190,10 @@ export function StreamChat({
                         {msg.senderName}
                       </span>
                       <span className="text-slate-500 text-xs">
-                        {new Date(msg.timestamp).toLocaleTimeString([], { 
+                        {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        }) : new Date().toLocaleTimeString([], { 
                           hour: '2-digit', 
                           minute: '2-digit' 
                         })}
