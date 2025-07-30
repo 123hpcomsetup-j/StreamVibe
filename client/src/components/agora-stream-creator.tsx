@@ -570,24 +570,48 @@ export default function AgoraStreamCreator({
   };
 
   const toggleVideo = async () => {
+    console.log('🎥 Toggle video button clicked:', { hasVideoTrack: !!videoTrackRef.current, currentState: isVideoOn });
     if (videoTrackRef.current) {
-      if (isVideoOn) {
-        await videoTrackRef.current.setEnabled(false);
-      } else {
-        await videoTrackRef.current.setEnabled(true);
+      try {
+        if (isVideoOn) {
+          console.log('🔴 Disabling video...');
+          await videoTrackRef.current.setEnabled(false);
+          console.log('✅ Video disabled');
+        } else {
+          console.log('🟢 Enabling video...');
+          await videoTrackRef.current.setEnabled(true);
+          console.log('✅ Video enabled');
+        }
+        setIsVideoOn(!isVideoOn);
+        console.log('🎥 Video state updated to:', !isVideoOn);
+      } catch (error) {
+        console.error('❌ Error toggling video:', error);
       }
-      setIsVideoOn(!isVideoOn);
+    } else {
+      console.error('❌ No video track available for toggle');
     }
   };
 
   const toggleAudio = async () => {
+    console.log('🎤 Toggle audio button clicked:', { hasAudioTrack: !!audioTrackRef.current, currentState: isAudioOn });
     if (audioTrackRef.current) {
-      if (isAudioOn) {
-        await audioTrackRef.current.setEnabled(false);
-      } else {
-        await audioTrackRef.current.setEnabled(true);
+      try {
+        if (isAudioOn) {
+          console.log('🔇 Disabling audio...');
+          await audioTrackRef.current.setEnabled(false);
+          console.log('✅ Audio disabled');
+        } else {
+          console.log('🔊 Enabling audio...');
+          await audioTrackRef.current.setEnabled(true);
+          console.log('✅ Audio enabled');
+        }
+        setIsAudioOn(!isAudioOn);
+        console.log('🎤 Audio state updated to:', !isAudioOn);
+      } catch (error) {
+        console.error('❌ Error toggling audio:', error);
       }
-      setIsAudioOn(!isAudioOn);
+    } else {
+      console.error('❌ No audio track available for toggle');
     }
   };
 
@@ -680,7 +704,7 @@ export default function AgoraStreamCreator({
               {isStreaming && (
                 <>
                   {/* Live Badge */}
-                  <div className="absolute top-4 left-4 z-10">
+                  <div className="absolute top-4 left-4 z-50">
                     <Badge variant="secondary" className="bg-red-600 text-white">
                       <div className="w-2 h-2 bg-white rounded-full animate-pulse mr-2"></div>
                       LIVE
@@ -688,12 +712,12 @@ export default function AgoraStreamCreator({
                   </div>
                   
                   {/* Stream Controls Overlay - Top Right */}
-                  <div className="absolute top-4 right-4 z-10 flex space-x-2">
+                  <div className="absolute top-4 right-4 z-50 flex space-x-2">
                     <Button
                       onClick={toggleVideo}
                       size="sm"
                       variant={isVideoOn ? "secondary" : "destructive"}
-                      className="h-8 w-8 p-0 bg-black/50 hover:bg-black/70 border-white/20"
+                      className="h-8 w-8 p-0 bg-black/50 hover:bg-black/70 border-white/20 cursor-pointer"
                     >
                       {isVideoOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
                     </Button>
@@ -701,14 +725,14 @@ export default function AgoraStreamCreator({
                       onClick={toggleAudio}
                       size="sm"
                       variant={isAudioOn ? "secondary" : "destructive"}
-                      className="h-8 w-8 p-0 bg-black/50 hover:bg-black/70 border-white/20"
+                      className="h-8 w-8 p-0 bg-black/50 hover:bg-black/70 border-white/20 cursor-pointer"
                     >
                       {isAudioOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
                     </Button>
                   </div>
                   
                   {/* Viewer Count - Top Center */}
-                  <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
+                  <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50">
                     <div className="bg-black/50 text-white px-3 py-1 rounded-full text-sm flex items-center">
                       <Users className="h-3 w-3 mr-1" />
                       {viewerCount} viewers
@@ -716,11 +740,11 @@ export default function AgoraStreamCreator({
                   </div>
                   
                   {/* Stop Stream Button - Bottom Center */}
-                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
+                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-50">
                     <Button
                       onClick={stopStreaming}
                       size="sm"
-                      className="bg-red-600/90 hover:bg-red-700 text-white px-4 py-2 h-8"
+                      className="bg-red-600/90 hover:bg-red-700 text-white px-4 py-2 h-8 cursor-pointer"
                     >
                       <Square className="h-3 w-3 mr-1" />
                       Stop Stream
