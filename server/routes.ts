@@ -28,6 +28,21 @@ declare global {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // JSON body parsing middleware
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
+  // Debug middleware to log all requests (after body parsing)
+  app.use((req, res, next) => {
+    if (req.url.includes('/login') || req.url.includes('/auth')) {
+      console.log(`🔍 REQUEST DEBUG: ${req.method} ${req.url}`);
+      console.log(`🔍 REQUEST HEADERS:`, JSON.stringify(req.headers, null, 2));
+      console.log(`🔍 REQUEST BODY:`, JSON.stringify(req.body, null, 2));
+      console.log(`🔍 SESSION ID:`, req.sessionID);
+    }
+    next();
+  });
+
   // Simple session setup with extended persistence - Development mode configuration
   app.use(session({
     secret: process.env.SESSION_SECRET || 'dev-secret-key',
@@ -42,6 +57,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year - persist until manual logout
     }
   }));
+
+
 
   // Auth routes
   app.use('/api/auth', authRoutes);
