@@ -91,13 +91,13 @@ export function StreamChat({
   };
 
   return (
-    <div className="h-full flex flex-col bg-slate-900">
+    <div className="h-full flex flex-col bg-white">
       {/* Chat Header */}
-      <div className="flex items-center justify-between p-4 border-b border-slate-700 bg-slate-800 flex-shrink-0">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white flex-shrink-0">
         <div className="flex items-center space-x-2">
-          <MessageCircle className="h-5 w-5 text-purple-400" />
-          <h3 className="text-white font-semibold text-sm">Live Chat</h3>
-          <span className="text-slate-400 text-xs">({messages.length})</span>
+          <MessageCircle className="h-5 w-5 text-blue-600" />
+          <h3 className="text-black font-semibold text-sm">Live Chat</h3>
+          <span className="text-gray-600 text-xs">({messages.length})</span>
         </div>
         
         <div className="flex items-center space-x-2">
@@ -106,38 +106,38 @@ export function StreamChat({
               {/* Tip Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" className="bg-yellow-600 hover:bg-yellow-700 text-white">
+                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
                     <Coins className="mr-1 h-3 w-3" />
                     Tip
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="bg-slate-800 border-slate-700">
+                <DropdownMenuContent className="bg-white border-gray-200">
                   <DropdownMenuItem 
                     onClick={() => onQuickTip(5)}
-                    className="text-white hover:bg-slate-700 cursor-pointer"
+                    className="text-black hover:bg-gray-100 cursor-pointer"
                   >
-                    <Coins className="mr-2 h-4 w-4 text-yellow-400" />
+                    <Coins className="mr-2 h-4 w-4 text-blue-600" />
                     5 Tokens
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => onQuickTip(10)}
-                    className="text-white hover:bg-slate-700 cursor-pointer"
+                    className="text-black hover:bg-gray-100 cursor-pointer"
                   >
-                    <Coins className="mr-2 h-4 w-4 text-yellow-400" />
+                    <Coins className="mr-2 h-4 w-4 text-blue-600" />
                     10 Tokens
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => onQuickTip(15)}
-                    className="text-white hover:bg-slate-700 cursor-pointer"
+                    className="text-black hover:bg-gray-100 cursor-pointer"
                   >
-                    <Coins className="mr-2 h-4 w-4 text-yellow-400" />
+                    <Coins className="mr-2 h-4 w-4 text-blue-600" />
                     15 Tokens
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => setShowCustomTipDialog(true)}
-                    className="text-white hover:bg-slate-700 cursor-pointer"
+                    className="text-black hover:bg-gray-100 cursor-pointer"
                   >
-                    <Gift className="mr-2 h-4 w-4 text-purple-400" />
+                    <Gift className="mr-2 h-4 w-4 text-blue-600" />
                     Custom Amount
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -146,7 +146,7 @@ export function StreamChat({
               <Button
                 onClick={onPrivateCall}
                 size="sm"
-                className="bg-pink-600 hover:bg-pink-700 text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Phone className="mr-1 h-3 w-3" />
                 Call
@@ -157,7 +157,7 @@ export function StreamChat({
               onClick={onLogin}
               size="sm"
               variant="outline"
-              className="border-slate-600 text-slate-400 hover:bg-slate-700"
+              className="border-gray-300 text-black hover:bg-gray-100"
             >
               <LogIn className="mr-1 h-3 w-3" />
               Login
@@ -171,7 +171,7 @@ export function StreamChat({
         <ScrollArea className="h-full">
           <div className="p-3 space-y-2" style={{ minHeight: '280px' }}>
             {messages.length === 0 ? (
-              <div className="text-center text-slate-400 py-8">
+              <div className="text-center text-gray-600 py-8">
                 <MessageCircle className="h-8 w-8 mx-auto mb-3 opacity-50" />
                 <p className="text-sm">No recent messages</p>
                 <p className="text-xs opacity-75">Start the conversation!</p>
@@ -179,24 +179,28 @@ export function StreamChat({
             ) : (
               <>
                 {messages.length >= 3 && (
-                  <div className="text-center text-slate-500 text-xs py-2 border-b border-slate-700 mb-2">
+                  <div className="text-center text-gray-500 text-xs py-2 border-b border-gray-200 mb-2">
                     Last 3 messages • Real-time updates
                   </div>
                 )}
                 {messages.map((msg, index) => (
-                <div key={msg.id || index} className="bg-slate-800 rounded-lg p-3 border border-slate-700">
+                <div key={msg.id || index} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                   <div className="flex flex-col space-y-1">
                     <div className="flex items-center justify-between">
                       <span className={`font-medium text-xs ${
                         msg.senderRole === 'creator' 
-                          ? 'text-yellow-400' 
+                          ? 'text-blue-600' 
                           : msg.senderRole === 'viewer'
-                          ? 'text-blue-400'
-                          : 'text-gray-400'
+                          ? 'text-blue-600'
+                          : msg.senderRole === 'admin'
+                          ? 'text-blue-600'
+                          : msg.senderRole === 'guest'
+                          ? 'text-gray-600'
+                          : 'text-gray-600'
                       }`}>
                         {msg.senderName}
                       </span>
-                      <span className="text-slate-500 text-xs">
+                      <span className="text-gray-500 text-xs">
                         {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { 
                           hour: '2-digit', 
                           minute: '2-digit' 
@@ -209,13 +213,13 @@ export function StreamChat({
                         })}
                       </span>
                     </div>
-                    <p className="text-slate-200 text-sm break-words leading-relaxed">
+                    <p className="text-black text-sm break-words leading-relaxed">
                       {msg.message}
                     </p>
                     {msg.tipAmount > 0 && (
-                      <div className="flex items-center mt-2 pt-2 border-t border-slate-600">
-                        <Coins className="h-3 w-3 text-yellow-400 mr-1" />
-                        <span className="text-yellow-400 text-xs font-bold">
+                      <div className="flex items-center mt-2 pt-2 border-t border-gray-300">
+                        <Coins className="h-3 w-3 text-blue-600 mr-1" />
+                        <span className="text-blue-600 text-xs font-bold">
                           Tipped {msg.tipAmount} tokens!
                         </span>
                       </div>
@@ -231,7 +235,7 @@ export function StreamChat({
       </div>
 
       {/* Message Input */}
-      <div className="p-3 border-t border-slate-700 bg-slate-800 flex-shrink-0">
+      <div className="p-3 border-t border-gray-200 bg-white flex-shrink-0">
         {isAuthenticated ? (
           <div className="flex space-x-2">
             <Input
@@ -239,25 +243,25 @@ export function StreamChat({
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Type a message..."
-              className="bg-slate-700 border-slate-600 text-white flex-1 text-sm"
+              className="bg-white border-gray-300 text-black flex-1 text-sm"
               disabled={sendMessageMutation.isPending || isLoading}
             />
             <Button 
               onClick={handleSendMessage}
               disabled={!newMessage.trim() || sendMessageMutation.isPending || isLoading}
               size="sm"
-              className="bg-purple-600 hover:bg-purple-700 px-3"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-3"
             >
               <Send className="h-4 w-4" />
             </Button>
           </div>
         ) : (
           <div className="text-center w-full">
-            <p className="text-slate-400 text-sm mb-2">Join the conversation</p>
+            <p className="text-gray-600 text-sm mb-2">Join the conversation</p>
             <Button 
               onClick={onLogin}
               size="sm"
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               <LogIn className="mr-2 h-4 w-4" />
               Login to Chat

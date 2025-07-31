@@ -580,7 +580,7 @@ export default function StreamView() {
           </div>
           
           {/* Chat Section - Below Video */}
-          <div className="h-[35vh] min-h-[400px] bg-slate-900 border-t border-slate-700">
+          <div className="h-[35vh] min-h-[400px] bg-white border-t border-gray-200">
             <StreamChat
               streamId={streamId!}
               messages={chatMessages}
@@ -596,7 +596,7 @@ export default function StreamView() {
 
         {/* Token Panel */}
         {showTokenPanel && (
-          <div className="w-80 bg-slate-900 border-l border-slate-700 flex flex-col">
+          <div className="w-80 bg-white border-l border-gray-200 flex flex-col">
             <StreamTokenPanel
               streamId={streamId!}
               creatorName={typedStream?.creator?.username || 'Creator'}
@@ -609,20 +609,20 @@ export default function StreamView() {
 
       {/* Login Modal */}
       <Dialog open={showLoginModal} onOpenChange={handleModalClose}>
-        <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-md">
+        <DialogContent className="bg-white border-gray-300 text-black max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center">
+            <DialogTitle className="text-black flex items-center">
               {viewingBlocked && (
-                <Lock className="mr-2 h-5 w-5 text-red-500" />
+                <Lock className="mr-2 h-5 w-5 text-blue-600" />
               )}
               {loginForm.isSignup ? (
                 <>
-                  <UserPlus className="mr-2 h-5 w-5 text-green-500" />
+                  <UserPlus className="mr-2 h-5 w-5 text-blue-600" />
                   Create Account
                 </>
               ) : (
                 <>
-                  <LogIn className="mr-2 h-5 w-5 text-blue-500" />
+                  <LogIn className="mr-2 h-5 w-5 text-blue-600" />
                   Login to StreamVibe
                 </>
               )}
@@ -630,8 +630,8 @@ export default function StreamView() {
           </DialogHeader>
           
           {viewingBlocked && (
-            <div className="bg-red-900/20 border border-red-700 rounded-lg p-3 mb-4">
-              <p className="text-red-200 text-sm">
+            <div className="bg-blue-50 border border-blue-300 rounded-lg p-3 mb-4">
+              <p className="text-blue-800 text-sm">
                 Your 2-minute trial has expired. Sign up now to continue watching unlimited streams!
               </p>
             </div>
@@ -642,21 +642,21 @@ export default function StreamView() {
               <>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-slate-300">First Name</Label>
+                    <Label className="text-gray-700">First Name</Label>
                     <Input
                       value={loginForm.firstName}
                       onChange={(e) => setLoginForm(prev => ({ ...prev, firstName: e.target.value }))}
-                      className="bg-slate-800 border-slate-600 text-white"
+                      className="bg-white border-gray-300 text-black"
                       placeholder="John"
                       required
                     />
                   </div>
                   <div>
-                    <Label className="text-slate-300">Last Name</Label>
+                    <Label className="text-gray-700">Last Name</Label>
                     <Input
                       value={loginForm.lastName}
                       onChange={(e) => setLoginForm(prev => ({ ...prev, lastName: e.target.value }))}
-                      className="bg-slate-800 border-slate-600 text-white"
+                      className="bg-white border-gray-300 text-black"
                       placeholder="Doe"
                       required
                     />
@@ -664,12 +664,12 @@ export default function StreamView() {
                 </div>
 
                 <div>
-                  <Label className="text-slate-300">Email (Optional)</Label>
+                  <Label className="text-gray-700">Email (Optional)</Label>
                   <Input
                     type="email"
                     value={loginForm.email}
                     onChange={(e) => setLoginForm(prev => ({ ...prev, email: e.target.value }))}
-                    className="bg-slate-800 border-slate-600 text-white"
+                    className="bg-white border-gray-300 text-black"
                     placeholder="john@example.com"
                   />
                 </div>
@@ -677,23 +677,23 @@ export default function StreamView() {
             )}
 
             <div>
-              <Label className="text-slate-300">Username</Label>
+              <Label className="text-gray-700">Username</Label>
               <Input
                 value={loginForm.username}
                 onChange={(e) => setLoginForm(prev => ({ ...prev, username: e.target.value }))}
-                className="bg-slate-800 border-slate-600 text-white"
+                className="bg-white border-gray-300 text-black"
                 placeholder="Enter username"
                 required
               />
             </div>
 
             <div>
-              <Label className="text-slate-300">Password</Label>
+              <Label className="text-gray-700">Password</Label>
               <Input
                 type="password"
                 value={loginForm.password}
                 onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
-                className="bg-slate-800 border-slate-600 text-white"
+                className="bg-white border-gray-300 text-black"
                 placeholder="Enter password"
                 required
               />
@@ -725,7 +725,7 @@ export default function StreamView() {
                   lastName: "",
                   email: ""
                 }))}
-                className="text-purple-400 hover:text-purple-300 text-sm"
+                className="text-blue-600 hover:text-blue-700 text-sm"
               >
                 {loginForm.isSignup ? "Already have an account? Login" : "Don't have an account? Sign up"}
               </button>
@@ -736,40 +736,40 @@ export default function StreamView() {
 
       {/* Private Call Request Dialog */}
       <Dialog open={showPrivateCallDialog} onOpenChange={setShowPrivateCallDialog}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="bg-white border-gray-300">
           <DialogHeader>
-            <DialogTitle className="text-xl flex items-center">
-              <Phone className="w-6 h-6 mr-2 text-pink-500" />
+            <DialogTitle className="text-xl flex items-center text-black">
+              <Phone className="w-6 h-6 mr-2 text-blue-600" />
               Request Private Call
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-gray-600">
               Send a private call request to {typedStream?.creator?.username || 'Creator'}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
-            <div className="bg-slate-700/50 p-4 rounded-lg">
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-slate-400">Cost per call</span>
-                <Badge variant="secondary" className="bg-pink-600">
+                <span className="text-sm text-gray-600">Cost per call</span>
+                <Badge variant="secondary" className="bg-blue-600 text-white">
                   <Coins className="w-3 h-3 mr-1" />
                   500 Tokens
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-400">Minimum duration</span>
-                <span className="text-sm text-white">5 minutes</span>
+                <span className="text-sm text-gray-600">Minimum duration</span>
+                <span className="text-sm text-black">5 minutes</span>
               </div>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="callMessage">Message (Optional)</Label>
+              <Label htmlFor="callMessage" className="text-gray-700">Message (Optional)</Label>
               <Input
                 id="callMessage"
                 placeholder="Say something to the creator..."
                 value={privateCallMessage}
                 onChange={(e) => setPrivateCallMessage(e.target.value)}
-                className="bg-slate-700 border-slate-600"
+                className="bg-white border-gray-300 text-black"
               />
             </div>
           </div>
