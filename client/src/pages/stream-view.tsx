@@ -51,6 +51,8 @@ export default function StreamView() {
   const [showCustomTipDialog, setShowCustomTipDialog] = useState(false);
   const [customTipAmount, setCustomTipAmount] = useState("");
   const [privateCallMessage, setPrivateCallMessage] = useState("");
+  const [creatorInPrivateCall, setCreatorInPrivateCall] = useState(false);
+  const [privateCallStatusMessage, setPrivateCallStatusMessage] = useState("");
   
   // Unauthorized user viewing restrictions
   const [viewingTimeLeft, setViewingTimeLeft] = useState(120); // 2 minutes = 120 seconds
@@ -186,6 +188,29 @@ export default function StreamView() {
         setTimeout(() => {
           chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }, 100);
+      });
+
+      // Listen for private call notifications
+      newSocket.on('creator-private-call-started', (data) => {
+        console.log('🔔 Creator went private:', data);
+        setCreatorInPrivateCall(true);
+        setPrivateCallStatusMessage(data.message || 'Creator is now in a private call');
+        toast({
+          title: "Stream Paused",
+          description: data.message || "Creator is in a private call. Stream will resume shortly.",
+          duration: 5000,
+        });
+      });
+
+      newSocket.on('creator-private-call-ended', (data) => {
+        console.log('🔔 Creator returned from private call:', data);
+        setCreatorInPrivateCall(false);
+        setPrivateCallStatusMessage('');
+        toast({
+          title: "Stream Resumed!",
+          description: data.message || "Creator is back! Stream has resumed.",
+          duration: 3000,
+        });
       });
 
       return () => {
@@ -621,6 +646,24 @@ export default function StreamView() {
                     </div>
                   </div>
                 </div>
+                
+                {/* Private Call Status Overlay */}
+                {creatorInPrivateCall && (
+                  <div className="absolute inset-0 bg-blue-600/30 backdrop-blur-sm z-30 flex items-center justify-center">
+                    <div className="bg-blue-600/90 text-white px-6 py-4 rounded-lg backdrop-blur-sm text-center">
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <Phone className="h-5 w-5 animate-pulse" />
+                        <span className="font-semibold">Creator in Private Call</span>
+                      </div>
+                      <p className="text-blue-100 text-sm">
+                        {privateCallStatusMessage || 'Stream temporarily paused'}
+                      </p>
+                      <p className="text-blue-200 text-xs mt-1">
+                        Stream will resume shortly
+                      </p>
+                    </div>
+                  </div>
+                )}
                 
 
               </>

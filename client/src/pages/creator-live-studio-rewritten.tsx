@@ -47,6 +47,8 @@ export default function CreatorLiveStudio() {
   const [privateCallRequests, setPrivateCallRequests] = useState<any[]>([]);
   const [showPrivateCallPopup, setShowPrivateCallPopup] = useState(false);
   const [currentRequest, setCurrentRequest] = useState<any>(null);
+  const [isInPrivateCall, setIsInPrivateCall] = useState(false);
+  const [privateCallChannel, setPrivateCallChannel] = useState<string | null>(null);
   
   // Chat refs
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -57,12 +59,23 @@ export default function CreatorLiveStudio() {
       const response = await apiRequest("PATCH", `/api/private-call-requests/${requestId}/accept`, {});
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       setShowPrivateCallPopup(false);
       setCurrentRequest(null);
+      setIsInPrivateCall(true);
+      setPrivateCallChannel(data.agoraChannelName);
+      
+      // Notify all viewers that creator is in private call
+      if (socket) {
+        socket.emit('creator-private-call-started', { 
+          streamId: streamId,
+          message: 'Creator is now in a private call. Stream will resume shortly.'
+        });
+      }
+      
       toast({
-        title: "Private Call Accepted!",
-        description: "The private call request has been approved.",
+        title: "Private Call Started!",
+        description: "Your public stream has been paused. Private call is now active.",
       });
     },
     onError: (error: Error) => {
@@ -85,6 +98,40 @@ export default function CreatorLiveStudio() {
       toast({
         title: "Request Declined",
         description: "The private call request has been declined.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const endPrivateCallMutation = useMutation({
+    mutationFn: async () => {
+      if (!privateCallChannel) return;
+      const response = await apiRequest("PATCH", `/api/private-call-requests/end`, {
+        agoraChannelName: privateCallChannel
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      setIsInPrivateCall(false);
+      setPrivateCallChannel(null);
+      
+      // Notify all viewers that creator is back
+      if (socket) {
+        socket.emit('creator-private-call-ended', { 
+          streamId: streamId,
+          message: 'Creator is back! Stream has resumed.'
+        });
+      }
+      
+      toast({
+        title: "Private Call Ended",
+        description: "You're back to public streaming!",
       });
     },
     onError: (error: Error) => {
@@ -131,9 +178,9 @@ export default function CreatorLiveStudio() {
             newSocket.emit('join-stream', { streamId });
           }
           // Join user-specific room for private call notifications
-          if (user?.id) {
-            newSocket.emit('join-user-room', { userId: user.id });
-            console.log(`🔔 Creator ${user.id} joined user room for private call notifications`);
+          if ((user as any)?.id) {
+            newSocket.emit('join-user-room', { userId: (user as any).id });
+            console.log(`🔔 Creator ${(user as any).id} joined user room for private call notifications`);
           }
         });
 
@@ -289,7 +336,7 @@ export default function CreatorLiveStudio() {
       <div className="flex-1 flex">
         <div className="flex-1 relative">
           {/* Stable Agora Streaming Component */}
-          {streamId ? (
+          {streamId && !isInPrivateCall ? (
             <StableAgoraStreaming
               streamId={streamId}
               onStreamEnd={() => {
@@ -298,6 +345,36 @@ export default function CreatorLiveStudio() {
               }}
               viewerCount={viewerCount}
             />
+          ) : streamId && isInPrivateCall && privateCallChannel ? (
+            <div className="relative">
+              <StableAgoraStreaming
+                streamId={privateCallChannel}
+                onStreamEnd={() => endPrivateCallMutation.mutate()}
+                viewerCount={1}
+              />
+              
+              {/* Private Call Status Overlay */}
+              <div className="absolute top-4 left-4 bg-blue-600/90 text-white px-4 py-2 rounded-lg backdrop-blur-sm z-20">
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 animate-pulse" />
+                  <span className="font-medium">Private Call Active</span>
+                </div>
+                <p className="text-xs text-blue-100">Public stream paused</p>
+              </div>
+              
+              {/* End Private Call Button */}
+              <div className="absolute top-4 right-4 z-20">
+                <Button
+                  onClick={() => endPrivateCallMutation.mutate()}
+                  disabled={endPrivateCallMutation.isPending}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  size="sm"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  End Private Call
+                </Button>
+              </div>
+            </div>
           ) : (
             <div className="relative h-[65vh] bg-black flex items-center justify-center">
               <div className="text-center text-white">
