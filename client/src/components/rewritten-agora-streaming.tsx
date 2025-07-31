@@ -85,11 +85,14 @@ export function RewrittenAgoraStreaming({ streamId, onStreamEnd, viewerCount }: 
 
           setDebugInfo(tokenData.debug);
 
-          // Test connection with this configuration
+          // Test connection with this configuration - use cleaned channel name from backend
           console.log(`🔗 Testing connection with: ${config.description}`);
+          const cleanedChannelName = tokenData.channelName || tokenData.debug?.cleanedChannelName;
+          console.log(`🔗 Using cleaned channel name: ${cleanedChannelName}`);
+          
           await client.join(
             tokenData.appId,
-            tokenData.channelName,
+            cleanedChannelName,
             tokenData.token,
             tokenData.uid
           );

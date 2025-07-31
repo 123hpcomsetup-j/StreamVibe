@@ -279,7 +279,6 @@ export default function AgoraStreamViewer({
       console.log('Original User ID:', userId);
       console.log('Numeric User ID:', numericUserId);
       console.log('Channel Name:', channelName);
-      console.log('App ID:', appId);
       
       // Get Agora token from backend with numeric ID
       const tokenResponse = await fetch('/api/agora/token', {
@@ -298,20 +297,22 @@ export default function AgoraStreamViewer({
         throw new Error('Failed to get Agora token');
       }
       
-      const { token, appId } = await tokenResponse.json();
+      const tokenData = await tokenResponse.json();
+      const { token, appId, channelName: cleanedChannelName } = tokenData;
       console.log('🔄 Using App ID from backend:', appId);
       console.log('Got Agora token (first 20 chars):', token.substring(0, 20) + '...');
       console.log('=== VIEWER JOIN ATTEMPT ===');
       console.log('- appId:', appId);
-      console.log('- channelName:', channelName);
+      console.log('- original channelName:', channelName);
+      console.log('- cleaned channelName from backend:', cleanedChannelName);
       console.log('- token (first 20):', token.substring(0, 20) + '...');
       console.log('- uid:', numericUserId);
       console.log('- streamId passed as prop:', streamId);
       console.log('- userId passed as prop:', userId);
       console.log('- username passed as prop:', username);
       
-      // Join the channel as viewer with proper authentication token and numeric ID
-      await clientRef.current.join(appId, channelName, token, numericUserId);
+      // CRITICAL FIX: Use the cleaned channel name from backend that matches the token
+      await clientRef.current.join(appId, cleanedChannelName, token, numericUserId);
       console.log('=== VIEWER JOIN SUCCESSFUL ===');
       console.log('👁️ VIEWER NOW LISTENING FOR CREATOR BROADCASTS...');
       console.log('📊 Current Agora client state:', {
@@ -377,11 +378,33 @@ export default function AgoraStreamViewer({
       });
 
     } catch (error: any) {
-      console.error("Failed to connect to stream:", error);
+      console.error("❌ STREAM CONNECTION FAILED:", error);
+      console.error("Error type:", typeof error);
+      console.error("Error name:", error?.name);
+      console.error("Error message:", error?.message);
+      console.error("Error code:", error?.code);
+      console.error("Full error object:", error);
+      
       setIsLoading(false);
+      
+      // Provide specific error messages based on error type
+      let errorMessage = "Unable to connect to the live stream. Please try again.";
+      
+      if (error?.message?.includes("invalid token")) {
+        errorMessage = "Authentication failed. Please refresh the page and try again.";
+      } else if (error?.message?.includes("network")) {
+        errorMessage = "Network connection issue. Please check your internet connection.";
+      } else if (error?.message?.includes("timeout")) {
+        errorMessage = "Connection timed out. The stream may not be available.";
+      } else if (error?.message?.includes("DYNAMIC_USE_STATIC_KEY")) {
+        errorMessage = "Stream authentication error. Please contact support.";
+      } else if (error?.code === "INVALID_OPERATION") {
+        errorMessage = "The stream is not currently available.";
+      }
+      
       toast({
         title: "Connection Failed",
-        description: "Unable to connect to the live stream. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
