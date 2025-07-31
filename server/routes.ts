@@ -205,6 +205,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.body.isLive !== undefined) {
         await storage.updateStreamStatus(streamId, req.body.isLive);
         console.log(`✅ Stream ${streamId} status updated to isLive: ${req.body.isLive}`);
+        
+        // Broadcast stream status change to all connected clients
+        io.emit('stream-status-change', {
+          streamId,
+          isLive: req.body.isLive,
+          action: req.body.isLive ? 'started' : 'ended'
+        });
+        console.log(`📡 Broadcasting stream ${req.body.isLive ? 'started' : 'ended'}: ${streamId}`);
       }
       
       const updatedStream = await storage.updateStream(streamId, req.body);
@@ -215,7 +223,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.json(updatedStream);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating stream:", error);
       res.status(400).json({ message: "Failed to update stream" });
     }
@@ -417,7 +425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           tokenLength: token.length
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Agora token generation error:', error);
       console.error('Error stack:', error.stack);
       res.status(500).json({ 
@@ -1050,7 +1058,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.status(201).json(chatMessage);
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Error sending chat message:", error);
       console.error("❌ Error stack:", error.stack);
       res.status(500).json({ message: "Failed to send chat message", error: error.message });
@@ -1258,7 +1266,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check user has enough tokens
       const wallet = await storage.getUserWallet(userId);
-      if (!wallet || (wallet.tokenBalance || 0) < creatorSettings.privateCallTokenPrice) {
+      const requiredTokens = creatorSettings.privateCallTokenPrice || 0;
+      if (!wallet || (wallet.tokenBalance || 0) < requiredTokens) {
         return res.status(400).json({ message: "Insufficient tokens for private call" });
       }
       
@@ -1272,7 +1281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         requesterId: userId,
         creatorId,
         streamId,
-        tokenAmount: creatorSettings.privateCallTokenPrice,
+        tokenAmount: requiredTokens,
         duration: creatorSettings.minimumCallDuration,
         requestMessage: requestMessage || '',
         status: 'pending'

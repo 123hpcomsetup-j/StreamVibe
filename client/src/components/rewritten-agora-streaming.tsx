@@ -144,6 +144,18 @@ export function RewrittenAgoraStreaming({ streamId, onStreamEnd, viewerCount }: 
       await setupRewrittenMediaTracks();
       setIsStreaming(true);
 
+      // Update backend stream status to live
+      try {
+        await fetch(`/api/streams/${streamId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isLive: true })
+        });
+        console.log('✅ Stream status updated to live in backend');
+      } catch (error) {
+        console.error('❌ Failed to update stream status:', error);
+      }
+
       toast({
         title: "Streaming Started Successfully",
         description: `Using ${successfulConfig.config.description} configuration`,
