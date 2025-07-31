@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { io, Socket } from 'socket.io-client';
 import StreamMessageOverlay from "@/components/stream-message-overlay";
-import { RewrittenAgoraStreaming } from "@/components/rewritten-agora-streaming";
+import { StableAgoraStreaming } from "@/components/stable-agora-streaming";
 
 interface ChatMessage {
   id: string;
@@ -211,9 +211,9 @@ export default function CreatorLiveStudio() {
       {/* Main Content */}
       <div className="flex-1 flex">
         <div className="flex-1 relative">
-          {/* Rewritten Agora Streaming Component */}
+          {/* Stable Agora Streaming Component */}
           {streamId ? (
-            <RewrittenAgoraStreaming
+            <StableAgoraStreaming
               streamId={streamId}
               onStreamEnd={() => {
                 setIsStreaming(false);

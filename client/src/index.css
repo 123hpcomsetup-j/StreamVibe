@@ -54,32 +54,38 @@
 
 /* Agora Video Full Screen Styling - 80% Viewport Height */
 
-/* Creator Video Container Styling for Self-View */
-.creator-video-container video {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  z-index: 1 !important;
-  background: black !important;
-  border-radius: 0 !important;
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
-/* Ensure video container has proper positioning */
+/* Enhanced Creator Video Container Styling - Anti-Black-Screen Protection */
 .creator-video-container {
   position: relative !important;
   overflow: hidden !important;
+  background-color: #000 !important;
+  border-radius: 8px !important;
 }
 
-/* Style any nested video elements from Agora SDK */
-.creator-video-container div video,
-.creator-video-container > div > video {
-  position: absolute !important;
+.creator-video-container video,
+.creator-video-container * video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  position: relative !important;
+  top: 0 !important;
+  left: 0 !important;
+  z-index: 1 !important;
+  background-color: #000 !important;
+  border-radius: 8px !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+}
+
+/* Target all possible Agora video element variations */
+.creator-video-container div[id*="agora"] video,
+.creator-video-container div[class*="agora"] video,
+.creator-video-container > div > video,
+.creator-video-container > div > div > video {
+  position: relative !important;
   top: 0 !important;
   left: 0 !important;
   width: 100% !important;
@@ -88,6 +94,9 @@
   object-fit: cover !important;
   display: block !important;
   visibility: visible !important;
+  opacity: 1 !important;
+  background-color: #000 !important;
+  border-radius: 8px !important;
 }
 .agora-video-container {
   height: 80vh !important;
