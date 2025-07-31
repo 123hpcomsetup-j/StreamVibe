@@ -1,33 +1,167 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Clear Browser Cache</title>
+    <title>Clear Browser Cache - StreamVibe</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 40px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: rgba(255,255,255,0.1);
+            padding: 40px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            text-align: center;
+            max-width: 600px;
+        }
+        h1 { margin-bottom: 20px; }
+        .instructions {
+            background: rgba(255,255,255,0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .step {
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+        .warning {
+            background: rgba(255,193,7,0.2);
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+    </style>
 </head>
 <body>
-    <h1>Clear Browser Cache Required</h1>
-    <p>The frontend environment variables are cached. Please:</p>
-    <ol>
-        <li>Press <strong>Ctrl+Shift+R</strong> (or Cmd+Shift+R on Mac) to hard refresh</li>
-        <li>Or open Developer Tools (F12) → Application tab → Clear Storage → Clear site data</li>
-    </ol>
-    
-    <button onclick="forceReload()">Force Reload</button>
-    
-    <script>
-        function forceReload() {
-            // Clear local storage and session storage
-            localStorage.clear();
-            sessionStorage.clear();
+    <div class="container">
+        <h1>🔄 Clear Browser Cache for Streaming</h1>
+        
+        <div class="warning">
+            <strong>⚠️ Important:</strong> To fix streaming authentication issues, you need to clear your browser cache.
+        </div>
+        
+        <div class="instructions">
+            <h3>Quick Fix Options:</h3>
             
-            // Force hard reload
-            window.location.reload(true);
+            <div class="step">
+                <strong>Option 1: Hard Refresh (Recommended)</strong><br>
+                Press <code>Ctrl + F5</code> (Windows/Linux) or <code>Cmd + Shift + R</code> (Mac)
+            </div>
+            
+            <div class="step">
+                <strong>Option 2: Incognito/Private Mode</strong><br>
+                Open a new incognito/private window and test streaming there
+            </div>
+            
+            <div class="step">
+                <strong>Option 3: Clear Cache Manually</strong><br>
+                • Press F12 to open Developer Tools<br>
+                • Right-click the refresh button<br>
+                • Select "Empty Cache and Hard Reload"
+            </div>
+        </div>
+        
+        <button onclick="testStreamingAfterClear()">Test Streaming After Cache Clear</button>
+        <button onclick="window.location.href='/'">Back to Home</button>
+        
+        <div id="test-results" style="margin-top: 20px;"></div>
+    </div>
+
+    <script>
+        async function testStreamingAfterClear() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '<p>🔄 Testing streaming authentication...</p>';
+            
+            try {
+                // Test backend token generation
+                const response = await fetch('/api/agora/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        channelName: 'cache-test-' + Date.now(),
+                        uid: 12345,
+                        role: 'host'
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultsDiv.innerHTML = `
+                        <div style="background: rgba(76,175,80,0.2); padding: 15px; border-radius: 10px; margin: 10px 0;">
+                            <p>✅ <strong>Success!</strong> Backend is working correctly.</p>
+                            <p>App ID: ${data.appId}</p>
+                            <p>If streaming still fails, try opening an incognito window.</p>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div style="background: rgba(244,67,54,0.2); padding: 15px; border-radius: 10px; margin: 10px 0;">
+                            <p>❌ Backend test failed: ${response.status}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div style="background: rgba(244,67,54,0.2); padding: 15px; border-radius: 10px; margin: 10px 0;">
+                        <p>❌ Error: ${error.message}</p>
+                    </div>
+                `;
+            }
         }
         
-        // Auto-clear on page load
-        setTimeout(() => {
-            console.log('Auto-clearing cache...');
-            forceReload();
-        }, 2000);
+        // Show cache clearing instructions based on browser
+        window.onload = function() {
+            const userAgent = navigator.userAgent;
+            let instructions = '';
+            
+            if (userAgent.includes('Chrome')) {
+                instructions = 'Chrome: Press Ctrl+Shift+Delete, select "Cached images and files", then click "Clear data"';
+            } else if (userAgent.includes('Firefox')) {
+                instructions = 'Firefox: Press Ctrl+Shift+Delete, check "Cache", then click "Clear Now"';
+            } else if (userAgent.includes('Safari')) {
+                instructions = 'Safari: Press Cmd+Option+E to empty cache, then Cmd+R to refresh';
+            } else if (userAgent.includes('Edge')) {
+                instructions = 'Edge: Press Ctrl+Shift+Delete, select "Cached images and files", then click "Clear now"';
+            }
+            
+            if (instructions) {
+                const instructionsDiv = document.querySelector('.instructions');
+                instructionsDiv.innerHTML += `
+                    <div class="step">
+                        <strong>Browser-Specific Instructions:</strong><br>
+                        ${instructions}
+                    </div>
+                `;
+            }
+        };
     </script>
 </body>
 </html>

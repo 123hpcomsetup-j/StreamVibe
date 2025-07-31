@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Complete Streaming Test</title>
+    <script src="https://download.agora.io/sdk/web/AgoraRTC_N-4.23.4.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .status { font-weight: bold; margin: 10px 0; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        button { padding: 10px 20px; margin: 5px; font-size: 16px; }
+        #video-container { width: 640px; height: 480px; background: #000; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>StreamVibe Complete Streaming Test</h1>
+    
+    <div class="test-section">
+        <h2>Backend Authentication Test</h2>
+        <button onclick="testBackendTokens()">Test Backend Token Generation</button>
+        <div id="backend-status" class="status">Ready to test...</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Creator Streaming Test</h2>
+        <button onclick="testCreatorStream()">Test Creator Broadcasting</button>
+        <div id="creator-status" class="status">Ready to test...</div>
+        <div id="video-container"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Viewer Connection Test</h2>
+        <button onclick="testViewerConnection()">Test Viewer Connection</button>
+        <div id="viewer-status" class="status">Ready to test...</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        let results = [];
+        
+        function addResult(test, status, message) {
+            results.push({ test, status, message, time: new Date().toLocaleTimeString() });
+            updateResults();
+        }
+        
+        function updateResults() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = results.map(r => 
+                `<div class="${r.status}">[${r.time}] ${r.test}: ${r.message}</div>`
+            ).join('');
+        }
+        
+        async function testBackendTokens() {
+            const statusDiv = document.getElementById('backend-status');
+            statusDiv.innerHTML = '<span class="info">Testing backend token generation...</span>';
+            
+            try {
+                // Test creator token
+                const creatorResponse = await fetch('/api/agora/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        channelName: 'test-channel-' + Date.now(),
+                        uid: 12345,
+                        role: 'host'
+                    })
+                });
+                
+                if (!creatorResponse.ok) {
+                    throw new Error('Creator token request failed: ' + creatorResponse.status);
+                }
+                
+                const creatorData = await creatorResponse.json();
+                addResult('Backend Tokens', 'success', `Creator token generated with App ID: ${creatorData.appId}`);
+                
+                // Test viewer token
+                const viewerResponse = await fetch('/api/agora/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        channelName: creatorData.channelName,
+                        uid: 67890,
+                        role: 'audience'
+                    })
+                });
+                
+                if (!viewerResponse.ok) {
+                    throw new Error('Viewer token request failed: ' + viewerResponse.status);
+                }
+                
+                const viewerData = await viewerResponse.json();
+                addResult('Backend Tokens', 'success', `Viewer token generated successfully`);
+                
+                statusDiv.innerHTML = '<span class="success">✅ Backend token generation working correctly!</span>';
+                
+            } catch (error) {
+                addResult('Backend Tokens', 'error', error.message);
+                statusDiv.innerHTML = '<span class="error">❌ Backend token generation failed: ' + error.message + '</span>';
+            }
+        }
+        
+        async function testCreatorStream() {
+            const statusDiv = document.getElementById('creator-status');
+            statusDiv.innerHTML = '<span class="info">Testing creator streaming...</span>';
+            
+            try {
+                const channelName = 'creator-test-' + Date.now();
+                const uid = Math.floor(Math.random() * 1000000);
+                
+                // Get token from backend
+                const tokenResponse = await fetch('/api/agora/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        channelName: channelName,
+                        uid: uid,
+                        role: 'host'
+                    })
+                });
+                
+                if (!tokenResponse.ok) {
+                    throw new Error('Token request failed: ' + tokenResponse.status);
+                }
+                
+                const tokenData = await tokenResponse.json();
+                addResult('Creator Stream', 'info', `Got token for channel: ${channelName}`);
+                
+                // Create Agora client
+                const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
+                client.setClientRole('host');
+                
+                // Join channel
+                addResult('Creator Stream', 'info', 'Attempting to join channel...');
+                await client.join(tokenData.appId, channelName, tokenData.token, uid);
+                addResult('Creator Stream', 'success', 'Successfully joined channel as creator!');
+                
+                // Test camera access (optional - might require user permission)
+                try {
+                    const localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+                    await client.publish([localVideoTrack]);
+                    addResult('Creator Stream', 'success', 'Camera access and publishing successful!');
+                    
+                    // Play video locally
+                    localVideoTrack.play('video-container');
+                    
+                    // Clean up after 3 seconds
+                    setTimeout(async () => {
+                        await client.unpublish([localVideoTrack]);
+                        localVideoTrack.close();
+                        await client.leave();
+                        addResult('Creator Stream', 'success', 'Creator stream test completed successfully!');
+                    }, 3000);
+                    
+                } catch (mediaError) {
+                    addResult('Creator Stream', 'info', 'Camera access skipped (requires user permission)');
+                    await client.leave();
+                }
+                
+                statusDiv.innerHTML = '<span class="success">✅ Creator streaming authentication working!</span>';
+                
+            } catch (error) {
+                addResult('Creator Stream', 'error', error.message);
+                statusDiv.innerHTML = '<span class="error">❌ Creator streaming failed: ' + error.message + '</span>';
+            }
+        }
+        
+        async function testViewerConnection() {
+            const statusDiv = document.getElementById('viewer-status');
+            statusDiv.innerHTML = '<span class="info">Testing viewer connection...</span>';
+            
+            try {
+                const channelName = 'viewer-test-' + Date.now();
+                const uid = Math.floor(Math.random() * 1000000);
+                
+                // Get token from backend
+                const tokenResponse = await fetch('/api/agora/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        channelName: channelName,
+                        uid: uid,
+                        role: 'audience'
+                    })
+                });
+                
+                if (!tokenResponse.ok) {
+                    throw new Error('Token request failed: ' + tokenResponse.status);
+                }
+                
+                const tokenData = await tokenResponse.json();
+                addResult('Viewer Connection', 'info', `Got viewer token for channel: ${channelName}`);
+                
+                // Create Agora client
+                const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
+                client.setClientRole('audience');
+                
+                // Join channel
+                addResult('Viewer Connection', 'info', 'Attempting to join channel as viewer...');
+                await client.join(tokenData.appId, channelName, tokenData.token, uid);
+                addResult('Viewer Connection', 'success', 'Successfully joined channel as viewer!');
+                
+                // Clean up
+                setTimeout(async () => {
+                    await client.leave();
+                    addResult('Viewer Connection', 'success', 'Viewer connection test completed successfully!');
+                }, 2000);
+                
+                statusDiv.innerHTML = '<span class="success">✅ Viewer connection authentication working!</span>';
+                
+            } catch (error) {
+                addResult('Viewer Connection', 'error', error.message);
+                statusDiv.innerHTML = '<span class="error">❌ Viewer connection failed: ' + error.message + '</span>';
+            }
+        }
+        
+        // Auto-run tests when page loads
+        window.onload = function() {
+            setTimeout(testBackendTokens, 1000);
+        };
+    </script>
+</body>
+</html>
