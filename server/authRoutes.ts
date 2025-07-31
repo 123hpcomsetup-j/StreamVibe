@@ -52,6 +52,10 @@ router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
 
+    console.log('🔐 LOGIN ATTEMPT - Username:', username);
+    console.log('🔐 LOGIN ATTEMPT - Session ID before login:', req.sessionID);
+    console.log('🔐 LOGIN ATTEMPT - Session data before login:', JSON.stringify(req.session, null, 2));
+
     if (!username || !password) {
       return res.status(400).json({ message: 'Username and password required' });
     }
@@ -59,23 +63,42 @@ router.post('/login', async (req, res) => {
     // Find user
     const user = await storage.getUserByUsername(username);
     if (!user || !user.password) {
+      console.log('❌ LOGIN FAILED - User not found or no password for:', username);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     // Verify password
     const isValid = await verifyPassword(password, user.password);
     if (!isValid) {
+      console.log('❌ LOGIN FAILED - Invalid password for:', username);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Set session
+    // Set session with explicit save
     (req.session as any).userId = user.id;
+    
+    // Force session save and wait for completion
+    await new Promise<void>((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) {
+          console.error('❌ SESSION SAVE ERROR:', err);
+          reject(err);
+        } else {
+          console.log('✅ SESSION SAVED successfully');
+          resolve();
+        }
+      });
+    });
+
+    console.log('✅ LOGIN SUCCESS - User ID:', user.id);
+    console.log('✅ LOGIN SUCCESS - Session ID after login:', req.sessionID);
+    console.log('✅ LOGIN SUCCESS - Session data after login:', JSON.stringify(req.session, null, 2));
 
     // Return user without password
     const { password: _, ...userWithoutPassword } = user;
     res.json(userWithoutPassword);
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('❌ Login error:', error);
     res.status(500).json({ message: 'Login failed' });
   }
 });
