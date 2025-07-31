@@ -202,7 +202,7 @@ export default function StreamView() {
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async (credentials: any) => {
-      const endpoint = loginForm.isSignup ? "/api/register" : "/api/login";
+      const endpoint = loginForm.isSignup ? "/api/auth/register" : "/api/auth/login";
       return await apiRequest("POST", endpoint, credentials);
     },
     onSuccess: () => {
