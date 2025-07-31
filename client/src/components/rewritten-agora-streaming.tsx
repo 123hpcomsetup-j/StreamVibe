@@ -266,22 +266,46 @@ export function RewrittenAgoraStreaming({ streamId, onStreamEnd, viewerCount }: 
 
         videoTrackRef.current = videoTrack;
         
-        // Enhanced video display
+        // Enhanced video display with persistent styling
         if (videoContainerRef.current) {
+          // Clear container and play video
           videoContainerRef.current.innerHTML = '';
           videoTrack.play(videoContainerRef.current);
           
-          // Apply consistent styling
-          setTimeout(() => {
+          // Apply styling immediately and set up persistent monitoring
+          const applyVideoStyling = () => {
             const videoElements = videoContainerRef.current?.querySelectorAll('video');
             videoElements?.forEach(video => {
-              video.style.width = '100%';
-              video.style.height = '100%';
-              video.style.objectFit = 'cover';
-              video.style.borderRadius = '8px';
-              video.style.backgroundColor = '#000';
+              video.style.cssText = `
+                width: 100% !important;
+                height: 100% !important;
+                object-fit: cover !important;
+                border-radius: 8px !important;
+                background-color: #000 !important;
+                position: relative !important;
+                z-index: 1 !important;
+                display: block !important;
+                visibility: visible !important;
+              `;
+              
+              // Ensure video is visible and playing
+              if (video.paused) {
+                video.play().catch(console.warn);
+              }
             });
-          }, 200);
+          };
+
+          // Apply styling immediately
+          setTimeout(applyVideoStyling, 100);
+          
+          // Monitor and reapply styling every 2 seconds to prevent black screen
+          const styleInterval = setInterval(() => {
+            if (videoContainerRef.current && isStreaming) {
+              applyVideoStyling();
+            } else {
+              clearInterval(styleInterval);
+            }
+          }, 2000);
         }
 
         await clientRef.current?.publish(videoTrack);
@@ -460,7 +484,7 @@ export function RewrittenAgoraStreaming({ streamId, onStreamEnd, viewerCount }: 
       <div className="relative bg-black rounded-lg overflow-hidden" style={{ height: '65vh' }}>
         <div 
           ref={videoContainerRef}
-          className="w-full h-full"
+          className="creator-video-container w-full h-full"
           style={{ minHeight: '400px' }}
         />
         
