@@ -431,23 +431,7 @@ export function StableAgoraStreaming({ streamId, onStreamEnd, viewerCount }: Sta
         </div>
       </div>
 
-      {/* Status Display */}
-      {isStreaming && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-green-800 font-medium">Stable Streaming Active</h3>
-              <p className="text-green-600 text-sm">
-                Status: {connectionState} • Viewers: {viewerCount} • High Quality Video
-              </p>
-            </div>
-            <div className="flex items-center gap-2 text-green-600">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-sm font-medium">LIVE</span>
-            </div>
-          </div>
-        </div>
-      )}
+      
     </div>
   );
 }
