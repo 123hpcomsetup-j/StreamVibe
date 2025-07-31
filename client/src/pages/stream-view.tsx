@@ -26,7 +26,10 @@ import {
   Gift,
   MessageCircle,
   Send,
-  Phone
+  Phone,
+  Video,
+  Search,
+  Menu
 } from "lucide-react";
 import type { User } from "@shared/schema";
 import AgoraStreamViewer from "@/components/agora-stream-viewer";
@@ -495,16 +498,33 @@ export default function StreamView() {
       {isAuthenticated && typedUser ? (
         <Navbar user={typedUser} />
       ) : (
-        <div className="border-b border-border">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <button
-                onClick={() => setLocation("/")}
-                className="text-2xl font-bold text-foreground hover:text-primary transition-colors"
-              >
-                StreamVibe
-              </button>
+        <nav className="bg-white border-b border-border sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
+            <div className="flex items-center justify-between h-14 sm:h-16">
+              <div className="flex items-center flex-1">
+                <div className="flex-shrink-0">
+                  <button
+                    onClick={() => setLocation("/")}
+                    className="flex items-center space-x-1.5 sm:space-x-2 cursor-pointer"
+                  >
+                    <Video className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-primary" />
+                    <span className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">StreamVibe</span>
+                  </button>
+                </div>
+                
+                {/* Desktop Search */}
+                <div className="hidden lg:block ml-6 xl:ml-10 flex-1 max-w-lg">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search streams, creators..."
+                      className="bg-background border-input focus:border-primary pl-10"
+                    />
+                  </div>
+                </div>
+              </div>
               
+              {/* Right side content */}
               <div className="flex items-center space-x-4">
                 {!isAuthenticated && !viewingBlocked && (
                   <div className="flex items-center space-x-2 bg-card px-3 py-2 rounded-lg border">
@@ -515,18 +535,46 @@ export default function StreamView() {
                   </div>
                 )}
                 
-                <Button 
-                  onClick={() => setShowLoginModal(true)}
-                  className="bg-primary hover:bg-primary/90"
-                  size="sm"
-                >
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Sign Up
-                </Button>
+                {/* Desktop Auth Buttons */}
+                <div className="hidden lg:flex items-center space-x-4">
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => {
+                      setLoginForm(prev => ({ ...prev, isSignup: false }));
+                      setShowLoginModal(true);
+                    }}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Login
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      setLoginForm(prev => ({ ...prev, isSignup: true }));
+                      setShowLoginModal(true);
+                    }}
+                    className="bg-primary hover:bg-primary/90"
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Sign Up
+                  </Button>
+                </div>
+                
+                {/* Mobile Menu Button */}
+                <div className="lg:hidden">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setShowLoginModal(true)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </nav>
       )}
 
       {/* Main Content */}
