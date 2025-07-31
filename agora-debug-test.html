@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Agora Streaming Debug Test</title>
+    <script src="https://download.agora.io/sdk/web/AgoraRTC_N-4.23.4.js"></script>
+</head>
+<body>
+    <h1>Agora Streaming Debug Test</h1>
+    <button onclick="testStreaming()">Test Streaming Now</button>
+    <div id="status">Ready to test...</div>
+    <div id="logs"></div>
+
+    <script>
+        let logs = [];
+        
+        function log(message) {
+            logs.push(new Date().toLocaleTimeString() + ': ' + message);
+            document.getElementById('logs').innerHTML = logs.map(l => '<div>' + l + '</div>').join('');
+            console.log(message);
+        }
+
+        async function testStreaming() {
+            const status = document.getElementById('status');
+            status.innerHTML = 'Testing streaming...';
+            
+            try {
+                log('🔄 Starting Agora stream test...');
+                
+                // Step 1: Get backend token
+                const channelName = 'test-' + Date.now();
+                const uid = Math.floor(Math.random() * 1000000);
+                
+                log('📋 Requesting token for channel: ' + channelName);
+                log('📋 Using UID: ' + uid);
+                
+                const tokenResponse = await fetch('/api/agora/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        channelName: channelName,
+                        uid: uid,
+                        role: 'host'
+                    })
+                });
+                
+                if (!tokenResponse.ok) {
+                    throw new Error('Token request failed: ' + tokenResponse.status);
+                }
+                
+                const tokenData = await tokenResponse.json();
+                log('✅ Token received from backend');
+                log('🔑 App ID from backend: ' + tokenData.appId);
+                log('🔑 Token (first 20 chars): ' + tokenData.token.substring(0, 20) + '...');
+                
+                // Step 2: Test Agora SDK connection
+                log('🔄 Creating Agora client...');
+                const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
+                client.setClientRole('host');
+                
+                log('🔄 Attempting to join channel...');
+                log('📋 Parameters:');
+                log('   - App ID: ' + tokenData.appId);
+                log('   - Channel: ' + channelName);
+                log('   - UID: ' + uid);
+                
+                await client.join(tokenData.appId, channelName, tokenData.token, uid);
+                
+                log('✅ SUCCESS! Agora connection established!');
+                status.innerHTML = '✅ Streaming authentication working correctly!';
+                
+                // Clean up
+                await client.leave();
+                log('✅ Test completed successfully');
+                
+            } catch (error) {
+                log('❌ Error: ' + error.message);
+                status.innerHTML = '❌ Error: ' + error.message;
+                console.error('Streaming test error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
