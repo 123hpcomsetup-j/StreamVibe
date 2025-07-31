@@ -100,14 +100,8 @@ export default function PublicHome() {
       // Invalidate auth queries to refresh user state
       await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       
-      // Immediate redirect based on user role
-      if (userData.role === 'admin') {
-        setLocation('/admin-panel');
-      } else if (userData.role === 'creator') {
-        setLocation('/creator-dashboard');
-      } else if (userData.role === 'viewer') {
-        setLocation('/user-dashboard');
-      }
+      // Wait for the auth state to update, then let the useEffect handle redirection
+      // The useEffect in this component will handle the redirect once user data is available
       
       // Reset form
       setAuthData({ username: "", password: "", confirmPassword: "", role: "viewer" });
