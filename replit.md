@@ -10,6 +10,9 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (July 30, 2025)
 
+**CUSTOM STREAM TITLES IMPLEMENTED - Professional Stream Setup Dialog (July 31, 2025):**
+Successfully implemented custom stream title functionality replacing generic "Live Stream" text with creator-defined titles. Added professional stream setup dialog in creator dashboard with title input field, category selection dropdown (Gaming, Art & Design, Music, Education, etc.), and validation requirements. Frontend components (public home page and user dashboard) already correctly display stream.title, so live streams now show actual stream names like "Gaming Session" or "Art Tutorial" instead of generic text. Enhanced "Go Live" workflow requires creators to set meaningful titles before streaming, improving stream discoverability and viewer engagement.
+
 **COMPLETE PRIVATE CALL REQUEST SYSTEM WITH REAL-TIME NOTIFICATIONS - Full Implementation (July 31, 2025):**
 Successfully implemented comprehensive private call request system with instant real-time pop-up notifications for creators. System features: WebSocket-powered instant notifications via user-specific rooms (user-${creatorId}), professional pop-up dialog with request details including requester name, token amount, duration, and custom message, accept/reject functionality with proper token deduction and refunds, real-time broadcasting to all stream participants when creator goes private or returns, Agora channel generation for private video calls, complete API endpoints for request creation, status management, and call lifecycle tracking. Creators now receive immediate pop-up notifications in their live studio when viewers request private calls, can accept or decline with single clicks, and all token transactions are handled automatically. System maintains blue/white/black theme consistency with professional UI design and comprehensive error handling.
 

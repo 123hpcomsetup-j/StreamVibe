@@ -4,6 +4,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/navbar";
 import { apiRequest } from "@/lib/queryClient";
@@ -39,6 +43,9 @@ export default function CreatorDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isStartingStream, setIsStartingStream] = useState(false);
+  const [showStreamSetup, setShowStreamSetup] = useState(false);
+  const [streamTitle, setStreamTitle] = useState("");
+  const [streamCategory, setStreamCategory] = useState("");
 
   // Get current stream
   const { data: currentStream } = useQuery<Stream>({
@@ -69,8 +76,8 @@ export default function CreatorDashboard() {
     mutationFn: async () => {
       setIsStartingStream(true);
       const response = await apiRequest("POST", "/api/streams", {
-        title: "Live Stream",
-        category: "General",
+        title: streamTitle || "Live Stream",
+        category: streamCategory || "General",
         isLive: true,
       });
       return response.json();
@@ -120,9 +127,30 @@ export default function CreatorDashboard() {
       // If already live, go to live studio
       window.location.href = `/creator-live-studio?streamId=${currentStream.id}`;
     } else {
-      // Start new stream
-      startStreamMutation.mutate();
+      // Show stream setup dialog
+      setShowStreamSetup(true);
     }
+  };
+
+  const handleStartStream = () => {
+    if (!streamTitle.trim()) {
+      toast({
+        title: "Stream Title Required",
+        description: "Please enter a title for your stream",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!streamCategory) {
+      toast({
+        title: "Category Required", 
+        description: "Please select a category for your stream",
+        variant: "destructive",
+      });
+      return;
+    }
+    setShowStreamSetup(false);
+    startStreamMutation.mutate();
   };
 
   const handleStopStream = () => {
@@ -339,6 +367,81 @@ export default function CreatorDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Stream Setup Dialog */}
+      <Dialog open={showStreamSetup} onOpenChange={setShowStreamSetup}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              <Video className="h-5 w-5" />
+              Set Up Your Live Stream
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Configure your stream details before going live
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="title" className="text-foreground">Stream Title *</Label>
+              <Input
+                id="title"
+                placeholder="e.g. Gaming Session, Art Tutorial, Music Practice..."
+                value={streamTitle}
+                onChange={(e) => setStreamTitle(e.target.value)}
+                className="bg-background border-border text-foreground"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="category" className="text-foreground">Category *</Label>
+              <Select value={streamCategory} onValueChange={setStreamCategory}>
+                <SelectTrigger className="bg-background border-border text-foreground">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Gaming">Gaming</SelectItem>
+                  <SelectItem value="Art & Design">Art & Design</SelectItem>
+                  <SelectItem value="Music">Music</SelectItem>
+                  <SelectItem value="Education">Education</SelectItem>
+                  <SelectItem value="Fitness">Fitness</SelectItem>
+                  <SelectItem value="Cooking">Cooking</SelectItem>
+                  <SelectItem value="Technology">Technology</SelectItem>
+                  <SelectItem value="Entertainment">Entertainment</SelectItem>
+                  <SelectItem value="General">General</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowStreamSetup(false)}
+              className="border-border text-foreground hover:bg-muted"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleStartStream}
+              disabled={startStreamMutation.isPending}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {startStreamMutation.isPending ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Starting...
+                </>
+              ) : (
+                <>
+                  <Video className="w-4 h-4 mr-2" />
+                  Start Stream
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
