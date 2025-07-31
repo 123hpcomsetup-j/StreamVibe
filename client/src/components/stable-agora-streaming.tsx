@@ -17,6 +17,7 @@ export function StableAgoraStreaming({ streamId, onStreamEnd, viewerCount }: Sta
   const [hasAudio, setHasAudio] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [connectionState, setConnectionState] = useState<string>('DISCONNECTED');
+  const [channelInfo, setChannelInfo] = useState<{channelName: string, uid: number} | null>(null);
   
   const clientRef = useRef<IAgoraRTCClient | null>(null);
   const videoTrackRef = useRef<ICameraVideoTrack | null>(null);
@@ -88,11 +89,14 @@ export function StableAgoraStreaming({ streamId, onStreamEnd, viewerCount }: Sta
         throw new Error('Failed to get streaming token');
       }
 
-      const { token } = await tokenResponse.json();
+      const { token, channelName: cleanChannelName, uid: validUid } = await tokenResponse.json();
 
-      // Join channel with proper authentication
-      await client.join(APP_ID, streamId, token);
-      console.log('✅ Successfully joined Agora channel');
+      // Store channel info for consistent usage
+      setChannelInfo({ channelName: cleanChannelName, uid: validUid });
+
+      // Join channel with proper authentication using cleaned channel name and validated UID
+      await client.join(APP_ID, cleanChannelName, token, validUid);
+      console.log('✅ Successfully joined Agora channel:', cleanChannelName, 'with UID:', validUid);
 
       // Setup media tracks with optimized settings
       await setupOptimizedMediaTracks();
