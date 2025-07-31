@@ -1,47 +1,63 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Simple Agora Test</title>
+    <title>Agora Simple Test</title>
     <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N-4.20.2.js"></script>
 </head>
 <body>
-    <h1>Simple Agora Test</h1>
-    <button onclick="testAgora()">Test Agora Connection</button>
+    <h1>Agora Authentication Test</h1>
+    <button onclick="testCredentials()">Test New Credentials</button>
+    <div id="status"></div>
     <div id="result"></div>
-    
+
     <script>
-        async function testAgora() {
+        async function testCredentials() {
+            const status = document.getElementById('status');
             const result = document.getElementById('result');
+            
+            status.innerHTML = 'Testing backend credentials...';
+            result.innerHTML = '';
+            
             try {
-                result.innerHTML = 'Testing...';
-                
-                // Get token
+                // Test backend token generation
                 const response = await fetch('/api/agora/token', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        channelName: 'test-channel',
-                        uid: 0,
+                        channelName: 'test-channel-' + Date.now(),
+                        uid: 99999,
                         role: 'host'
                     })
                 });
                 
-                const { token } = await response.json();
-                result.innerHTML = 'Token received: ' + token.substring(0, 20) + '...';
+                if (!response.ok) {
+                    throw new Error('Backend token generation failed');
+                }
                 
-                // Try to create client
+                const data = await response.json();
+                status.innerHTML = '✅ Backend token generated successfully!';
+                result.innerHTML = `
+                    <p><strong>App ID:</strong> ${data.appId}</p>
+                    <p><strong>Token:</strong> ${data.token.substring(0, 50)}...</p>
+                    <p><strong>Channel:</strong> ${data.channelName}</p>
+                `;
+                
+                // Test Agora SDK connection
+                status.innerHTML += '<br>Testing Agora SDK connection...';
+                
                 const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
-                result.innerHTML += '<br>Client created successfully!';
+                client.setClientRole('host');
                 
-                // Try to join
-                await client.join('36411769f91e457a88f142921fbf5c93', 'test-channel', token, 0);
-                result.innerHTML += '<br>✅ SUCCESS! Joined channel!';
+                await client.join(data.appId, data.channelName, data.token, data.uid);
+                
+                status.innerHTML += '<br>✅ SUCCESS! Agora authentication now working!';
+                result.innerHTML += '<p style="color: green;"><strong>Status:</strong> Authentication successful</p>';
                 
                 await client.leave();
                 
             } catch (error) {
-                result.innerHTML = '❌ ERROR: ' + error.message;
-                console.error(error);
+                status.innerHTML += '<br>❌ Error: ' + error.message;
+                result.innerHTML += '<p style="color: red;"><strong>Error:</strong> ' + error.message + '</p>';
             }
         }
     </script>

@@ -143,11 +143,13 @@ export default function CreatorLiveStudio() {
         })
       });
 
-      const { token } = await tokenResponse.json();
+      const { token, appId } = await tokenResponse.json();
+
+      console.log('🔄 Using App ID from backend:', appId);
 
       // Join channel
       await clientRef.current.join(
-        import.meta.env.VITE_AGORA_APP_ID,
+        appId,
         streamId,
         token,
         Math.floor(Math.random() * 1000000000)

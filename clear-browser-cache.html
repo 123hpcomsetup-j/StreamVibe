@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Browser Cache</title>
+</head>
+<body>
+    <h1>Clear Browser Cache Required</h1>
+    <p>The frontend environment variables are cached. Please:</p>
+    <ol>
+        <li>Press <strong>Ctrl+Shift+R</strong> (or Cmd+Shift+R on Mac) to hard refresh</li>
+        <li>Or open Developer Tools (F12) → Application tab → Clear Storage → Clear site data</li>
+    </ol>
+    
+    <button onclick="forceReload()">Force Reload</button>
+    
+    <script>
+        function forceReload() {
+            // Clear local storage and session storage
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            // Force hard reload
+            window.location.reload(true);
+        }
+        
+        // Auto-clear on page load
+        setTimeout(() => {
+            console.log('Auto-clearing cache...');
+            forceReload();
+        }, 2000);
+    </script>
+</body>
+</html>

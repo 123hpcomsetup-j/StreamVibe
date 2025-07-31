@@ -253,17 +253,7 @@ export default function AgoraStreamViewer({
     try {
       setIsLoading(true);
       
-      // Check if we have Agora App ID
-      const appId = import.meta.env.VITE_AGORA_APP_ID;
-      if (!appId) {
-        toast({
-          title: "Configuration Error",
-          description: "Agora App ID not configured. Please contact support.",
-          variant: "destructive",
-        });
-        setIsLoading(false);
-        return;
-      }
+      // Get App ID from backend to avoid cached environment variables
 
       // Use exact same channel name format as creator - keep original streamId format
       let channelName = streamId;
@@ -308,7 +298,8 @@ export default function AgoraStreamViewer({
         throw new Error('Failed to get Agora token');
       }
       
-      const { token } = await tokenResponse.json();
+      const { token, appId } = await tokenResponse.json();
+      console.log('🔄 Using App ID from backend:', appId);
       console.log('Got Agora token (first 20 chars):', token.substring(0, 20) + '...');
       console.log('=== VIEWER JOIN ATTEMPT ===');
       console.log('- appId:', appId);
