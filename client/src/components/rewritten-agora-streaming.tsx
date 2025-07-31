@@ -137,7 +137,7 @@ export function RewrittenAgoraStreaming({ streamId, onStreamEnd, viewerCount }: 
 
       successfulConfig.client.on('exception', (evt) => {
         console.error('🚨 Client exception:', evt);
-        setError(`Streaming error: ${evt.reason}`);
+        setError(`Streaming error: ${evt.msg}`);
       });
 
       // Setup media tracks
@@ -538,10 +538,9 @@ export function RewrittenAgoraStreaming({ streamId, onStreamEnd, viewerCount }: 
             onClick={endStream}
             variant="destructive"
             size="sm"
-            className="bg-red-600 hover:bg-red-700"
+            className="bg-red-600/70 hover:bg-red-700/90"
           >
-            <StopCircle className="w-4 h-4 mr-2" />
-            End Stream
+            <StopCircle className="w-4 h-4" />
           </Button>
         </div>
       </div>
