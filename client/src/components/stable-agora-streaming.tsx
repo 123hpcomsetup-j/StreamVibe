@@ -104,6 +104,7 @@ export function StableAgoraStreaming({ streamId, onStreamEnd, viewerCount }: Sta
       // Update stream status to live
       await updateStreamStatus(true);
 
+      console.log('🎯 Setting isStreaming to true - stop stream button should now be visible');
       setIsStreaming(true);
       setConnectionState('CONNECTED');
 
@@ -395,13 +396,26 @@ export function StableAgoraStreaming({ streamId, onStreamEnd, viewerCount }: Sta
           )}
         </div>
 
-        {/* Media Controls */}
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-3">
+        {/* STOP STREAM Button - Top Right for Maximum Visibility */}
+        <div className="absolute top-4 left-4 z-50">
+          <Button
+            onClick={endStream}
+            variant="destructive"
+            size="lg"
+            className="bg-red-600 hover:bg-red-700 text-white border-0 shadow-lg font-semibold"
+          >
+            <StopCircle className="w-5 h-5 mr-2" />
+            STOP STREAM
+          </Button>
+        </div>
+
+        {/* Media Controls - Bottom Center */}
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-3 z-50">
           <Button
             onClick={toggleVideo}
             variant={hasVideo ? "default" : "destructive"}
             size="sm"
-            className="bg-black/70 hover:bg-black/90"
+            className="bg-black/70 hover:bg-black/90 text-white border-0"
           >
             {hasVideo ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
           </Button>
@@ -410,19 +424,9 @@ export function StableAgoraStreaming({ streamId, onStreamEnd, viewerCount }: Sta
             onClick={toggleAudio}
             variant={hasAudio ? "default" : "destructive"}
             size="sm"
-            className="bg-black/70 hover:bg-black/90"
+            className="bg-black/70 hover:bg-black/90 text-white border-0"
           >
             {hasAudio ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
-          </Button>
-          
-          <Button
-            onClick={endStream}
-            variant="destructive"
-            size="sm"
-            className="bg-red-600 hover:bg-red-700"
-          >
-            <StopCircle className="w-4 h-4 mr-2" />
-            End Stream
           </Button>
         </div>
       </div>
