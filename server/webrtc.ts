@@ -254,6 +254,13 @@ export function setupWebRTC(server: Server) {
       }
     });
 
+    // Join user room for private call notifications
+    socket.on('join-user-room', (data: { userId: string }) => {
+      const { userId } = data;
+      socket.join(`user-${userId}`);
+      console.log(`✅ Socket ${socket.id} joined user room: user-${userId}`);
+    });
+
     // Join stream handler for chat
     socket.on('join-stream', async (data: { streamId: string, userId: string }) => {
       const { streamId, userId } = data;

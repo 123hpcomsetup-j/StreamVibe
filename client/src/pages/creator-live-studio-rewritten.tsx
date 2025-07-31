@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Users, MessageCircle, Send, Video } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Users, MessageCircle, Send, Video, Phone, Check, X, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { io, Socket } from 'socket.io-client';
 import StreamMessageOverlay from "@/components/stream-message-overlay";
 import { StableAgoraStreaming } from "@/components/stable-agora-streaming";
@@ -26,6 +28,7 @@ export default function CreatorLiveStudio() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // Get stream ID from URL params
   const urlParams = new URLSearchParams(window.location.search);
@@ -40,8 +43,58 @@ export default function CreatorLiveStudio() {
   const [message, setMessage] = useState("");
   const [socket, setSocket] = useState<Socket | null>(null);
   
+  // Private call request notifications
+  const [privateCallRequests, setPrivateCallRequests] = useState<any[]>([]);
+  const [showPrivateCallPopup, setShowPrivateCallPopup] = useState(false);
+  const [currentRequest, setCurrentRequest] = useState<any>(null);
+  
   // Chat refs
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Private call request handling mutations
+  const acceptRequestMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      const response = await apiRequest("PATCH", `/api/private-call-requests/${requestId}/accept`, {});
+      return response.json();
+    },
+    onSuccess: () => {
+      setShowPrivateCallPopup(false);
+      setCurrentRequest(null);
+      toast({
+        title: "Private Call Accepted!",
+        description: "The private call request has been approved.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const rejectRequestMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      const response = await apiRequest("PATCH", `/api/private-call-requests/${requestId}/reject`, {});
+      return response.json();
+    },
+    onSuccess: () => {
+      setShowPrivateCallPopup(false);
+      setCurrentRequest(null);
+      toast({
+        title: "Request Declined",
+        description: "The private call request has been declined.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
 
   // Fetch current stream data
   const { data: currentStream } = useQuery({
@@ -77,6 +130,11 @@ export default function CreatorLiveStudio() {
           if (streamId) {
             newSocket.emit('join-stream', { streamId });
           }
+          // Join user-specific room for private call notifications
+          if (user?.id) {
+            newSocket.emit('join-user-room', { userId: user.id });
+            console.log(`🔔 Creator ${user.id} joined user room for private call notifications`);
+          }
         });
 
         newSocket.on('disconnect', () => {
@@ -100,6 +158,21 @@ export default function CreatorLiveStudio() {
             createdAt: new Date().toISOString()
           };
           setChatMessages(prev => [...prev.slice(-5), newMessage]);
+        });
+
+        // Listen for private call requests
+        newSocket.on('private-call-request', (data) => {
+          console.log('🔔 Private call request received:', data);
+          setCurrentRequest(data);
+          setShowPrivateCallPopup(true);
+          setPrivateCallRequests(prev => [data, ...prev]);
+          
+          // Show toast notification
+          toast({
+            title: "Private Call Request!",
+            description: `${data.requesterName} wants a private call (${data.tokenAmount} tokens)`,
+            duration: 10000,
+          });
         });
 
         setSocket(newSocket);
@@ -306,6 +379,74 @@ export default function CreatorLiveStudio() {
           </div>
         </div>
       </div>
+
+      {/* Private Call Request Pop-up Dialog */}
+      <Dialog open={showPrivateCallPopup} onOpenChange={setShowPrivateCallPopup}>
+        <DialogContent className="bg-white border border-blue-200 shadow-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-blue-800">
+              <Phone className="h-5 w-5" />
+              Private Call Request
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">
+              You have received a private call request
+            </DialogDescription>
+          </DialogHeader>
+          
+          {currentRequest && (
+            <div className="space-y-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center">
+                    <User className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-800">{currentRequest.requesterName}</p>
+                    <p className="text-sm text-gray-600">wants a private call</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Coins className="h-4 w-4 text-yellow-600" />
+                    <span className="text-gray-700">{currentRequest.tokenAmount} tokens</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Video className="h-4 w-4 text-blue-600" />
+                    <span className="text-gray-700">{currentRequest.duration || 10} minutes</span>
+                  </div>
+                </div>
+                
+                {currentRequest.message && (
+                  <div className="mt-3 p-3 bg-white rounded border">
+                    <p className="text-sm text-gray-700">{currentRequest.message}</p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => acceptRequestMutation.mutate(currentRequest.requestId)}
+                  disabled={acceptRequestMutation.isPending}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Accept Call
+                </Button>
+                <Button
+                  onClick={() => rejectRequestMutation.mutate(currentRequest.requestId)}
+                  disabled={rejectRequestMutation.isPending}
+                  variant="outline"
+                  className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Decline
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
