@@ -28,16 +28,18 @@ declare global {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Simple session setup with extended persistence
+  // Simple session setup with extended persistence - Development mode configuration
   app.use(session({
     secret: process.env.SESSION_SECRET || 'dev-secret-key',
+    name: 'connect.sid', // Use default session name
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true, // Create session for anonymous users
     rolling: true, // Reset session expiry on each request
     cookie: {
-      httpOnly: true,
-      secure: false, // Set to true in production with HTTPS
-      maxAge: 365 * 24 * 60 * 60 * 1000 // 1 year - persist until manual logout
+      httpOnly: false, // Allow JavaScript access for debugging
+      secure: false, // Always false in development
+      sameSite: 'none', // Most permissive for development
+      maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year - persist until manual logout
     }
   }));
 
