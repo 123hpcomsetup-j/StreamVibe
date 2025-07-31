@@ -244,7 +244,11 @@ export default function CreatorLiveStudio() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Stream Message Overlay */}
-      <StreamMessageOverlay />
+      <StreamMessageOverlay 
+        streamId={streamId || ''}
+        creatorName={(user as any)?.username || 'Creator'}
+        stream={currentStream}
+      />
       
       {/* Header */}
       <div className="bg-card border-b border-border p-4">
@@ -340,7 +344,11 @@ export default function CreatorLiveStudio() {
                       <div key={msg.id} className="text-sm">
                         <div className="flex items-start space-x-2">
                           <span className={`font-medium text-xs ${
-                            msg.senderRole === 'creator' ? 'text-primary' : 'text-primary'
+                            msg.senderRole === 'creator' ? 'text-yellow-600' : 
+                            msg.senderRole === 'viewer' ? 'text-blue-600' :
+                            msg.senderRole === 'admin' ? 'text-red-600' :
+                            msg.senderRole === 'guest' ? 'text-green-600' :
+                            'text-gray-600'
                           }`}>
                             {msg.senderName}:
                           </span>
@@ -349,8 +357,8 @@ export default function CreatorLiveStudio() {
                           {msg.message}
                         </div>
                         {msg.tipAmount > 0 && (
-                          <div className="text-primary text-xs mt-1">
-                            💰 Tipped {msg.tipAmount} tokens
+                          <div className="text-yellow-600 text-xs mt-1 font-medium">
+                            🪙 Tipped {msg.tipAmount} tokens
                           </div>
                         )}
                       </div>
@@ -398,7 +406,7 @@ export default function CreatorLiveStudio() {
               <div className="bg-blue-50 p-4 rounded-lg">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center">
-                    <User className="h-5 w-5" />
+                    <Users className="h-5 w-5" />
                   </div>
                   <div>
                     <p className="font-semibold text-gray-800">{currentRequest.requesterName}</p>
