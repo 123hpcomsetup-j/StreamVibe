@@ -96,7 +96,12 @@ export default function PublicHome() {
         description: "You have successfully logged in.",
       });
       setShowAuthDialog(false);
-      window.location.reload();
+      
+      // Invalidate auth queries to refresh user state instead of page reload
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      
+      // Reset form
+      setAuthData({ username: "", password: "", confirmPassword: "", role: "viewer" });
     },
     onError: (error: any) => {
       toast({
