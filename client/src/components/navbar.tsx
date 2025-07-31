@@ -199,9 +199,9 @@ export default function Navbar({ user }: NavbarProps) {
               <Input 
                 type="text" 
                 placeholder="Search creators..." 
-                className={`${theme.searchBg} ${theme.searchBorder} rounded-lg px-3 py-2 w-48 xl:w-64 focus:outline-none ${theme.searchFocus} pr-9 text-sm text-white placeholder-${user?.role === 'creator' ? 'purple' : user?.role === 'viewer' ? 'blue' : 'slate'}-300`}
+                className={`${theme.searchBg} ${theme.searchBorder} rounded-lg px-3 py-2 w-48 xl:w-64 focus:outline-none ${theme.searchFocus} pr-9 text-sm placeholder-muted-foreground`}
               />
-              <Search className={`absolute right-2.5 top-2.5 h-4 w-4 ${user?.role === 'creator' ? 'text-purple-300' : user?.role === 'viewer' ? 'text-blue-300' : 'text-slate-400'}`} />
+              <Search className="absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             </div>
             
             {/* Wallet Balance - Responsive & Clickable */}
@@ -340,64 +340,64 @@ export default function Navbar({ user }: NavbarProps) {
 
       {/* Buy Tokens Modal */}
       <Dialog open={showBuyTokens} onOpenChange={setShowBuyTokens}>
-        <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-md">
+        <DialogContent className="bg-white border-border text-foreground max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center">
-              <ShoppingCart className="mr-2 h-5 w-5 text-green-500" />
+            <DialogTitle className="text-foreground flex items-center">
+              <ShoppingCart className="mr-2 h-5 w-5 text-primary" />
               Buy Tokens
             </DialogTitle>
           </DialogHeader>
           
           <form onSubmit={handleBuyTokens} className="space-y-4">
-            <div className="bg-slate-800/50 rounded-lg p-4 mb-4">
+            <div className="bg-muted/30 rounded-lg p-4 mb-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-slate-300">Current Balance</span>
+                <span className="text-muted-foreground">Current Balance</span>
                 <div className="flex items-center space-x-1">
-                  <Coins className="h-4 w-4 text-yellow-400" />
-                  <span className="font-bold text-white">{currentBalance} tokens</span>
+                  <Coins className="h-4 w-4 text-primary" />
+                  <span className="font-bold text-foreground">{currentBalance} tokens</span>
                 </div>
               </div>
             </div>
 
             {upiConfig && (
-              <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-3 mb-4">
-                <h4 className="text-blue-200 font-medium mb-2">Payment Details</h4>
+              <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 mb-4">
+                <h4 className="text-primary font-medium mb-2">Payment Details</h4>
                 <div className="space-y-1 text-sm">
-                  <div><span className="text-slate-400">UPI ID:</span> <span className="text-blue-300 font-mono">{(upiConfig as any).upiId}</span></div>
-                  <div><span className="text-slate-400">Name:</span> <span className="text-blue-300">{(upiConfig as any).recipientName}</span></div>
-                  <div><span className="text-slate-400">Rate:</span> <span className="text-green-400">₹{(upiConfig as any).ratePerToken} per token</span></div>
+                  <div><span className="text-muted-foreground">UPI ID:</span> <span className="text-primary font-mono">{(upiConfig as any).upiId}</span></div>
+                  <div><span className="text-muted-foreground">Name:</span> <span className="text-primary">{(upiConfig as any).recipientName}</span></div>
+                  <div><span className="text-muted-foreground">Rate:</span> <span className="text-primary">₹{(upiConfig as any).ratePerToken} per token</span></div>
                 </div>
               </div>
             )}
 
             <div>
-              <Label className="text-slate-300">Token Amount</Label>
+              <Label className="text-foreground">Token Amount</Label>
               <Input
                 type="number"
                 value={tokenAmount}
                 onChange={(e) => setTokenAmount(e.target.value)}
-                className="bg-slate-800 border-slate-600 text-white"
+                className="bg-background border-border text-foreground"
                 placeholder="Enter number of tokens"
                 min="1"
                 required
               />
               {tokenAmount && upiConfig && (
-                <p className="text-sm text-slate-400 mt-1">
-                  Total: ₹{(parseInt(tokenAmount) || 0) * (upiConfig as any).ratePerToken}
+                <p className="text-sm text-muted-foreground mt-1">
+                  Total: ₹{(parseInt(tokenAmount) || 0) * ((upiConfig as any).ratePerToken || 1)}
                 </p>
               )}
             </div>
 
             <div>
-              <Label className="text-slate-300">UPI Transaction Reference (UTR)</Label>
+              <Label className="text-foreground">UPI Transaction Reference (UTR)</Label>
               <Input
                 value={utrNumber}
                 onChange={(e) => setUtrNumber(e.target.value)}
-                className="bg-slate-800 border-slate-600 text-white"
+                className="bg-background border-border text-foreground"
                 placeholder="Enter UTR number after payment"
                 required
               />
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Complete the UPI payment first, then enter the transaction reference number here
               </p>
             </div>
@@ -407,14 +407,14 @@ export default function Navbar({ user }: NavbarProps) {
                 type="button"
                 variant="outline"
                 onClick={() => setShowBuyTokens(false)}
-                className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-800"
+                className="flex-1"
               >
                 Cancel
               </Button>
               <Button 
                 type="submit"
                 disabled={purchaseMutation.isPending}
-                className="flex-1 bg-green-600 hover:bg-green-700"
+                className="flex-1"
               >
                 {purchaseMutation.isPending ? "Submitting..." : "Submit Request"}
               </Button>

@@ -424,31 +424,31 @@ export default function UserDashboard() {
                       
                       {/* Stream Info */}
                       <div className="p-4">
-                        <h4 className="font-semibold text-lg mb-2 line-clamp-1 group-hover:text-purple-400 transition-colors">
+                        <h4 className="font-semibold text-lg mb-2 line-clamp-1 group-hover:text-primary transition-colors">
                           {stream.title}
                         </h4>
                         
                         <div className="flex items-center justify-between mb-3">
-                          <span className="text-sm text-slate-400">
-                            by <span className="text-purple-400 font-medium">
+                          <span className="text-sm text-muted-foreground">
+                            by <span className="text-primary font-medium">
                               {stream.creatorFirstName && stream.creatorLastName 
                                 ? `${stream.creatorFirstName} ${stream.creatorLastName}` 
                                 : stream.creatorName}
                             </span>
                           </span>
-                          <Badge variant="outline" className="text-xs border-purple-600 text-purple-400">
+                          <Badge variant="outline" className="text-xs border-primary text-primary">
                             {stream.category}
                           </Badge>
                         </div>
                         
                         {/* Token Info */}
-                        <div className="flex items-center justify-between text-xs text-slate-400 mb-4">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
                           <span className="flex items-center">
-                            <Coins className="w-3 h-3 mr-1 text-yellow-500" />
+                            <Coins className="w-3 h-3 mr-1 text-primary" />
                             Min tip: {stream.minTip} tokens
                           </span>
                           <span className="flex items-center">
-                            <Phone className="w-3 h-3 mr-1 text-pink-500" />
+                            <Phone className="w-3 h-3 mr-1 text-primary" />
                             Private calls available
                           </span>
                         </div>
@@ -457,7 +457,7 @@ export default function UserDashboard() {
                         <div className="flex space-x-2">
                           <Button 
                             onClick={() => handleWatchStream(stream.id)}
-                            className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                            className="flex-1"
                           >
                             <Play className="w-4 h-4 mr-2" />
                             Watch
@@ -465,7 +465,6 @@ export default function UserDashboard() {
                           <Button 
                             onClick={() => handlePrivateCallRequest(stream)}
                             variant="outline"
-                            className="border-pink-600 text-pink-400 hover:bg-pink-600 hover:text-white"
                           >
                             <Phone className="w-4 h-4" />
                           </Button>
@@ -476,11 +475,11 @@ export default function UserDashboard() {
                 ))}
               </div>
             ) : (
-              <Card className="bg-slate-800/50 border-slate-700">
+              <Card className="bg-card border-border">
                 <CardContent className="text-center py-12">
-                  <Video className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">No Live Streams</h3>
-                  <p className="text-slate-400">Check back later for exciting content!</p>
+                  <Video className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2 text-foreground">No Live Streams</h3>
+                  <p className="text-muted-foreground">Check back later for exciting content!</p>
                 </CardContent>
               </Card>
             )}
@@ -488,30 +487,30 @@ export default function UserDashboard() {
 
           {/* Activity Tab */}
           <TabsContent value="activity" className="space-y-6">
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-card border-border">
               <CardHeader>
-                <CardTitle>Recent Transactions</CardTitle>
+                <CardTitle className="text-foreground">Recent Transactions</CardTitle>
                 <CardDescription>Your token spending history</CardDescription>
               </CardHeader>
               <CardContent>
                 {typedTransactions.length > 0 ? (
                   <div className="space-y-3">
                     {typedTransactions.slice(0, 5).map((transaction: any) => (
-                      <div key={transaction.id} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                      <div key={transaction.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                         <div>
-                          <p className="font-medium">{transaction.purpose}</p>
-                          <p className="text-sm text-slate-400">
+                          <p className="font-medium text-foreground">{transaction.purpose}</p>
+                          <p className="text-sm text-muted-foreground">
                             {new Date(transaction.createdAt).toLocaleDateString()}
                           </p>
                         </div>
-                        <Badge variant="outline" className="text-yellow-500 border-yellow-500">
+                        <Badge variant="outline" className="text-primary border-primary">
                           -{transaction.tokenAmount} tokens
                         </Badge>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-slate-400">
+                  <div className="text-center py-8 text-muted-foreground">
                     <Wallet className="w-12 h-12 mx-auto mb-3 opacity-50" />
                     <p>No transactions yet</p>
                     <p className="text-sm mt-1">Start supporting creators!</p>
@@ -523,12 +522,12 @@ export default function UserDashboard() {
 
           {/* Profile Tab */}
           <TabsContent value="profile" className="space-y-6">
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-card border-border">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-white flex items-center">
-                      <UserIcon className="mr-2 h-5 w-5 text-purple-500" />
+                    <CardTitle className="text-foreground flex items-center">
+                      <UserIcon className="mr-2 h-5 w-5 text-primary" />
                       Profile Settings
                     </CardTitle>
                     <CardDescription>
@@ -540,7 +539,6 @@ export default function UserDashboard() {
                       onClick={() => setIsEditingProfile(true)}
                       variant="outline"
                       size="sm"
-                      className="border-purple-600 text-purple-400 hover:bg-purple-600 hover:text-white"
                     >
                       <Edit className="w-4 h-4 mr-2" />
                       Edit Profile
@@ -553,44 +551,44 @@ export default function UserDashboard() {
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label className="text-slate-300">First Name *</Label>
+                        <Label className="text-foreground">First Name *</Label>
                         <Input
                           value={profileData.firstName}
                           onChange={(e) => setProfileData({...profileData, firstName: e.target.value})}
                           placeholder="Enter your first name"
-                          className="bg-slate-700 border-slate-600 text-white"
+                          className="bg-background border-border text-foreground"
                         />
                       </div>
                       <div>
-                        <Label className="text-slate-300">Last Name</Label>
+                        <Label className="text-foreground">Last Name</Label>
                         <Input
                           value={profileData.lastName}
                           onChange={(e) => setProfileData({...profileData, lastName: e.target.value})}
                           placeholder="Enter your last name"
-                          className="bg-slate-700 border-slate-600 text-white"
+                          className="bg-background border-border text-foreground"
                         />
                       </div>
                     </div>
                     
                     <div>
-                      <Label className="text-slate-300">Email Address *</Label>
+                      <Label className="text-foreground">Email Address *</Label>
                       <Input
                         type="email"
                         value={profileData.email}
                         onChange={(e) => setProfileData({...profileData, email: e.target.value})}
                         placeholder="Enter your email address"
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-background border-border text-foreground"
                       />
                     </div>
                     
                     <div>
-                      <Label className="text-slate-300">Phone Number</Label>
+                      <Label className="text-foreground">Phone Number</Label>
                       <Input
                         type="tel"
                         value={profileData.phoneNumber}
                         onChange={(e) => setProfileData({...profileData, phoneNumber: e.target.value})}
                         placeholder="Enter your phone number"
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-background border-border text-foreground"
                       />
                     </div>
                     
@@ -598,7 +596,6 @@ export default function UserDashboard() {
                       <Button
                         onClick={handleUpdateProfile}
                         disabled={updateProfileMutation.isPending}
-                        className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
                       >
                         <Save className="w-4 h-4 mr-2" />
                         {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
@@ -606,7 +603,6 @@ export default function UserDashboard() {
                       <Button
                         onClick={() => setIsEditingProfile(false)}
                         variant="outline"
-                        className="border-slate-600 text-slate-300 hover:bg-slate-700"
                       >
                         <X className="w-4 h-4 mr-2" />
                         Cancel
@@ -618,37 +614,37 @@ export default function UserDashboard() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-3">
                         <div>
-                          <p className="text-sm text-slate-400">Name</p>
-                          <p className="text-white font-medium">
+                          <p className="text-sm text-muted-foreground">Name</p>
+                          <p className="text-foreground font-medium">
                             {typedUser?.firstName && typedUser?.lastName 
                               ? `${typedUser.firstName} ${typedUser.lastName}` 
                               : typedUser?.username || "Not set"}
                           </p>
                         </div>
                         <div>
-                          <p className="text-sm text-slate-400">Email</p>
-                          <p className="text-white">{typedUser?.email || "Not set"}</p>
+                          <p className="text-sm text-muted-foreground">Email</p>
+                          <p className="text-foreground">{typedUser?.email || "Not set"}</p>
                         </div>
                       </div>
                       <div className="space-y-3">
                         <div>
-                          <p className="text-sm text-slate-400">Username</p>
-                          <p className="text-white">{typedUser?.username}</p>
+                          <p className="text-sm text-muted-foreground">Username</p>
+                          <p className="text-foreground">{typedUser?.username}</p>
                         </div>
                         <div>
-                          <p className="text-sm text-slate-400">Phone Number</p>
-                          <p className="text-white">{typedUser?.phoneNumber || "Not set"}</p>
+                          <p className="text-sm text-muted-foreground">Phone Number</p>
+                          <p className="text-foreground">{typedUser?.phoneNumber || "Not set"}</p>
                         </div>
                       </div>
                     </div>
                     
-                    <div className="pt-4 border-t border-slate-700">
+                    <div className="pt-4 border-t border-border">
                       <div className="flex items-center space-x-4">
-                        <Badge variant="secondary" className="bg-blue-600 text-white">
+                        <Badge variant="secondary" className="bg-primary text-primary-foreground">
                           <UserIcon className="w-3 h-3 mr-1" />
                           {typedUser?.role ? typedUser.role.charAt(0).toUpperCase() + typedUser.role.slice(1) : 'User'} Account
                         </Badge>
-                        <Badge variant="outline" className="border-yellow-500 text-yellow-500">
+                        <Badge variant="outline" className="border-primary text-primary">
                           <Wallet className="w-3 h-3 mr-1" />
                           {(wallet as any)?.tokenBalance || 0} Tokens
                         </Badge>
@@ -664,21 +660,21 @@ export default function UserDashboard() {
           <TabsContent value="wallet" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Wallet Balance */}
-              <Card className="bg-slate-800/50 border-slate-700">
+              <Card className="bg-card border-border">
                 <CardHeader>
-                  <CardTitle className="flex items-center text-white">
-                    <Wallet className="w-5 h-5 mr-2 text-yellow-500" />
+                  <CardTitle className="flex items-center text-foreground">
+                    <Wallet className="w-5 h-5 mr-2 text-primary" />
                     Wallet Balance
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-center py-6">
-                    <div className="text-4xl font-bold text-yellow-500 mb-2">
+                    <div className="text-4xl font-bold text-primary mb-2">
                       {(wallet as any)?.tokenBalance || 0}
                     </div>
-                    <div className="text-slate-400">Available StreamVibe Tokens</div>
+                    <div className="text-muted-foreground">Available StreamVibe Tokens</div>
                     <Button 
-                      className="mt-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                      className="mt-4"
                       onClick={() => setShowBuyTokens(true)}
                     >
                       <Plus className="w-4 h-4 mr-2" />
@@ -689,37 +685,37 @@ export default function UserDashboard() {
               </Card>
 
               {/* Recent Transactions */}
-              <Card className="bg-slate-800/50 border-slate-700">
+              <Card className="bg-card border-border">
                 <CardHeader>
-                  <CardTitle className="flex items-center text-white">
-                    <TrendingUp className="w-5 h-5 mr-2 text-blue-500" />
+                  <CardTitle className="flex items-center text-foreground">
+                    <TrendingUp className="w-5 h-5 mr-2 text-primary" />
                     Recent Transactions
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3 max-h-64 overflow-y-auto">
                     {typedTransactions.length === 0 ? (
-                      <div className="text-center py-4 text-slate-400">
+                      <div className="text-center py-4 text-muted-foreground">
                         No transactions yet
                       </div>
                     ) : (
                       typedTransactions.slice(0, 5).map((transaction) => (
-                        <div key={transaction.id} className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
+                        <div key={transaction.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                           <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-                              <Gift className="w-4 h-4 text-white" />
+                            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                              <Gift className="w-4 h-4 text-primary-foreground" />
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-white">
+                              <p className="text-sm font-medium text-foreground">
                                 {transaction.type === 'tip' ? 'Tip to Creator' : 'Activity Purchase'}
                               </p>
-                              <p className="text-xs text-slate-400">
+                              <p className="text-xs text-muted-foreground">
                                 {transaction.createdAt ? new Date(transaction.createdAt).toLocaleDateString() : 'N/A'}
                               </p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-sm font-medium text-red-400">
+                            <p className="text-sm font-medium text-destructive">
                               -{transaction.amount} tokens
                             </p>
                           </div>
