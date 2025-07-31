@@ -325,7 +325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Agora token generation for streaming
+  // Enhanced Agora token generation with validation
   app.post('/api/agora/token', async (req, res) => {
     try {
       const { channelName, role, uid } = req.body;
@@ -340,39 +340,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const appId = process.env.VITE_AGORA_APP_ID;
       const appCertificate = process.env.AGORA_APP_CERTIFICATE;
 
+      console.log('=== AGORA TOKEN GENERATION DEBUG ===');
+      console.log('Request data:', { channelName, role, uid });
+      console.log('App ID available:', !!appId);
+      console.log('Certificate available:', !!appCertificate);
+      console.log('App ID value:', appId);
+      console.log('Certificate length:', appCertificate ? appCertificate.length : 0);
+
       if (!appId || !appCertificate) {
+        console.error('Missing credentials:', { appId: !!appId, certificate: !!appCertificate });
         return res.status(500).json({ message: 'Agora credentials not configured' });
       }
 
-      // Token expiry time (24 hours from now)
-      const expirationTimeInSeconds = Math.floor(Date.now() / 1000) + 86400;
+      // Validate and clean channel name for Agora compatibility
+      let cleanChannelName = channelName.toString().trim();
+      // Replace UUID hyphens with underscores for Agora compatibility
+      cleanChannelName = cleanChannelName.replace(/-/g, '_');
+      // Ensure only alphanumeric and underscores (Agora requirement)
+      cleanChannelName = cleanChannelName.replace(/[^a-zA-Z0-9_]/g, '_');
+      // Limit to 64 characters
+      if (cleanChannelName.length > 64) {
+        cleanChannelName = cleanChannelName.substring(0, 64);
+      }
+      // Ensure not empty
+      if (!cleanChannelName) {
+        cleanChannelName = `stream_${Date.now()}`;
+      }
+
+      // Validate UID - must be positive integer
+      let validUid = parseInt(uid as string) || Math.floor(Math.random() * 1000000);
+      if (validUid <= 0) {
+        validUid = Math.floor(Math.random() * 1000000) + 1;
+      }
+
+      // Shorter token expiry for better security (1 hour)
+      const expirationTimeInSeconds = Math.floor(Date.now() / 1000) + 3600;
       
-      // Determine role: 'host' for creators, 'audience' for viewers
+      // Determine role
       const agoraRole = role === 'host' ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER;
       
-      // Generate token
+      console.log('Processed values:');
+      console.log('Original channel:', channelName);
+      console.log('Clean channel:', cleanChannelName);
+      console.log('Original UID:', uid);
+      console.log('Valid UID:', validUid);
+      console.log('Role mapping:', role, '->', agoraRole);
+      console.log('Expiration:', new Date(expirationTimeInSeconds * 1000).toISOString());
+      
+      // Generate token with validated inputs
       const token = RtcTokenBuilder.buildTokenWithUid(
         appId,
         appCertificate,
-        channelName as string,
-        parseInt(uid as string) || 0,
+        cleanChannelName,
+        validUid,
         agoraRole,
         expirationTimeInSeconds
       );
 
-      console.log(`Generated Agora token for channel: ${channelName}, role: ${role}, uid: ${uid}`);
+      console.log('Token generation result:');
+      console.log('Token length:', token.length);
+      console.log('Token prefix:', token.substring(0, 30) + '...');
+      console.log('=== END TOKEN DEBUG ===');
       
       res.json({
         token,
         appId,
-        channelName,
-        uid: parseInt(uid as string) || 0,
+        channelName: cleanChannelName, // Return cleaned channel name
+        uid: validUid,
         role: agoraRole,
-        expirationTime: expirationTimeInSeconds
+        expirationTime: expirationTimeInSeconds,
+        debug: {
+          originalChannelName: channelName,
+          cleanedChannelName: cleanChannelName,
+          originalUid: uid,
+          validatedUid: validUid,
+          tokenLength: token.length
+        }
       });
     } catch (error) {
-      console.error('Error generating Agora token:', error);
-      res.status(500).json({ message: 'Failed to generate token' });
+      console.error('Agora token generation error:', error);
+      console.error('Error stack:', error.stack);
+      res.status(500).json({ 
+        message: 'Failed to generate token',
+        error: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
     }
   });
 

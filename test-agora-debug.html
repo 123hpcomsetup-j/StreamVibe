@@ -2,62 +2,299 @@
 <html>
 <head>
     <title>Agora Debug Test</title>
-    <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N-4.20.2.js"></script>
+    <script src="https://download.agora.io/sdk/web/AgoraRTC_N-4.23.4.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .debug-section { 
+            background: white; 
+            margin: 15px 0; 
+            padding: 20px; 
+            border-radius: 8px; 
+            border: 1px solid #ddd; 
+        }
+        .success { border-left: 4px solid #4CAF50; }
+        .error { border-left: 4px solid #f44336; }
+        .info { border-left: 4px solid #2196F3; }
+        button { 
+            background: #2196F3; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            margin: 5px; 
+        }
+        button:hover { background: #1976D2; }
+        .log-entry { font-family: monospace; font-size: 12px; margin: 3px 0; }
+        pre { background: #f8f8f8; padding: 10px; overflow-x: auto; }
+    </style>
 </head>
 <body>
-    <h1>Agora Debug Test</h1>
-    <button onclick="testCurrentCredentials()">Test Current Credentials</button>
-    <button onclick="testManualCredentials()">Test Manual Credentials</button>
-    <div id="logs"></div>
+    <h1>🔍 Agora Streaming Debug</h1>
+    
+    <div class="debug-section info">
+        <h3>Environment Check</h3>
+        <button onclick="checkEnvironment()">Check Backend Environment</button>
+        <div id="env-result"></div>
+    </div>
+    
+    <div class="debug-section info">
+        <h3>Token Generation Test</h3>
+        <button onclick="testTokenGeneration()">Test Token Generation</button>
+        <div id="token-result"></div>
+    </div>
+    
+    <div class="debug-section info">
+        <h3>Direct Agora Connection Test</h3>
+        <button onclick="testDirectConnection()">Test Direct Connection</button>
+        <div id="connection-result"></div>
+    </div>
+    
+    <div class="debug-section info">
+        <h3>Alternative Implementation Test</h3>
+        <button onclick="testAlternativeImpl()">Test Alternative SDK Usage</button>
+        <div id="alternative-result"></div>
+    </div>
 
     <script>
-        function log(message) {
-            const logs = document.getElementById('logs');
-            logs.innerHTML += '<div>' + new Date().toISOString() + ': ' + message + '</div>';
-            console.log(message);
+        let debugLogs = [];
+        
+        function addLog(section, message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            debugLogs.push(logEntry);
+            
+            const element = document.getElementById(section);
+            if (element) {
+                element.innerHTML += `<div class="log-entry">${logEntry}</div>`;
+                element.scrollTop = element.scrollHeight;
+            }
+            
+            console.log(logEntry);
         }
-
-        async function testCurrentCredentials() {
+        
+        async function checkEnvironment() {
+            const resultDiv = document.getElementById('env-result');
+            resultDiv.innerHTML = '';
+            
             try {
-                log('Testing current backend credentials...');
+                addLog('env-result', 'Checking backend environment variables...', 'info');
                 
+                // Test a simple token request to see what the backend returns
                 const response = await fetch('/api/agora/token', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        channelName: 'debug-test-' + Date.now(),
-                        uid: 12345,
+                        channelName: 'debug-env-test',
+                        uid: 99999,
                         role: 'host'
                     })
                 });
                 
-                const data = await response.json();
-                log('Backend returned App ID: ' + data.appId);
-                log('Token (first 20 chars): ' + data.token.substring(0, 20) + '...');
+                if (response.ok) {
+                    const data = await response.json();
+                    addLog('env-result', `✓ Backend responding correctly`, 'success');
+                    addLog('env-result', `App ID: ${data.appId}`, 'info');
+                    addLog('env-result', `Token format: ${data.token.substring(0, 20)}...`, 'info');
+                    addLog('env-result', `Channel: ${data.channelName}`, 'info');
+                    addLog('env-result', `UID: ${data.uid}`, 'info');
+                    addLog('env-result', `Role: ${data.role}`, 'info');
+                    
+                    resultDiv.classList.add('success');
+                } else {
+                    addLog('env-result', `✗ Backend error: ${response.status}`, 'error');
+                    resultDiv.classList.add('error');
+                }
                 
-                // Try to use the token
+            } catch (error) {
+                addLog('env-result', `✗ Environment check failed: ${error.message}`, 'error');
+                resultDiv.classList.add('error');
+            }
+        }
+        
+        async function testTokenGeneration() {
+            const resultDiv = document.getElementById('token-result');
+            resultDiv.innerHTML = '';
+            
+            try {
+                addLog('token-result', 'Testing token generation for different scenarios...', 'info');
+                
+                const tests = [
+                    { channelName: 'test-simple', uid: 12345, role: 'host', desc: 'Simple host token' },
+                    { channelName: 'test-simple', uid: 67890, role: 'audience', desc: 'Simple audience token' },
+                    { channelName: 'stream-with-hyphens', uid: 11111, role: 'host', desc: 'Channel with hyphens' },
+                    { channelName: '542bf10c-8ef8-41f4-8a96-88ec21d15a9f', uid: 22222, role: 'host', desc: 'UUID format channel' }
+                ];
+                
+                for (const test of tests) {
+                    addLog('token-result', `Testing: ${test.desc}`, 'info');
+                    
+                    const response = await fetch('/api/agora/token', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(test)
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        addLog('token-result', `✓ ${test.desc}: Token generated successfully`, 'success');
+                        addLog('token-result', `  App ID: ${data.appId}`, 'info');
+                        addLog('token-result', `  Token length: ${data.token.length}`, 'info');
+                    } else {
+                        addLog('token-result', `✗ ${test.desc}: Failed with status ${response.status}`, 'error');
+                    }
+                }
+                
+                resultDiv.classList.add('success');
+                
+            } catch (error) {
+                addLog('token-result', `✗ Token generation test failed: ${error.message}`, 'error');
+                resultDiv.classList.add('error');
+            }
+        }
+        
+        async function testDirectConnection() {
+            const resultDiv = document.getElementById('connection-result');
+            resultDiv.innerHTML = '';
+            
+            try {
+                addLog('connection-result', 'Testing direct Agora connection...', 'info');
+                
+                // Get token from backend first
+                const tokenResponse = await fetch('/api/agora/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        channelName: 'direct-test-' + Date.now(),
+                        uid: Math.floor(Math.random() * 1000000),
+                        role: 'host'
+                    })
+                });
+                
+                if (!tokenResponse.ok) {
+                    throw new Error(`Token request failed: ${tokenResponse.status}`);
+                }
+                
+                const tokenData = await tokenResponse.json();
+                addLog('connection-result', `✓ Token received from backend`, 'success');
+                addLog('connection-result', `App ID: ${tokenData.appId}`, 'info');
+                addLog('connection-result', `Channel: ${tokenData.channelName}`, 'info');
+                
+                // Create Agora client with basic settings
+                addLog('connection-result', 'Creating Agora client...', 'info');
                 const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
                 client.setClientRole('host');
                 
-                await client.join(data.appId, data.channelName, data.token, data.uid);
-                log('✅ SUCCESS! Current credentials work!');
-                await client.leave();
+                addLog('connection-result', 'Attempting to join channel...', 'info');
+                await client.join(tokenData.appId, tokenData.channelName, tokenData.token, tokenData.uid);
+                
+                addLog('connection-result', '✓ SUCCESS: Joined channel successfully!', 'success');
+                addLog('connection-result', `Connection state: ${client.connectionState}`, 'info');
+                
+                // Clean up
+                setTimeout(async () => {
+                    await client.leave();
+                    addLog('connection-result', 'Connection test completed and cleaned up', 'info');
+                }, 3000);
+                
+                resultDiv.classList.add('success');
                 
             } catch (error) {
-                log('❌ FAILED: ' + error.message);
+                addLog('connection-result', `✗ Connection test failed: ${error.message}`, 'error');
+                addLog('connection-result', `Error details: ${JSON.stringify(error, null, 2)}`, 'error');
+                resultDiv.classList.add('error');
             }
         }
-
-        async function testManualCredentials() {
-            const appId = prompt('Enter your correct Agora App ID:');
-            const certificate = prompt('Enter your correct Agora App Certificate:');
+        
+        async function testAlternativeImpl() {
+            const resultDiv = document.getElementById('alternative-result');
+            resultDiv.innerHTML = '';
             
-            if (appId && certificate) {
-                log('Manual test with App ID: ' + appId.substring(0, 10) + '...');
-                log('This would require server-side token generation with your credentials');
-                // Would need to implement server endpoint with manual credentials
+            try {
+                addLog('alternative-result', 'Testing alternative Agora implementation...', 'info');
+                
+                // Test with different SDK initialization approaches
+                addLog('alternative-result', 'Testing with H.264 codec...', 'info');
+                
+                const tokenResponse = await fetch('/api/agora/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        channelName: 'alt-test-' + Date.now(),
+                        uid: Math.floor(Math.random() * 1000000),
+                        role: 'host'
+                    })
+                });
+                
+                if (!tokenResponse.ok) {
+                    throw new Error(`Token request failed: ${tokenResponse.status}`);
+                }
+                
+                const tokenData = await tokenResponse.json();
+                
+                // Try with H.264 codec instead of VP8
+                const client = AgoraRTC.createClient({ mode: 'live', codec: 'h264' });
+                client.setClientRole('host');
+                
+                addLog('alternative-result', 'Joining with H.264 codec...', 'info');
+                await client.join(tokenData.appId, tokenData.channelName, tokenData.token, tokenData.uid);
+                
+                addLog('alternative-result', '✓ Alternative implementation successful!', 'success');
+                
+                // Clean up
+                setTimeout(async () => {
+                    await client.leave();
+                    addLog('alternative-result', 'Alternative test completed', 'info');
+                }, 2000);
+                
+                resultDiv.classList.add('success');
+                
+            } catch (error) {
+                addLog('alternative-result', `✗ Alternative implementation failed: ${error.message}`, 'error');
+                
+                // Try one more approach with different settings
+                try {
+                    addLog('alternative-result', 'Trying with minimal client configuration...', 'info');
+                    
+                    const tokenResponse2 = await fetch('/api/agora/token', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            channelName: 'minimal-test',
+                            uid: 123,
+                            role: 'host'
+                        })
+                    });
+                    
+                    if (tokenResponse2.ok) {
+                        const tokenData2 = await tokenResponse2.json();
+                        const client2 = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
+                        
+                        // Set role after creation
+                        client2.setClientRole('host');
+                        
+                        await client2.join(tokenData2.appId, 'minimal-test', tokenData2.token, 123);
+                        
+                        addLog('alternative-result', '✓ Minimal configuration worked!', 'success');
+                        
+                        setTimeout(async () => {
+                            await client2.leave();
+                        }, 1000);
+                        
+                        resultDiv.classList.add('success');
+                    }
+                    
+                } catch (secondError) {
+                    addLog('alternative-result', `✗ All alternatives failed: ${secondError.message}`, 'error');
+                    resultDiv.classList.add('error');
+                }
             }
         }
+        
+        // Auto-run environment check when page loads
+        window.onload = function() {
+            setTimeout(checkEnvironment, 1000);
+        };
     </script>
 </body>
 </html>

@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Complete Agora Diagnostic Tool</title>
+    <script src="https://download.agora.io/sdk/web/AgoraRTC_N-4.23.4.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .diagnostic-panel { 
+            background: rgba(255,255,255,0.95); 
+            color: #333;
+            margin: 15px 0; 
+            padding: 25px; 
+            border-radius: 12px; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+        .success { border-left: 5px solid #4CAF50; }
+        .error { border-left: 5px solid #f44336; }
+        .warning { border-left: 5px solid #ff9800; }
+        .info { border-left: 5px solid #2196F3; }
+        
+        button { 
+            background: linear-gradient(45deg, #2196F3, #21CBF3);
+            color: white; 
+            border: none; 
+            padding: 15px 30px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            margin: 8px 5px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        button:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+        }
+        
+        .log { 
+            font-family: 'Courier New', monospace; 
+            font-size: 12px; 
+            margin: 5px 0; 
+            padding: 10px; 
+            background: #f8f9fa; 
+            border-radius: 6px;
+            border-left: 3px solid #ddd;
+        }
+        
+        .log.success { border-left-color: #4CAF50; background: #f1f8e9; }
+        .log.error { border-left-color: #f44336; background: #ffebee; }
+        .log.warning { border-left-color: #ff9800; background: #fff3e0; }
+        
+        pre { 
+            background: #263238; 
+            color: #a7ffeb; 
+            padding: 20px; 
+            overflow-x: auto; 
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        
+        h1 { 
+            color: white; 
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 40px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        h3 { 
+            color: #333; 
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin: 5px;
+        }
+        
+        .status-success { background: #4CAF50; color: white; }
+        .status-error { background: #f44336; color: white; }
+        .status-warning { background: #ff9800; color: white; }
+        .status-info { background: #2196F3; color: white; }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #ddd;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Complete Agora Diagnostic Suite</h1>
+    
+    <div class="diagnostic-panel info">
+        <h3>🔍 Credential Validation & Analysis</h3>
+        <div style="margin-bottom: 15px;">
+            <span class="status-badge status-info" id="backend-status">Backend: Checking...</span>
+            <span class="status-badge status-info" id="token-status">Token: Checking...</span>
+            <span class="status-badge status-info" id="agora-status">Agora: Checking...</span>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="main-progress"></div>
+        </div>
+        <button onclick="runFullDiagnostic()">🚀 Run Complete Diagnostic</button>
+        <button onclick="testAlternativeCredentials()">🔄 Test Alternative Setup</button>
+        <div id="main-diagnostic-result"></div>
+    </div>
+    
+    <div class="diagnostic-panel">
+        <h3>📊 Real-time Agora Connection Monitor</h3>
+        <button onclick="startConnectionMonitor()">Start Real-time Monitor</button>
+        <button onclick="stopConnectionMonitor()">Stop Monitor</button>
+        <div id="connection-monitor"></div>
+    </div>
+    
+    <div class="diagnostic-panel">
+        <h3>🛠️ Advanced Troubleshooting</h3>
+        <button onclick="testEnvironmentVariables()">Check Environment</button>
+        <button onclick="testTokenValidation()">Validate Token Structure</button>
+        <button onclick="testNetworkConnectivity()">Test Network</button>
+        <div id="advanced-results"></div>
+    </div>
+
+    <script>
+        let diagnosticLogs = [];
+        let monitoringInterval = null;
+        
+        function addDiagnosticLog(containerId, message, type = 'info', showTimestamp = true) {
+            const container = document.getElementById(containerId);
+            const timestamp = showTimestamp ? new Date().toLocaleTimeString() : '';
+            const logDiv = document.createElement('div');
+            logDiv.className = `log ${type}`;
+            logDiv.innerHTML = `${timestamp ? `<strong>[${timestamp}]</strong> ` : ''}${message}`;
+            container.appendChild(logDiv);
+            container.scrollTop = container.scrollHeight;
+            
+            diagnosticLogs.push({ timestamp: new Date(), type, message });
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        function updateStatus(elementId, status, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = status;
+            element.className = `status-badge status-${type}`;
+        }
+        
+        function updateProgress(percentage) {
+            document.getElementById('main-progress').style.width = percentage + '%';
+        }
+
+        async function runFullDiagnostic() {
+            const containerId = 'main-diagnostic-result';
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            updateProgress(0);
+            addDiagnosticLog(containerId, '🚀 Starting comprehensive Agora diagnostic suite...', 'info');
+            
+            try {
+                // Step 1: Backend Validation (20%)
+                addDiagnosticLog(containerId, '📡 Step 1: Validating backend credentials...', 'info');
+                updateStatus('backend-status', 'Backend: Testing...', 'warning');
+                
+                const backendTest = await fetch('/api/agora/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        channelName: 'diagnostic-test-' + Date.now(),
+                        uid: 999999,
+                        role: 'host'
+                    })
+                });
+                
+                if (!backendTest.ok) {
+                    throw new Error(`Backend validation failed: ${backendTest.status}`);
+                }
+                
+                const tokenData = await backendTest.json();
+                updateStatus('backend-status', 'Backend: ✅ Valid', 'success');
+                updateProgress(20);
+                
+                addDiagnosticLog(containerId, `✅ Backend credentials validated successfully`, 'success');
+                addDiagnosticLog(containerId, `   App ID: ${tokenData.appId}`, 'info');
+                addDiagnosticLog(containerId, `   Token length: ${tokenData.token?.length || 'N/A'}`, 'info');
+                addDiagnosticLog(containerId, `   Debug info: ${JSON.stringify(tokenData.debug || {})}`, 'info');
+                
+                // Step 2: Token Structure Analysis (40%)
+                addDiagnosticLog(containerId, '🔍 Step 2: Analyzing token structure...', 'info');
+                updateStatus('token-status', 'Token: Analyzing...', 'warning');
+                updateProgress(40);
+                
+                if (tokenData.token && tokenData.token.length > 0) {
+                    const tokenPrefix = tokenData.token.substring(0, 6);
+                    const tokenSuffix = tokenData.token.substring(tokenData.token.length - 6);
+                    
+                    addDiagnosticLog(containerId, `✅ Token structure appears valid`, 'success');
+                    addDiagnosticLog(containerId, `   Format: ${tokenPrefix}...${tokenSuffix}`, 'info');
+                    addDiagnosticLog(containerId, `   Length: ${tokenData.token.length} characters`, 'info');
+                    updateStatus('token-status', 'Token: ✅ Valid Structure', 'success');
+                } else {
+                    throw new Error('Invalid token structure received');
+                }
+                
+                // Step 3: Agora SDK Connectivity Test (60%)
+                addDiagnosticLog(containerId, '🌐 Step 3: Testing Agora SDK connectivity...', 'info');
+                updateStatus('agora-status', 'Agora: Connecting...', 'warning');
+                updateProgress(60);
+                
+                const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
+                
+                // Enhanced event monitoring
+                let connectionEstablished = false;
+                let connectionError = null;
+                
+                client.on('connection-state-change', (curState, revState, reason) => {
+                    addDiagnosticLog(containerId, `   Connection: ${revState} → ${curState} (${reason})`, 'info');
+                    if (curState === 'CONNECTED') {
+                        connectionEstablished = true;
+                    }
+                });
+                
+                client.on('exception', (evt) => {
+                    connectionError = evt;
+                    addDiagnosticLog(containerId, `   Exception: ${evt.code} - ${evt.msg}`, 'error');
+                });
+                
+                await client.setClientRole('host');
+                updateProgress(70);
+                
+                try {
+                    await client.join(
+                        tokenData.appId,
+                        tokenData.channelName,
+                        tokenData.token,
+                        tokenData.uid
+                    );
+                    
+                    updateStatus('agora-status', 'Agora: ✅ Connected', 'success');
+                    updateProgress(90);
+                    
+                    addDiagnosticLog(containerId, `🎉 SUCCESS: Agora SDK connection established!`, 'success');
+                    addDiagnosticLog(containerId, `   Connection state: ${client.connectionState}`, 'success');
+                    addDiagnosticLog(containerId, `   Channel: ${tokenData.channelName}`, 'success');
+                    addDiagnosticLog(containerId, `   UID: ${tokenData.uid}`, 'success');
+                    
+                    // Step 4: Media Test (optional)
+                    addDiagnosticLog(containerId, '🎥 Step 4: Testing media capabilities...', 'info');
+                    try {
+                        const devices = await AgoraRTC.getDevices();
+                        const cameras = devices.filter(d => d.kind === 'videoinput');
+                        const microphones = devices.filter(d => d.kind === 'audioinput');
+                        
+                        addDiagnosticLog(containerId, `   📹 Cameras available: ${cameras.length}`, 'info');
+                        addDiagnosticLog(containerId, `   🎤 Microphones available: ${microphones.length}`, 'info');
+                        
+                        if (cameras.length > 0 && microphones.length > 0) {
+                            addDiagnosticLog(containerId, `✅ Media devices ready for streaming`, 'success');
+                        }
+                    } catch (mediaError) {
+                        addDiagnosticLog(containerId, `⚠️ Media test: ${mediaError.message}`, 'warning');
+                    }
+                    
+                    updateProgress(100);
+                    
+                    // Cleanup
+                    setTimeout(async () => {
+                        await client.leave();
+                        addDiagnosticLog(containerId, '🧹 Diagnostic cleanup completed', 'info');
+                    }, 2000);
+                    
+                    addDiagnosticLog(containerId, `🏆 DIAGNOSTIC COMPLETE: All systems operational!`, 'success');
+                    
+                } catch (joinError) {
+                    updateStatus('agora-status', 'Agora: ❌ Failed', 'error');
+                    throw new Error(`Agora join failed: ${joinError.message} (Code: ${joinError.code})`);
+                }
+                
+            } catch (error) {
+                updateProgress(0);
+                addDiagnosticLog(containerId, `❌ DIAGNOSTIC FAILED: ${error.message}`, 'error');
+                
+                if (error.code) {
+                    addDiagnosticLog(containerId, `   Error code: ${error.code}`, 'error');
+                }
+                if (error.data) {
+                    addDiagnosticLog(containerId, `   Error data: ${JSON.stringify(error.data)}`, 'error');
+                }
+                
+                // Provide troubleshooting suggestions
+                addDiagnosticLog(containerId, `🔧 Troubleshooting suggestions:`, 'warning');
+                addDiagnosticLog(containerId, `   1. Check if Agora App ID and Certificate are current and active`, 'warning');
+                addDiagnosticLog(containerId, `   2. Verify Agora project is not suspended or expired`, 'warning');
+                addDiagnosticLog(containerId, `   3. Try clearing browser cache and cookies`, 'warning');
+                addDiagnosticLog(containerId, `   4. Test in incognito/private browsing mode`, 'warning');
+            }
+        }
+
+        async function testAlternativeCredentials() {
+            const containerId = 'main-diagnostic-result';
+            addDiagnosticLog(containerId, '🔄 Testing alternative Agora setup...', 'info');
+            
+            try {
+                // Test with different SDK configurations
+                const configs = [
+                    { mode: 'live', codec: 'h264' },
+                    { mode: 'live', codec: 'vp8' },
+                    { mode: 'rtc', codec: 'vp8' }
+                ];
+                
+                for (const config of configs) {
+                    addDiagnosticLog(containerId, `Testing config: ${JSON.stringify(config)}`, 'info');
+                    
+                    const client = AgoraRTC.createClient(config);
+                    client.setClientRole('host');
+                    
+                    try {
+                        const tokenResponse = await fetch('/api/agora/token', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                channelName: `alt-test-${config.codec}-${Date.now()}`,
+                                uid: Math.floor(Math.random() * 1000000),
+                                role: 'host'
+                            })
+                        });
+                        
+                        if (tokenResponse.ok) {
+                            const tokenData = await tokenResponse.json();
+                            await client.join(tokenData.appId, tokenData.channelName, tokenData.token, tokenData.uid);
+                            
+                            addDiagnosticLog(containerId, `✅ Alternative config successful: ${JSON.stringify(config)}`, 'success');
+                            await client.leave();
+                            break;
+                        }
+                    } catch (configError) {
+                        addDiagnosticLog(containerId, `❌ Config failed: ${JSON.stringify(config)} - ${configError.message}`, 'error');
+                    }
+                }
+                
+            } catch (error) {
+                addDiagnosticLog(containerId, `❌ Alternative testing failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function startConnectionMonitor() {
+            const containerId = 'connection-monitor';
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+            }
+            
+            addDiagnosticLog(containerId, '📊 Starting real-time connection monitor...', 'info');
+            
+            let testCount = 0;
+            monitoringInterval = setInterval(async () => {
+                testCount++;
+                
+                try {
+                    const start = Date.now();
+                    const response = await fetch('/api/agora/token', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            channelName: `monitor-${testCount}`,
+                            uid: testCount,
+                            role: 'host'
+                        })
+                    });
+                    
+                    const duration = Date.now() - start;
+                    
+                    if (response.ok) {
+                        addDiagnosticLog(containerId, `✅ Test ${testCount}: Token generated in ${duration}ms`, 'success', false);
+                    } else {
+                        addDiagnosticLog(containerId, `❌ Test ${testCount}: Failed (${response.status})`, 'error', false);
+                    }
+                    
+                } catch (error) {
+                    addDiagnosticLog(containerId, `❌ Test ${testCount}: Error - ${error.message}`, 'error', false);
+                }
+                
+                if (testCount >= 20) {
+                    clearInterval(monitoringInterval);
+                    addDiagnosticLog(containerId, '📊 Monitoring completed (20 tests)', 'info');
+                }
+            }, 2000);
+        }
+
+        function stopConnectionMonitor() {
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+                addDiagnosticLog('connection-monitor', '⏹️ Monitoring stopped by user', 'warning');
+            }
+        }
+
+        async function testEnvironmentVariables() {
+            const containerId = 'advanced-results';
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            addDiagnosticLog(containerId, '🔍 Checking environment configuration...', 'info');
+            
+            try {
+                const response = await fetch('/api/agora/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        channelName: 'env-test',
+                        uid: 1,
+                        role: 'host'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.debug) {
+                    addDiagnosticLog(containerId, '✅ Environment debug info available:', 'success');
+                    addDiagnosticLog(containerId, `   App ID: ${data.appId}`, 'info');
+                    addDiagnosticLog(containerId, `   Debug: ${JSON.stringify(data.debug, null, 2)}`, 'info');
+                } else {
+                    addDiagnosticLog(containerId, '⚠️ No debug information available', 'warning');
+                }
+                
+            } catch (error) {
+                addDiagnosticLog(containerId, `❌ Environment check failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testTokenValidation() {
+            const containerId = 'advanced-results';
+            addDiagnosticLog(containerId, '🔐 Validating token structure and format...', 'info');
+            
+            try {
+                const response = await fetch('/api/agora/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        channelName: 'validation-test',
+                        uid: 123456,
+                        role: 'host'
+                    })
+                });
+                
+                const data = await response.json();
+                const token = data.token;
+                
+                if (token) {
+                    // Basic token validation
+                    const isBase64Like = /^[A-Za-z0-9+/]+=*$/.test(token);
+                    const hasProperLength = token.length > 100; // Agora tokens are typically longer
+                    
+                    addDiagnosticLog(containerId, `✅ Token format validation:`, 'success');
+                    addDiagnosticLog(containerId, `   Length: ${token.length} characters`, 'info');
+                    addDiagnosticLog(containerId, `   Base64-like format: ${isBase64Like ? 'Yes' : 'No'}`, isBase64Like ? 'success' : 'warning');
+                    addDiagnosticLog(containerId, `   Proper length: ${hasProperLength ? 'Yes' : 'No'}`, hasProperLength ? 'success' : 'warning');
+                    addDiagnosticLog(containerId, `   First 20 chars: ${token.substring(0, 20)}...`, 'info');
+                    addDiagnosticLog(containerId, `   Last 20 chars: ...${token.substring(token.length - 20)}`, 'info');
+                } else {
+                    addDiagnosticLog(containerId, '❌ No token received from backend', 'error');
+                }
+                
+            } catch (error) {
+                addDiagnosticLog(containerId, `❌ Token validation failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testNetworkConnectivity() {
+            const containerId = 'advanced-results';
+            addDiagnosticLog(containerId, '🌐 Testing network connectivity to Agora servers...', 'info');
+            
+            const agoraServers = [
+                'https://webrtc2-ap-web-1.agora.io',
+                'https://webrtc2-2.ap.sd-rtn.com',
+                'https://webrtc2-ap-web-3.agora.io'
+            ];
+            
+            for (const server of agoraServers) {
+                try {
+                    const start = Date.now();
+                    const response = await fetch(server + '/ping', { 
+                        method: 'GET',
+                        mode: 'no-cors' // Bypass CORS for connectivity test
+                    });
+                    const duration = Date.now() - start;
+                    
+                    addDiagnosticLog(containerId, `✅ ${server}: Reachable (${duration}ms)`, 'success');
+                } catch (error) {
+                    addDiagnosticLog(containerId, `❌ ${server}: Unreachable - ${error.message}`, 'warning');
+                }
+            }
+        }
+
+        // Auto-start diagnostic when page loads
+        window.onload = function() {
+            setTimeout(() => {
+                runFullDiagnostic();
+            }, 1000);
+        };
+    </script>
+</body>
+</html>

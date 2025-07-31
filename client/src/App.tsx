@@ -17,7 +17,7 @@ import ModernAdminPanel from "@/pages/modern-admin-panel";
 import AdminProfile from "@/pages/admin-profile";
 import StreamView from "@/pages/stream-view";
 import UserDashboard from "@/pages/user-dashboard";
-import CreatorLiveStudio from "@/pages/creator-live-studio";
+import CreatorLiveStudio from "@/pages/creator-live-studio-rewritten";
 import CreatorEarnings from "@/pages/creator-earnings";
 import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
