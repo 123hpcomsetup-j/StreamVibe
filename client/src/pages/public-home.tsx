@@ -90,15 +90,24 @@ export default function PublicHome() {
   const loginMutation = useMutation({
     mutationFn: (data: { username: string; password: string }) =>
       apiRequest("POST", "/api/auth/login", data),
-    onSuccess: () => {
+    onSuccess: async (userData) => {
       toast({
         title: "Welcome back!",
         description: "You have successfully logged in.",
       });
       setShowAuthDialog(false);
       
-      // Invalidate auth queries to refresh user state instead of page reload
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      // Invalidate auth queries to refresh user state
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      
+      // Immediate redirect based on user role
+      if (userData.role === 'admin') {
+        setLocation('/admin-panel');
+      } else if (userData.role === 'creator') {
+        setLocation('/creator-dashboard');
+      } else if (userData.role === 'viewer') {
+        setLocation('/user-dashboard');
+      }
       
       // Reset form
       setAuthData({ username: "", password: "", confirmPassword: "", role: "viewer" });

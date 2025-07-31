@@ -43,17 +43,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   });
 
-  // Simple session setup with extended persistence - Development mode configuration
+  // Fixed session setup with proper cookie configuration
   app.use(session({
     secret: process.env.SESSION_SECRET || 'dev-secret-key',
     name: 'connect.sid', // Use default session name
     resave: false,
-    saveUninitialized: true, // Create session for anonymous users
+    saveUninitialized: false, // Don't create session for anonymous users - this was causing empty sessions
     rolling: true, // Reset session expiry on each request
     cookie: {
       httpOnly: false, // Allow JavaScript access for debugging
       secure: false, // Always false in development
-      sameSite: 'none', // Most permissive for development
+      sameSite: 'lax', // Changed from 'none' to 'lax' for better cookie persistence
       maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year - persist until manual logout
     }
   }));
