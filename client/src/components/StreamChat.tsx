@@ -57,13 +57,20 @@ export function StreamChat({
 
   const sendMessageMutation = useMutation({
     mutationFn: async (messageText: string) => {
-      return apiRequest(`/api/streams/${streamId}/chat`, 'POST', { message: messageText });
+      console.log('🔍 StreamChat: Sending message:', messageText);
+      console.log('🔍 StreamChat: API endpoint:', `/api/streams/${streamId}/chat`);
+      return apiRequest('POST', `/api/streams/${streamId}/chat`, { 
+        message: messageText,
+        tipAmount: 0 
+      });
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('✅ StreamChat: Message sent successfully:', data);
       setNewMessage('');
-      queryClient.invalidateQueries({ queryKey: [`/api/streams/${streamId}/chat`] });
+      // Don't invalidate queries since WebSocket handles real-time updates
     },
     onError: (error) => {
+      console.error('❌ StreamChat: Failed to send message:', error);
       toast({
         title: "Failed to send message",
         description: error.message,
@@ -75,9 +82,15 @@ export function StreamChat({
   const handleSendMessage = () => {
     if (!newMessage.trim() || sendMessageMutation.isPending) return;
     
+    console.log('🔍 StreamChat: handleSendMessage called');
+    console.log('🔍 StreamChat: Is authenticated:', isAuthenticated);
+    console.log('🔍 StreamChat: Message:', newMessage);
+    
     if (isAuthenticated) {
+      console.log('✅ StreamChat: User authenticated, sending via API');
       sendMessageMutation.mutate(newMessage);
     } else {
+      console.log('❌ StreamChat: User not authenticated, using onSendMessage callback');
       onSendMessage(newMessage);
       setNewMessage('');
     }

@@ -520,7 +520,7 @@ export default function StreamView() {
          style={{ minHeight: '100vh' }}>
       
       {/* Navigation */}
-      {isAuthenticated ? (
+      {isAuthenticated && typedUser ? (
         <Navbar user={typedUser} />
       ) : (
         <nav className="bg-white border-b border-border sticky top-0 z-50">
